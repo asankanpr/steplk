@@ -464,6 +464,61 @@
         }
     }
 </script>
+
+<script>
+    let deferredPrompt;
+    const installBanner = document.getElementById('pwa-install-banner');
+    const btnInstall = document.getElementById('btn-pwa-install');
+    const btnDismiss = document.getElementById('btn-pwa-dismiss');
+
+    // 1. Listen for Chrome's beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent default browser prompt
+        e.preventDefault();
+        // Stash the event so it can be triggered later
+        deferredPrompt = e;
+        
+        // User කලින් Dismiss කර නැත්නම් පමණක් Banner එක පෙන්වන්න
+        if (!localStorage.getItem('pwa_banner_dismissed')) {
+            installBanner.classList.remove('hidden');
+        }
+    });
+
+    // 2. Handle Install Button Click
+    if (btnInstall) {
+        btnInstall.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                // Show the official native install prompt
+                deferredPrompt.prompt();
+                
+                // Wait for the user's choice
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to install prompt: ${outcome}`);
+                
+                // Clear the deferred prompt variable
+                deferredPrompt = null;
+                installBanner.classList.add('hidden');
+            }
+        });
+    }
+
+    // 3. Handle Dismiss Button Click
+    if (btnDismiss) {
+        btnDismiss.addEventListener('click', () => {
+            installBanner.classList.add('hidden');
+            // Save choice so it doesn't show again in this session
+            localStorage.setItem('pwa_banner_dismissed', 'true');
+        });
+    }
+
+    // 4. Hide banner if already installed
+    window.addEventListener('appinstalled', () => {
+        installBanner.classList.add('hidden');
+        deferredPrompt = null;
+        console.log('PWA installed successfully');
+    });
+</script>
+    
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -473,6 +528,23 @@
     });
   }
 </script>
+
+    <!-- Custom PWA Install Banner -->
+<div id="pwa-install-banner" class="fixed bottom-4 left-4 right-4 z-50 bg-brand-card border border-brand-emerald/40 p-4 rounded-2xl shadow-2xl flex items-center justify-between hidden transition-all duration-300">
+    <div class="flex items-center gap-3">
+        <img src="./icons/icon-192.png" alt="StepLK Logo" class="w-10 h-10 rounded-xl shadow">
+        <div>
+            <h4 class="text-xs font-bold text-white">StepLK App එක Install කරගන්න</h4>
+            <p class="text-[10px] text-slate-400">Offline පහසුවෙන් පාවිච්චි කරන්න</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-2">
+        <button id="btn-pwa-dismiss" class="text-slate-400 hover:text-white text-xs px-2 py-1">නැත</button>
+        <button id="btn-pwa-install" class="bg-brand-emerald text-brand-dark font-black text-xs px-3 py-2 rounded-xl shadow-lg shadow-brand-emerald/20 flex items-center gap-1">
+            <i class="fa-solid fa-download"></i> INSTALL
+        </button>
+    </div>
+</div>
     
 </body>
 </html>
