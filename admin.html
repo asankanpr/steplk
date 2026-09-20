@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="si" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StepLK Admin - Mobile Review Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#061626',
+                            card: '#0B1E36',
+                            emerald: '#10B981',
+                            emeraldDark: '#059669',
+                            yellow: '#F59E0B',
+                            charcoal: '#0F172A',
+                            border: '#1E293B',
+                            red: '#EF4444'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-brand-dark text-slate-100 font-sans antialiased min-h-screen pb-20">
+
+    <!-- 1. MOBILE TOP HEADER -->
+    <header class="bg-brand-charcoal border-b border-brand-border sticky top-0 z-50 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <a href="/" class="bg-gradient-to-r from-brand-emerald to-brand-yellow px-2.5 py-1 rounded-lg text-brand-dark font-black text-sm">
+                STEP<span class="text-white">.LK</span>
+            </a>
+            <span class="text-xs bg-amber-500/10 text-brand-yellow border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">Admin Panel</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <span id="pending-count" class="bg-brand-emerald/20 text-brand-emerald border border-brand-emerald/40 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                <i class="fa-solid fa-clock"></i> Pending: <span id="count-val">2</span>
+            </span>
+            <button onclick="alert('Logged out')" class="text-xs bg-slate-800 text-slate-400 p-2 rounded-lg hover:text-white border border-slate-700">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-2xl mx-auto px-4 py-4 space-y-4">
+
+        <!-- STATUS ALERT -->
+        <div id="toast" class="hidden bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <i class="fa-solid fa-circle-check text-base"></i>
+            <span id="toast-msg">Post successfully published!</span>
+        </div>
+
+        <!-- 2. REVIEW ITEM CONTAINER -->
+        <div id="review-card" class="bg-brand-card border border-brand-border rounded-2xl p-4 shadow-xl space-y-4">
+            
+            <!-- HEADER INFO -->
+            <div class="flex items-center justify-between border-b border-brand-border pb-3">
+                <div>
+                    <span class="text-[10px] text-slate-400 block uppercase tracking-wider">Source: Gazette Document</span>
+                    <span class="text-xs text-brand-yellow font-bold"><i class="fa-solid fa-robot"></i> AI Auto-Extracted</span>
+                </div>
+                <span class="bg-slate-800 text-slate-300 text-[11px] px-2.5 py-1 rounded-md border border-slate-700 font-mono">ID: #GZ-8042</span>
+            </div>
+
+            <!-- TOGGLE/EXPAND GAZETTE ORIGINAL IMAGE -->
+            <div class="bg-brand-dark border border-brand-border rounded-xl p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-image text-brand-emerald"></i> මුල් ගැසට් පත්‍රය (Original Image)
+                    </span>
+                    <button onclick="toggleImage()" class="text-xs text-brand-yellow hover:underline flex items-center gap-1">
+                        <i id="zoom-icon" class="fa-solid fa-magnifying-glass-plus"></i> <span id="zoom-txt">විශාල කරන්න</span>
+                    </button>
+                </div>
+                <div id="img-container" class="overflow-hidden rounded-lg max-h-48 transition-all duration-300 border border-slate-800 bg-black/40 flex justify-center">
+                    <img id="gazette-img" src="https://placehold.co/600x800/0f172a/10b981?text=Gazette+Notice+Preview+(Tap+to+Zoom)" alt="Gazette Snippet" class="object-contain w-full cursor-pointer" onclick="toggleImage()">
+                </div>
+            </div>
+
+            <!-- EDITABLE FORM FIELDS (EDIT REVIEW) -->
+            <form id="review-form" onsubmit="event.preventDefault(); publishPost();" class="space-y-3 text-xs">
+                
+                <!-- TITLE -->
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1">තැන්න / පාඨමාලාවේ නම (Title):</label>
+                    <input type="text" id="field-title" value="මහජන සෞඛ්‍ය පරීක්ෂක්ෂ (PHI) - III ශ්‍රේණිය" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                </div>
+
+                <!-- ORGANIZATION -->
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1">ආයතනය (Organization):</label>
+                    <input type="text" id="field-org" value="සෞඛ්‍ය අමාත්‍යාංශය" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                </div>
+
+                <!-- TYPE & MEQ (2-COLUMN GRID) -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-300 mb-1">වර්ගය (Type):</label>
+                        <select id="field-type" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                            <option value="JOB" selected>රැකියාව (JOB)</option>
+                            <option value="COURSE">පාඨමාලාව (COURSE)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-300 mb-1">MEQ Filter Tag:</label>
+                        <select id="field-meq" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                            <option value="NONE">වදගත් නොවේ</option>
+                            <option value="OL">O/L</option>
+                            <option value="AL" selected>A/L</option>
+                            <option value="NVQ">NVQ / Diploma</option>
+                            <option value="DEGREE">Degree</option>
+                            <option value="POST_GRAD">Post Graduate</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- EDUCATIONAL QUALIFICATIONS -->
+                <div>
+                    <label class="block font-semibold text-brand-emerald mb-1"><i class="fa-solid fa-graduation-cap"></i> අධ්‍යාපනික සුදුසුකම් (Education):</label>
+                    <textarea id="field-edu" rows="2" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none leading-relaxed">විද්‍යා විෂය ධාරාවෙන් අ.පො.ස (උ/පෙළ) විෂයන් 3ක් සම්පූර්ණ කර තිබීම.</textarea>
+                </div>
+
+                <!-- EXPERIENCE QUALIFICATIONS -->
+                <div>
+                    <label class="block font-semibold text-brand-yellow mb-1"><i class="fa-solid fa-briefcase"></i> වෘත්තීය පළපුරුද්ද (Experience):</label>
+                    <textarea id="field-exp" rows="2" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none leading-relaxed">අවශ්‍ය නොවේ (ආධුනිකයන් සඳහාද අයදුම් කළ හැක).</textarea>
+                </div>
+
+                <!-- CLOSING DATE & SALARY -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-300 mb-1">අවසන් දිනය (Closing):</label>
+                        <input type="date" id="field-date" value="2026-10-15" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-300 mb-1">වැටුප / ගාස්තුව:</label>
+                        <input type="text" id="field-salary" value="රාජ්‍ය සේවා වැටුප් තලයට අනුව" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                    </div>
+                </div>
+
+            </form>
+
+            <!-- ACTION BUTTONS (STICKY FOOTER ON MOBILE) -->
+            <div class="pt-2 grid grid-cols-2 gap-3 border-t border-slate-800">
+                <button type="button" onclick="rejectPost()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-trash-can"></i> Reject Post
+                </button>
+                <button type="button" onclick="publishPost()" class="bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark py-3 rounded-xl font-black transition flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20">
+                    <i class="fa-solid fa-paper-plane"></i> PUBLISH NOW
+                </button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- JS INTERACTION LOGIC -->
+    <script>
+        let isZoomed = false;
+
+        function toggleImage() {
+            const container = document.getElementById('img-container');
+            const txt = document.getElementById('zoom-txt');
+            const icon = document.getElementById('zoom-icon');
+
+            if (!isZoomed) {
+                container.classList.remove('max-h-48');
+                container.classList.add('max-h-[600px]');
+                txt.innerText = "කුඩා කරන්න";
+                icon.className = "fa-solid fa-magnifying-glass-minus";
+                isZoomed = true;
+            } else {
+                container.classList.add('max-h-48');
+                container.classList.remove('max-h-[600px]');
+                txt.innerText = "විශාල කරන්න";
+                icon.className = "fa-solid fa-magnifying-glass-plus";
+                isZoomed = false;
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function publishPost() {
+            const title = document.getElementById('field-title').value;
+            showToast(`✅ '${title}' පෝස්ටුව සාර්ථකව Live Publish කරන ලදී!`);
+            
+            // Reduce pending count
+            let count = parseInt(document.getElementById('count-val').innerText);
+            if (count > 0) {
+                document.getElementById('count-val').innerText = count - 1;
+            }
+        }
+
+        function rejectPost() {
+            if (confirm("ඔබට මෙම පෝස්ටුව ප්‍රතික්ෂේප (Reject) කිරීමට අවශ්‍යද?")) {
+                showToast("❌ පෝස්ටුව ප්‍රතික්ෂේප කරන ලදී.");
+                let count = parseInt(document.getElementById('count-val').innerText);
+                if (count > 0) {
+                    document.getElementById('count-val').innerText = count - 1;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

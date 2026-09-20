@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="si" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StepLK - Government Jobs, Courses & Daily Utilities</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#061626',
+                            card: '#0B1E36',
+                            emerald: '#10B981',
+                            emeraldDark: '#059669',
+                            yellow: '#F59E0B',
+                            charcoal: '#0F172A',
+                            border: '#1E293B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-brand-dark text-slate-100 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- 1. TOP TICKER TAPE (Mobile & Desktop Daily Utilities) -->
+    <div class="bg-brand-charcoal border-b border-brand-border py-2 px-4 text-xs font-medium overflow-x-auto whitespace-nowrap scrollbar-none flex items-center justify-between gap-6 text-slate-300">
+        <div class="flex items-center gap-6 animate-pulse">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-dollar-sign text-brand-emerald"></i> USD: <strong class="text-white">LKR 302.50</strong></span>
+            <span class="border-r border-slate-700 h-3"></span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-ring text-brand-yellow"></i> Gold 22K: <strong class="text-white">LKR 188,500</strong></span>
+            <span class="border-r border-slate-700 h-3"></span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-clock text-amber-400"></i> රාහු කාලය: <strong class="text-white">1:32 PM - 3:04 PM</strong></span>
+            <span class="border-r border-slate-700 h-3"></span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-compass text-emerald-400"></i> සුබ දිශාව: <strong class="text-white">දකුණ</strong></span>
+        </div>
+        <div class="hidden md:flex items-center gap-2 text-slate-400">
+            <i class="fa-solid fa-shield-halved text-brand-emerald"></i> Verified Govt Sources
+        </div>
+    </div>
+
+    <!-- 2. MAIN HEADER -->
+    <header class="bg-brand-dark/90 backdrop-blur-md border-b border-brand-border sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="#" class="flex items-center gap-2">
+                <div class="bg-gradient-to-r from-brand-emerald to-brand-yellow p-2 rounded-xl text-brand-dark font-black text-xl tracking-wider">
+                    STEP<span class="text-white">.LK</span>
+                </div>
+            </a>
+            
+            <div class="flex items-center gap-3">
+                <a href="/admin" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-gear text-brand-yellow"></i> Admin
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 3. HERO & SEARCH SECTION -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+        <div class="mb-6">
+            <h1 class="text-xl md:text-2xl font-bold text-white mb-2">රැකියා සහ පාඨමාලා මගපෙන්වන්නා</h1>
+            <p class="text-slate-400 text-sm">ආණ්ඩුවේ ගැසට්, පුවත්පත් සහ රාජ්‍ය ආයතනවල නවතම ඇබෑර්තු එකම තැනින්.</p>
+        </div>
+
+        <!-- 4. TAB NAVIGATION & MEQ FILTER -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <!-- Tabs -->
+            <div class="flex bg-brand-charcoal p-1 rounded-xl border border-brand-border w-full md:w-auto">
+                <button id="tab-jobs" onclick="switchTab('JOB')" class="flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-briefcase"></i> රැකියා (Jobs)
+                </button>
+                <button id="tab-courses" onclick="switchTab('COURSE')" class="flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-graduation-cap"></i> පාඨමාලා (Courses)
+                </button>
+            </div>
+
+            <!-- MEQ Filter Chips -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+                <span class="text-xs font-semibold text-slate-400 whitespace-nowrap"><i class="fa-solid fa-filter text-brand-yellow"></i> MEQ:</span>
+                <button onclick="filterMEQ('ALL')" class="meq-btn active px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-emerald bg-brand-emerald/20 text-brand-emerald whitespace-nowrap">සියල්ල</button>
+                <button onclick="filterMEQ('OL')" class="meq-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 whitespace-nowrap">O/L</button>
+                <button onclick="filterMEQ('AL')" class="meq-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 whitespace-nowrap">A/L</button>
+                <button onclick="filterMEQ('DEGREE')" class="meq-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 whitespace-nowrap">Degree</button>
+            </div>
+        </div>
+
+        <!-- 5. CONTENT GRID & DESKTOP SIDEBAR -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- FEED CARDS (2 Columns on Large Screens) -->
+            <div id="cards-container" class="lg:col-span-2 space-y-4">
+                
+                <!-- CARD ITEM 1 -->
+                <div class="bg-brand-card border border-brand-border hover:border-brand-emerald/50 transition rounded-2xl p-5 shadow-lg relative overflow-hidden group">
+                    <div class="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                            <span class="inline-block bg-brand-emerald/10 text-brand-emerald border border-brand-emerald/30 text-[11px] font-bold px-2.5 py-0.5 rounded-md mb-2">
+                                 අවම සුදුසුකම: A/L
+                            </span>
+                            <h2 class="text-lg font-bold text-white group-hover:text-brand-emerald transition">මහජන සෞඛ්‍ය පරීක්ෂක්ෂ (PHI) - III ශ්‍රේණිය</h2>
+                            <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-building text-slate-500"></i> සෞඛ්‍ය අමාත්‍යාංශය</p>
+                        </div>
+                        <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold px-2.5 py-1 rounded-lg text-center whitespace-nowrap">
+                            <i class="fa-solid fa-hourglass-half"></i> තව දින 5යි
+                        </span>
+                    </div>
+
+                    <!-- QUALIFICATIONS BREAKDOWN -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-brand-dark/50 p-3 rounded-xl border border-slate-800/80 my-3 text-xs">
+                        <div>
+                            <span class="text-slate-400 font-semibold block mb-1 text-[11px]"><i class="fa-solid fa-book-open text-brand-emerald"></i> අධ්‍යාපනික සුදුසුකම්:</span>
+                            <p class="text-slate-200">විද්‍යා විෂය ධාරාවෙන් අ.පො.ස (උ/පෙළ) විෂයන් 3ක් සම්පූර්ණ කර තිබීම.</p>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 font-semibold block mb-1 text-[11px]"><i class="fa-solid fa-briefcase text-brand-yellow"></i> පළපුරුද්ද:</span>
+                            <p class="text-slate-200">අවශ්‍ය නොවේ (ආධුනිකයන් සඳහාද අයදුම් කළ හැක).</p>
+                        </div>
+                    </div>
+
+                    <!-- CARD FOOTER -->
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                        <div class="text-slate-400">
+                            <span><i class="fa-solid fa-cake-candles text-slate-500"></i> වයස: 18 - 30</span>
+                        </div>
+                        <a href="#" class="bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                            විස්තර & ගැසට් පත්‍රය <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- CARD ITEM 2 -->
+                <div class="bg-brand-card border border-brand-border hover:border-brand-emerald/50 transition rounded-2xl p-5 shadow-lg relative overflow-hidden group">
+                    <div class="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                            <span class="inline-block bg-blue-500/10 text-blue-400 border border-blue-500/30 text-[11px] font-bold px-2.5 py-0.5 rounded-md mb-2">
+                                අවම සුදුසුකම: O/L
+                            </span>
+                            <h2 class="text-lg font-bold text-white group-hover:text-brand-emerald transition">කළමනාකරණ සේවා නිලධාරී (MN-1)</h2>
+                            <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-building text-slate-500"></i> ශ්‍රී ලංකා රේගුව</p>
+                        </div>
+                        <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold px-2.5 py-1 rounded-lg text-center whitespace-nowrap">
+                            <i class="fa-solid fa-hourglass-half"></i> තව දින 12යි
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-brand-dark/50 p-3 rounded-xl border border-slate-800/80 my-3 text-xs">
+                        <div>
+                            <span class="text-slate-400 font-semibold block mb-1 text-[11px]"><i class="fa-solid fa-book-open text-brand-emerald"></i> අධ්‍යාපනික සුදුසුකම්:</span>
+                            <p class="text-slate-200">අ.පො.ස (සා/පෙළ) සම්මාන සාමාර්ථ 4ක් සහිතව විෂයන් 6ක් සම්පූර්ණ කිරීම.</p>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 font-semibold block mb-1 text-[11px]"><i class="fa-solid fa-briefcase text-brand-yellow"></i> පළපුරුද්ද:</span>
+                            <p class="text-slate-200">රාජ්‍ය හෝ පිළිගත් පෞද්ගලික ආයතනයක වසර 1ක පරිගණක අත්දැකීම්.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                        <div class="text-slate-400">
+                            <span><i class="fa-solid fa-money-bill-wave text-slate-500"></i> වැටුප: LKR 38,500 - 62,000</span>
+                        </div>
+                        <a href="#" class="bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                            විස්තර & ගැසට් පත්‍රය <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- DESKTOP RIGHT SIDEBAR (Sticky Utilities & Ads) -->
+            <div class="hidden lg:block space-y-5">
+                
+                <!-- STICKY UTILITIES BOX -->
+                <div class="bg-brand-card border border-brand-border rounded-2xl p-5 sticky top-20 shadow-xl">
+                    <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
+                        <i class="fa-solid fa-chart-line text-brand-yellow"></i> දෛනික දත්ත (Daily Rates)
+                    </h3>
+
+                    <div class="space-y-3.5 text-xs">
+                        <div class="flex justify-between items-center bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-dollar-sign text-emerald-400"></i> USD Exchange</span>
+                            <span class="font-bold text-white">LKR 302.50</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-euro-sign text-blue-400"></i> EUR Exchange</span>
+                            <span class="font-bold text-white">LKR 331.10</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-coins text-amber-400"></i> රත්තරන් 22K (පවුම)</span>
+                            <span class="font-bold text-white">LKR 188,500</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-gas-pump text-red-400"></i> ඔක්ටේන් 92 (ලීටරය)</span>
+                            <span class="font-bold text-white">LKR 311.00</span>
+                        </div>
+                    </div>
+
+                    <!-- BANNER AD PLACEHOLDER FOR ADSENSE -->
+                    <div class="mt-5 bg-slate-900 border border-dashed border-slate-700 rounded-xl p-4 text-center">
+                        <span class="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Advertisement</span>
+                        <div class="h-32 bg-slate-800/50 rounded-lg flex items-center justify-center text-xs text-slate-500">
+                            Google AdSense Banner (Sticky)
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-brand-charcoal border-t border-brand-border py-6 mt-12 text-center text-xs text-slate-500">
+        <p>© 2026 StepLK (steplk.com) — Powered by Official Government Gazette & Public Sources.</p>
+    </footer>
+
+    <!-- INTERACTIVE TAB & FILTER SCRIPT -->
+    <script>
+        function switchTab(type) {
+            const btnJobs = document.getElementById('tab-jobs');
+            const btnCourses = document.getElementById('tab-courses');
+
+            if (type === 'JOB') {
+                btnJobs.className = "flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-2";
+                btnCourses.className = "flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-2";
+            } else {
+                btnCourses.className = "flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-2";
+                btnJobs.className = "flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-2";
+            }
+        }
+
+        function filterMEQ(level) {
+            document.querySelectorAll('.meq-btn').forEach(btn => {
+                btn.className = "meq-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 whitespace-nowrap";
+            });
+            event.target.className = "meq-btn active px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-emerald bg-brand-emerald/20 text-brand-emerald whitespace-nowrap";
+        }
+    </script>
+</body>
+</html>
