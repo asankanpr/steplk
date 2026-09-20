@@ -28,144 +28,295 @@
     </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-brand-dark text-slate-100 font-sans antialiased min-h-screen pb-20">
+<body class="bg-brand-dark text-slate-100 font-sans antialiased min-h-screen">
 
-    <!-- 1. MOBILE TOP HEADER -->
-    <header class="bg-brand-charcoal border-b border-brand-border sticky top-0 z-50 px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-            <a href="/" class="bg-gradient-to-r from-brand-emerald to-brand-yellow px-2.5 py-1 rounded-lg text-brand-dark font-black text-sm">
+    <!-- ========================================== -->
+    <!-- 1. AUTH LOGIN SCREEN (AUTHENTICATION GUARD) -->
+    <!-- ========================================== -->
+    <div id="login-modal" class="fixed inset-0 z-[100] bg-brand-dark flex items-center justify-center p-4">
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 text-center">
+            <div class="inline-flex bg-gradient-to-r from-brand-emerald to-brand-yellow px-3 py-1.5 rounded-xl text-brand-dark font-black text-xl mb-1">
                 STEP<span class="text-white">.LK</span>
-            </a>
-            <span class="text-xs bg-amber-500/10 text-brand-yellow border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">Admin Panel</span>
-        </div>
+            </div>
+            <h2 class="text-base font-bold text-white">Admin Login</h2>
+            <p class="text-xs text-slate-400">Dashboard එකට පිවිසීමට Admin Credentials ඇතුළත් කරන්න.</p>
 
-        <div class="flex items-center gap-2">
-            <span id="pending-count" class="bg-brand-emerald/20 text-brand-emerald border border-brand-emerald/40 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-                <i class="fa-solid fa-clock"></i> Pending: <span id="count-val">2</span>
-            </span>
-            <button onclick="alert('Logged out')" class="text-xs bg-slate-800 text-slate-400 p-2 rounded-lg hover:text-white border border-slate-700">
-                <i class="fa-solid fa-right-from-bracket"></i>
-            </button>
-        </div>
-    </header>
-
-    <main class="max-w-2xl mx-auto px-4 py-4 space-y-4">
-
-        <!-- STATUS ALERT -->
-        <div id="toast" class="hidden bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
-            <i class="fa-solid fa-circle-check text-base"></i>
-            <span id="toast-msg">Post successfully published!</span>
-        </div>
-
-        <!-- 2. REVIEW ITEM CONTAINER -->
-        <div id="review-card" class="bg-brand-card border border-brand-border rounded-2xl p-4 shadow-xl space-y-4">
-            
-            <!-- HEADER INFO -->
-            <div class="flex items-center justify-between border-b border-brand-border pb-3">
+            <form id="login-form" class="space-y-3 text-left">
                 <div>
-                    <span class="text-[10px] text-slate-400 block uppercase tracking-wider">Source: Gazette Document</span>
-                    <span class="text-xs text-brand-yellow font-bold"><i class="fa-solid fa-robot"></i> AI Auto-Extracted</span>
+                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Email Address</label>
+                    <input type="email" id="login-email" required placeholder="admin@steplk.com" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-xs text-white outline-none">
                 </div>
-                <span class="bg-slate-800 text-slate-300 text-[11px] px-2.5 py-1 rounded-md border border-slate-700 font-mono">ID: #GZ-8042</span>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-xs text-white outline-none">
+                </div>
+                
+                <div id="login-error" class="hidden text-xs text-red-400 bg-red-500/10 p-2 rounded-lg border border-red-500/20 text-center font-semibold"></div>
+
+                <button type="submit" id="btn-login" class="w-full bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-black py-2.5 rounded-xl transition text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20">
+                    <i class="fa-solid fa-lock"></i> LOGIN TO DASHBOARD
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 2. MAIN ADMIN DASHBOARD (HIDDEN UNTIL AUTH) -->
+    <!-- ========================================== -->
+    <div id="admin-app" class="hidden pb-20">
+        
+        <!-- TOP HEADER -->
+        <header class="bg-brand-charcoal border-b border-brand-border sticky top-0 z-50 px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="bg-gradient-to-r from-brand-emerald to-brand-yellow px-2.5 py-1 rounded-lg text-brand-dark font-black text-sm">
+                    STEP<span class="text-white">.LK</span>
+                </span>
+                <span class="text-xs bg-amber-500/10 text-brand-yellow border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">Admin Panel</span>
             </div>
 
-            <!-- TOGGLE/EXPAND GAZETTE ORIGINAL IMAGE -->
-            <div class="bg-brand-dark border border-brand-border rounded-xl p-3">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                        <i class="fa-solid fa-file-image text-brand-emerald"></i> මුල් ගැසට් පත්‍රය (Original Image)
-                    </span>
-                    <button onclick="toggleImage()" class="text-xs text-brand-yellow hover:underline flex items-center gap-1">
-                        <i id="zoom-icon" class="fa-solid fa-magnifying-glass-plus"></i> <span id="zoom-txt">විශාල කරන්න</span>
+            <div class="flex items-center gap-2">
+                <span id="pending-count" class="bg-brand-emerald/20 text-brand-emerald border border-brand-emerald/40 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <i class="fa-solid fa-clock"></i> Pending: <span id="count-val">0</span>
+                </span>
+                <button id="btn-logout" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-lg border border-red-500/30 font-semibold transition flex items-center gap-1">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </header>
+
+        <main class="max-w-2xl mx-auto px-4 py-4 space-y-4">
+
+            <!-- TOAST ALERT -->
+            <div id="toast" class="hidden bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-circle-check text-base"></i>
+                <span id="toast-msg">Action successful!</span>
+            </div>
+
+            <!-- REVIEW ITEM CONTAINER -->
+            <div id="review-card" class="bg-brand-card border border-brand-border rounded-2xl p-4 shadow-xl space-y-4">
+                
+                <div class="flex items-center justify-between border-b border-brand-border pb-3">
+                    <div>
+                        <span class="text-[10px] text-slate-400 block uppercase tracking-wider">Source: Gazette Document</span>
+                        <span class="text-xs text-brand-yellow font-bold"><i class="fa-solid fa-robot"></i> AI Auto-Extracted</span>
+                    </div>
+                    <span id="item-id-display" class="bg-slate-800 text-slate-300 text-[11px] px-2.5 py-1 rounded-md border border-slate-700 font-mono">No Items</span>
+                </div>
+
+                <!-- GAZETTE IMAGE SNIPPET -->
+                <div class="bg-brand-dark border border-brand-border rounded-xl p-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-image text-brand-emerald"></i> මුල් ගැසට් පත්‍රය (Original Image)
+                        </span>
+                        <button id="btn-toggle-img" class="text-xs text-brand-yellow hover:underline flex items-center gap-1">
+                            <i id="zoom-icon" class="fa-solid fa-magnifying-glass-plus"></i> <span id="zoom-txt">විශාල කරන්න</span>
+                        </button>
+                    </div>
+                    <div id="img-container" class="overflow-hidden rounded-lg max-h-48 transition-all duration-300 border border-slate-800 bg-black/40 flex justify-center">
+                        <img id="gazette-img" src="https://placehold.co/600x800/0f172a/10b981?text=Gazette+Notice+Preview" alt="Gazette Snippet" class="object-contain w-full cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- EDITABLE FORM -->
+                <form id="review-form" class="space-y-3 text-xs">
+                    <input type="hidden" id="current-post-id">
+
+                    <div>
+                        <label class="block font-semibold text-slate-300 mb-1">තැන්න / පාඨමාලාවේ නම (Title):</label>
+                        <input type="text" id="field-title" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-300 mb-1">ආයතනය (Organization):</label>
+                        <input type="text" id="field-org" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-semibold text-slate-300 mb-1">වර්ගය (Type):</label>
+                            <select id="field-type" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                                <option value="JOB">රැකියාව (JOB)</option>
+                                <option value="COURSE">පාඨමාලාව (COURSE)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-300 mb-1">MEQ Filter Tag:</label>
+                            <select id="field-meq" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                                <option value="NONE">වදගත් නොවේ</option>
+                                <option value="OL">O/L</option>
+                                <option value="AL">A/L</option>
+                                <option value="NVQ">NVQ / Diploma</option>
+                                <option value="DEGREE">Degree</option>
+                                <option value="POST_GRAD">Post Graduate</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-brand-emerald mb-1"><i class="fa-solid fa-graduation-cap"></i> අධ්‍යාපනික සුදුසුකම් (Education):</label>
+                        <textarea id="field-edu" rows="2" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none leading-relaxed"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-brand-yellow mb-1"><i class="fa-solid fa-briefcase"></i> වෘත්තීය පළපුරුද්ද (Experience):</label>
+                        <textarea id="field-exp" rows="2" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none leading-relaxed"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-semibold text-slate-300 mb-1">අවසන් දිනය (Closing):</label>
+                            <input type="date" id="field-date" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-300 mb-1">වැටුප / ගාස්තුව:</label>
+                            <input type="text" id="field-salary" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                        </div>
+                    </div>
+                </form>
+
+                <!-- ACTION BUTTONS -->
+                <div class="pt-2 grid grid-cols-2 gap-3 border-t border-slate-800">
+                    <button type="button" id="btn-reject" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-trash-can"></i> Reject Post
+                    </button>
+                    <button type="button" id="btn-publish" class="bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark py-3 rounded-xl font-black transition flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20">
+                        <i class="fa-solid fa-paper-plane"></i> PUBLISH NOW
                     </button>
                 </div>
-                <div id="img-container" class="overflow-hidden rounded-lg max-h-48 transition-all duration-300 border border-slate-800 bg-black/40 flex justify-center">
-                    <img id="gazette-img" src="https://placehold.co/600x800/0f172a/10b981?text=Gazette+Notice+Preview+(Tap+to+Zoom)" alt="Gazette Snippet" class="object-contain w-full cursor-pointer" onclick="toggleImage()">
-                </div>
+
             </div>
+        </main>
+    </div>
 
-            <!-- EDITABLE FORM FIELDS (EDIT REVIEW) -->
-            <form id="review-form" onsubmit="event.preventDefault(); publishPost();" class="space-y-3 text-xs">
-                
-                <!-- TITLE -->
-                <div>
-                    <label class="block font-semibold text-slate-300 mb-1">තැන්න / පාඨමාලාවේ නම (Title):</label>
-                    <input type="text" id="field-title" value="මහජන සෞඛ්‍ය පරීක්ෂක්ෂ (PHI) - III ශ්‍රේණිය" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
-                </div>
+    <!-- ========================================== -->
+    <!-- 3. SUPABASE AUTH & REVIEW CONTROLLER SCRIPT -->
+    <!-- ========================================== -->
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
-                <!-- ORGANIZATION -->
-                <div>
-                    <label class="block font-semibold text-slate-300 mb-1">ආයතනය (Organization):</label>
-                    <input type="text" id="field-org" value="සෞඛ්‍ය අමාත්‍යාංශය" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
-                </div>
+        // Supabase Credentials (ඔබේ Credentials මෙතැනට යොදන්න)
+        const SUPABASE_URL = 'https://your-project-id.supabase.co';
+        const SUPABASE_ANON_KEY = 'your-anon-key-here';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-                <!-- TYPE & MEQ (2-COLUMN GRID) -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-semibold text-slate-300 mb-1">වර්ගය (Type):</label>
-                        <select id="field-type" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
-                            <option value="JOB" selected>රැකියාව (JOB)</option>
-                            <option value="COURSE">පාඨමාලාව (COURSE)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-300 mb-1">MEQ Filter Tag:</label>
-                        <select id="field-meq" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
-                            <option value="NONE">වදගත් නොවේ</option>
-                            <option value="OL">O/L</option>
-                            <option value="AL" selected>A/L</option>
-                            <option value="NVQ">NVQ / Diploma</option>
-                            <option value="DEGREE">Degree</option>
-                            <option value="POST_GRAD">Post Graduate</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- EDUCATIONAL QUALIFICATIONS -->
-                <div>
-                    <label class="block font-semibold text-brand-emerald mb-1"><i class="fa-solid fa-graduation-cap"></i> අධ්‍යාපනික සුදුසුකම් (Education):</label>
-                    <textarea id="field-edu" rows="2" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none leading-relaxed">විද්‍යා විෂය ධාරාවෙන් අ.පො.ස (උ/පෙළ) විෂයන් 3ක් සම්පූර්ණ කර තිබීම.</textarea>
-                </div>
-
-                <!-- EXPERIENCE QUALIFICATIONS -->
-                <div>
-                    <label class="block font-semibold text-brand-yellow mb-1"><i class="fa-solid fa-briefcase"></i> වෘත්තීය පළපුරුද්ද (Experience):</label>
-                    <textarea id="field-exp" rows="2" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none leading-relaxed">අවශ්‍ය නොවේ (ආධුනිකයන් සඳහාද අයදුම් කළ හැක).</textarea>
-                </div>
-
-                <!-- CLOSING DATE & SALARY -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-semibold text-slate-300 mb-1">අවසන් දිනය (Closing):</label>
-                        <input type="date" id="field-date" value="2026-10-15" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-300 mb-1">වැටුප / ගාස්තුව:</label>
-                        <input type="text" id="field-salary" value="රාජ්‍ය සේවා වැටුප් තලයට අනුව" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
-                    </div>
-                </div>
-
-            </form>
-
-            <!-- ACTION BUTTONS (STICKY FOOTER ON MOBILE) -->
-            <div class="pt-2 grid grid-cols-2 gap-3 border-t border-slate-800">
-                <button type="button" onclick="rejectPost()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-trash-can"></i> Reject Post
-                </button>
-                <button type="button" onclick="publishPost()" class="bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark py-3 rounded-xl font-black transition flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20">
-                    <i class="fa-solid fa-paper-plane"></i> PUBLISH NOW
-                </button>
-            </div>
-
-        </div>
-
-    </main>
-
-    <!-- JS INTERACTION LOGIC -->
-    <script>
         let isZoomed = false;
 
-        function toggleImage() {
+        // UI Elements
+        const loginModal = document.getElementById('login-modal');
+        const adminApp = document.getElementById('admin-app');
+        const loginForm = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error');
+
+        // Check Session on Load
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                showDashboard();
+                loadPendingPosts();
+            } else {
+                showLoginModal();
+            }
+        });
+
+        // Login Action
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                loginError.innerText = '❌ Email හෝ Password වැරදියි!';
+                loginError.classList.remove('hidden');
+            } else {
+                showDashboard();
+                loadPendingPosts();
+            }
+        });
+
+        // Logout Action
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            showLoginModal();
+        });
+
+        // Fetch Pending Posts from Supabase
+        async function loadPendingPosts() {
+            const { data, error, count } = await supabase
+                .from('posts')
+                .select('*', { count: 'exact' })
+                .eq('status', 'PENDING')
+                .order('created_at', { ascending: true });
+
+            if (data && data.length > 0) {
+                document.getElementById('count-val').innerText = data.length;
+                populateForm(data[0]); // Load first pending item
+            } else {
+                document.getElementById('count-val').innerText = '0';
+                document.getElementById('item-id-display').innerText = 'No Pending Items';
+            }
+        }
+
+        // Populate Form Fields
+        function populateForm(item) {
+            document.getElementById('current-post-id').value = item.id;
+            document.getElementById('item-id-display').innerText = `ID: #${item.id.substring(0, 8)}`;
+            document.getElementById('field-title').value = item.title || '';
+            document.getElementById('field-org').value = item.organization || '';
+            document.getElementById('field-type').value = item.type || 'JOB';
+            document.getElementById('field-meq').value = item.meq_level || 'NONE';
+            document.getElementById('field-edu').value = item.educational_qualifications || '';
+            document.getElementById('field-exp').value = item.experience_qualifications || '';
+            document.getElementById('field-date').value = item.closing_date || '';
+            document.getElementById('field-salary').value = item.salary_or_fee || '';
+            if (item.pdf_page_url) {
+                document.getElementById('gazette-img').src = item.pdf_page_url;
+            }
+        }
+
+        // Publish Post
+        document.getElementById('btn-publish').addEventListener('click', async () => {
+            const postId = document.getElementById('current-post-id').value;
+            if (!postId) return;
+
+            const updatedData = {
+                title: document.getElementById('field-title').value,
+                organization: document.getElementById('field-org').value,
+                type: document.getElementById('field-type').value,
+                meq_level: document.getElementById('field-meq').value,
+                educational_qualifications: document.getElementById('field-edu').value,
+                experience_qualifications: document.getElementById('field-exp').value,
+                closing_date: document.getElementById('field-date').value,
+                salary_or_fee: document.getElementById('field-salary').value,
+                status: 'PUBLISHED'
+            };
+
+            const { error } = await supabase.from('posts').update(updatedData).eq('id', postId);
+
+            if (!error) {
+                showToast("✅ පෝස්ටුව සාර්ථකව Live Publish කරන ලදී!");
+                loadPendingPosts();
+            }
+        });
+
+        // Reject Post
+        document.getElementById('btn-reject').addEventListener('click', async () => {
+            const postId = document.getElementById('current-post-id').value;
+            if (!postId) return;
+
+            if (confirm("මෙම පෝස්ටුව ප්‍රතික්ෂේප (Reject) කිරීමට අවශ්‍යද?")) {
+                const { error } = await supabase.from('posts').update({ status: 'REJECTED' }).eq('id', postId);
+                if (!error) {
+                    showToast("❌ පෝස්ටුව ප්‍රතික්ෂේප කරන ලදී.");
+                    loadPendingPosts();
+                }
+            }
+        });
+
+        // Image Zoom Toggle
+        document.getElementById('btn-toggle-img').addEventListener('click', () => {
             const container = document.getElementById('img-container');
             const txt = document.getElementById('zoom-txt');
             const icon = document.getElementById('zoom-icon');
@@ -183,34 +334,24 @@
                 icon.className = "fa-solid fa-magnifying-glass-plus";
                 isZoomed = false;
             }
+        });
+
+        // UI Helpers
+        function showDashboard() {
+            loginModal.classList.add('hidden');
+            adminApp.classList.remove('hidden');
         }
 
-        function showToast(message) {
+        function showLoginModal() {
+            loginModal.classList.remove('hidden');
+            adminApp.classList.add('hidden');
+        }
+
+        function showToast(msg) {
             const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = message;
+            document.getElementById('toast-msg').innerText = msg;
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 3000);
-        }
-
-        function publishPost() {
-            const title = document.getElementById('field-title').value;
-            showToast(`✅ '${title}' පෝස්ටුව සාර්ථකව Live Publish කරන ලදී!`);
-            
-            // Reduce pending count
-            let count = parseInt(document.getElementById('count-val').innerText);
-            if (count > 0) {
-                document.getElementById('count-val').innerText = count - 1;
-            }
-        }
-
-        function rejectPost() {
-            if (confirm("ඔබට මෙම පෝස්ටුව ප්‍රතික්ෂේප (Reject) කිරීමට අවශ්‍යද?")) {
-                showToast("❌ පෝස්ටුව ප්‍රතික්ෂේප කරන ලදී.");
-                let count = parseInt(document.getElementById('count-val').innerText);
-                if (count > 0) {
-                    document.getElementById('count-val').innerText = count - 1;
-                }
-            }
         }
     </script>
 </body>
