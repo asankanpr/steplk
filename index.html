@@ -242,5 +242,212 @@
             event.target.className = "meq-btn active px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-emerald bg-brand-emerald/20 text-brand-emerald whitespace-nowrap";
         }
     </script>
+
+
+<!----------------------------- Supabase JS Client (ES Module) --------------------------->
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+    // 1. Supabase Connection Credentials
+    const SUPABASE_URL = 'https://your-project-id.supabase.co';
+    const SUPABASE_ANON_KEY = 'your-anon-key-here'; // Public Read Only Key
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Global Filter State
+    let selectedType = 'ALL'; // ALL | JOB | COURSE
+    let selectedMeq = 'ALL';  // ALL | OL | AL | NVQ | DEGREE | POST_GRAD
+    let searchQuery = '';
+
+    // Initialize Page Data
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchDailyUtilities();
+        fetchPublishedPosts();
+        setupFilterListeners();
+    });
+
+    // ==========================================
+    // 1. Fetch Daily Utilities (Rates, Gold, Rahu)
+    // ==========================================
+    async function fetchDailyUtilities() {
+        try {
+            const { data, error } = await supabase
+                .from('daily_utilities')
+                .select('*');
+
+            if (error) throw error;
+
+            // Map data to UI elements
+            data.forEach(item => {
+                const val = item.data_value?.value || '-';
+                
+                if (item.key_name === 'USD_LKR') {
+                    document.getElementById('ticker-usd').innerText = val;
+                } else if (item.key_name === 'GOLD_22K') {
+                    document.getElementById('ticker-gold').innerText = val;
+                } else if (item.key_name === 'RAHU_TIME') {
+                    document.getElementById('ticker-rahu').innerText = val;
+                } else if (item.key_name === 'SUBHA_DISAWA') {
+                    document.getElementById('ticker-disawa').innerText = val;
+                }
+            });
+        } catch (err) {
+            console.error('Error fetching utilities:', err.message);
+        }
+    }
+
+    // ==========================================
+    // 2. Fetch Live Published Posts with Filters
+    // ==========================================
+    async function fetchPublishedPosts() {
+        const listContainer = document.getElementById('posts-container');
+        const loadingSpinner = document.getElementById('loading-spinner');
+
+        // Show Loading State
+        if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+
+        try {
+            // Build Base Query (Only PUBLISHED posts)
+            let query = supabase
+                .from('posts')
+                .select('*')
+                .eq('status', 'PUBLISHED')
+                .order('created_at', { ascending: false });
+
+            // Apply Filters
+            if (selectedType !== 'ALL') {
+                query = query.eq('type', selectedType);
+            }
+            if (selectedMeq !== 'ALL') {
+                query = query.eq('meq_level', selectedMeq);
+            }
+            if (searchQuery.trim() !== '') {
+                query = query.or(`title.ilike.%${searchQuery}%,organization.ilike.%${searchQuery}%`);
+            }
+
+            const { data: posts, error } = await query;
+
+            if (error) throw error;
+
+            // Hide Loading
+            if (loadingSpinner) loadingSpinner.classList.add('hidden');
+
+            // Render Posts
+            renderPosts(posts, listContainer);
+
+        } catch (err) {
+            console.error('Error fetching posts:', err.message);
+            listContainer.innerHTML = `
+                <div class="text-center text-red-400 py-8 bg-brand-card rounded-2xl border border-red-500/20">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i>
+                    <p class="text-xs">දත්ත ලබා ගැනීමේ දෝෂයක් සිදු විය. පසුව නැවත උත්සාහ කරන්න.</p>
+                </div>`;
+        }
+    }
+
+    // ==========================================
+    // 3. Render Post Cards HTML
+    // ==========================================
+    function renderPosts(posts, container) {
+        if (!posts || posts.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-slate-400 py-10 bg-brand-card rounded-2xl border border-brand-border">
+                    <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-600"></i>
+                    <p class="text-xs">ඔබ සොයන නිර්ණායකවලට අදාළ සටහන් කිසිවක් හමු නොවුණි.</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = posts.map(post => {
+            const isJob = post.type === 'JOB';
+            const badgeColor = isJob 
+                ? 'bg-emerald-500/10 text-brand-emerald border-emerald-500/30' 
+                : 'bg-amber-500/10 text-brand-yellow border-amber-500/30';
+
+            return `
+            <div class="bg-brand-card border border-brand-border rounded-2xl p-4 shadow-lg hover:border-slate-700 transition space-y-3">
+                <!-- Header Tags -->
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="${badgeColor} border px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                        <i class="fa-solid ${isJob ? 'fa-briefcase' : 'fa-graduation-cap'}"></i> ${post.type}
+                    </span>
+                    <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono border border-slate-700">
+                        ${post.meq_level}
+                    </span>
+                </div>
+
+                <!-- Title & Organization -->
+                <div>
+                    <h3 class="text-sm font-bold text-white leading-snug hover:text-brand-emerald transition cursor-pointer">
+                        ${post.title}
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                        <i class="fa-solid fa-building text-slate-500"></i> ${post.organization}
+                    </p>
+                </div>
+
+                <!-- Qualifications Summary -->
+                <div class="bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800 text-xs space-y-1 text-slate-300">
+                    <p class="line-clamp-2">
+                        <strong class="text-brand-emerald">සුදුසුකම්:</strong> ${post.educational_qualifications || 'සඳහන් කර නැත'}
+                    </p>
+                    ${post.experience_qualifications ? `
+                    <p class="line-clamp-1 text-slate-400">
+                        <strong>පළපුරුද්ද:</strong> ${post.experience_qualifications}
+                    </p>` : ''}
+                </div>
+
+                <!-- Footer Info & Action -->
+                <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
+                    <div class="text-slate-400">
+                        <span class="block text-[10px] text-slate-500">අවසන් දිනය</span>
+                        <span class="font-bold text-amber-400"><i class="fa-regular fa-calendar"></i> ${post.closing_date}</span>
+                    </div>
+                    <button onclick="openPostModal('${post.id}')" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-3 py-1.5 rounded-xl border border-slate-700 transition flex items-center gap-1.5 text-xs">
+                        විස්තර බලන්න <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // ==========================================
+    // 4. Setup Event Listeners (Filtering & Search)
+    // ==========================================
+    function setupFilterListeners() {
+        // Type Filter (ALL / JOB / COURSE)
+        document.querySelectorAll('.filter-type-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-type-btn').forEach(b => b.classList.remove('bg-brand-emerald', 'text-brand-dark'));
+                e.target.classList.add('bg-brand-emerald', 'text-brand-dark');
+                selectedType = e.target.dataset.type;
+                fetchPublishedPosts();
+            });
+        });
+
+        // MEQ Level Filter Dropdown
+        const meqSelect = document.getElementById('filter-meq-select');
+        if (meqSelect) {
+            meqSelect.addEventListener('change', (e) => {
+                selectedMeq = e.target.value;
+                fetchPublishedPosts();
+            });
+        }
+
+        // Live Search Input (Debounced)
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            let timeout = null;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    searchQuery = e.target.value;
+                    fetchPublishedPosts();
+                }, 300); // 300ms delay
+            });
+        }
+    }
+</script>
+
+    
 </body>
 </html>
