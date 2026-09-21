@@ -15,6 +15,8 @@
     <meta name="theme-color" content="#061626">
     
     <!-- iOS (Apple) Support -->
+    <!-- පරණ Line එක වෙනුවට මේක දාන්න -->
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="StepLK">
@@ -531,21 +533,19 @@
 
 
     
-    <!-- Custom PWA Install Banner -->
-<div id="pwa-install-banner" class="fixed bottom-4 left-4 right-4 z-50 bg-brand-card border border-brand-emerald/40 p-4 rounded-2xl shadow-2xl flex items-center justify-between hidden transition-all duration-300">
+<!-- Posts Display Container -->
+<div id="posts-container"></div>
+<div id="loading-spinner" class="hidden">Loading...</div>
+
+<!-- PWA Install Banner Container -->
+<div id="pwa-install-banner" class="fixed bottom-4 left-4 right-4 z-50 bg-brand-card border border-brand-emerald/40 p-4 rounded-2xl shadow-2xl flex items-center justify-between hidden">
     <div class="flex items-center gap-3">
-        <img src="./icons/icon-192.png" alt="StepLK Logo" class="w-10 h-10 rounded-xl shadow">
+        <img src="./icons/icon-192.png" alt="StepLK" class="w-10 h-10 rounded-xl">
         <div>
             <h4 class="text-xs font-bold text-white">StepLK App එක Install කරගන්න</h4>
-            <p class="text-[10px] text-slate-400">Offline පහසුවෙන් පාවිච්චි කරන්න</p>
         </div>
     </div>
-    <div class="flex items-center gap-2">
-        <button id="btn-pwa-dismiss" class="text-slate-400 hover:text-white text-xs px-2 py-1">නැත</button>
-        <button id="btn-pwa-install" class="bg-brand-emerald text-brand-dark font-black text-xs px-3 py-2 rounded-xl shadow-lg shadow-brand-emerald/20 flex items-center gap-1">
-            <i class="fa-solid fa-download"></i> INSTALL
-        </button>
-    </div>
+    <button id="btn-pwa-install" class="bg-brand-emerald text-brand-dark font-black text-xs px-3 py-2 rounded-xl">INSTALL</button>
 </div>
 
     
