@@ -531,16 +531,51 @@
 <div id="posts-container"></div>
 <div id="loading-spinner" class="hidden">Loading...</div>
 
-<!-- PWA Install Banner Container -->
-<div id="pwa-install-banner" class="fixed bottom-4 left-4 right-4 z-50 bg-brand-card border border-brand-emerald/40 p-4 rounded-2xl shadow-2xl flex items-center justify-between hidden">
-    <div class="flex items-center gap-3">
-        <img src="./icons/icon-192.png" alt="StepLK" class="w-10 h-10 rounded-xl">
-        <div>
-            <h4 class="text-xs font-bold text-white">StepLK App එක Install කරගන්න</h4>
+
+
+
+
+    <!-- 1. PWA Custom Install Banner HTML -->
+    <div id="pwa-install-banner" class="fixed bottom-4 left-4 right-4 z-50 bg-slate-900 border border-emerald-500/40 p-4 rounded-2xl shadow-2xl flex items-center justify-between hidden">
+        <div class="flex items-center gap-3">
+            <img src="./icons/icon-192.png" alt="StepLK" class="w-10 h-10 rounded-xl">
+            <div>
+                <h4 class="text-sm font-bold text-white">StepLK App එක Install කරගන්න</h4>
+                <p class="text-xs text-slate-400">Home Screen එකට එකතු කරගන්න</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="btn-pwa-install" class="bg-emerald-500 text-slate-950 font-bold text-xs px-3 py-2 rounded-xl">INSTALL</button>
+            <button id="btn-pwa-close" onclick="document.getElementById('pwa-install-banner').classList.add('hidden')" class="text-slate-400 hover:text-white px-2">✕</button>
         </div>
     </div>
-    <button id="btn-pwa-install" class="bg-brand-emerald text-brand-dark font-black text-xs px-3 py-2 rounded-xl">INSTALL</button>
-</div>
+
+    <!-- 2. PWA Script (වෙනම Script Tag එකක් ලෙස) -->
+    <script>
+      let deferredPrompt;
+      const installBanner = document.getElementById('pwa-install-banner');
+      const installBtn = document.getElementById('btn-pwa-install');
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          deferredPrompt = e;
+          if (installBanner) {
+              installBanner.classList.remove('hidden');
+          }
+      });
+
+      if (installBtn) {
+          installBtn.addEventListener('click', async () => {
+              if (deferredPrompt) {
+                  deferredPrompt.prompt();
+                  const { outcome } = await deferredPrompt.userChoice;
+                  console.log(`User response: ${outcome}`);
+                  deferredPrompt = null;
+                  if (installBanner) installBanner.classList.add('hidden');
+              }
+          });
+      }
+    </script>
 
     
     
