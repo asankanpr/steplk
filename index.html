@@ -461,122 +461,71 @@
     }
 </script>
 
-<script>
-    let deferredPrompt;
-    const installBanner = document.getElementById('pwa-install-banner');
-    const btnInstall = document.getElementById('btn-pwa-install');
-    const btnDismiss = document.getElementById('btn-pwa-dismiss');
 
-    // 1. Listen for Chrome's beforeinstallprompt event
-    window.addEventListener('beforeinstallprompt', (e) => {
-        // Prevent default browser prompt
-        e.preventDefault();
-        // Stash the event so it can be triggered later
-        deferredPrompt = e;
-        
-        // User කලින් Dismiss කර නැත්නම් පමණක් Banner එක පෙන්වන්න
-        if (!localStorage.getItem('pwa_banner_dismissed')) {
-            installBanner.classList.remove('hidden');
-        }
-    });
-
-    // 2. Handle Install Button Click
-    if (btnInstall) {
-        btnInstall.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                // Show the official native install prompt
-                deferredPrompt.prompt();
-                
-                // Wait for the user's choice
-                const { outcome } = await deferredPrompt.userChoice;
-                console.log(`User response to install prompt: ${outcome}`);
-                
-                // Clear the deferred prompt variable
-                deferredPrompt = null;
-                installBanner.classList.add('hidden');
-            }
-        });
-    }
-
-    // 3. Handle Dismiss Button Click
-    if (btnDismiss) {
-        btnDismiss.addEventListener('click', () => {
-            installBanner.classList.add('hidden');
-            // Save choice so it doesn't show again in this session
-            localStorage.setItem('pwa_banner_dismissed', 'true');
-        });
-    }
-
-    // 4. Hide banner if already installed
-    window.addEventListener('appinstalled', () => {
-        installBanner.classList.add('hidden');
-        deferredPrompt = null;
-        console.log('PWA installed successfully');
-    });
-</script>
     
+<!-- Posts Display Container & Loading Spinner -->
+<div id="posts-container"></div>
+<div id="loading-spinner" class="hidden">Loading...</div>
+
+<!-- PWA Custom Install Banner HTML -->
+<div id="pwa-install-banner" class="fixed bottom-4 left-4 right-4 z-50 bg-slate-900 border border-emerald-500/40 p-4 rounded-2xl shadow-2xl flex items-center justify-between hidden">
+    <div class="flex items-center gap-3">
+        <img src="./icons/icon-192.png" alt="StepLK" class="w-10 h-10 rounded-xl">
+        <div>
+            <h4 class="text-sm font-bold text-white">StepLK App එක Install කරගන්න</h4>
+            <p class="text-xs text-slate-400">Home Screen එකට එකතු කරගන්න</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-2">
+        <button id="btn-pwa-install" class="bg-emerald-500 text-slate-950 font-bold text-xs px-3 py-2 rounded-xl">INSTALL</button>
+        <button id="btn-pwa-close" onclick="document.getElementById('pwa-install-banner').classList.add('hidden')" class="text-slate-400 hover:text-white px-2">✕</button>
+    </div>
+</div>
+
+<!-- 1. Service Worker Register Script -->
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
+      navigator.serviceWorker.register('./sw.js')
         .then(reg => console.log('✅ Service Worker Registered:', reg.scope))
         .catch(err => console.error('❌ Service Worker Registration Failed:', err));
     });
   }
 </script>
 
+<!-- 2. PWA Custom Banner Logic Script -->
+<script>
+  let deferredPrompt;
+  const installBanner = document.getElementById('pwa-install-banner');
+  const btnInstall = document.getElementById('btn-pwa-install');
 
-    
-<!-- Posts Display Container -->
-<div id="posts-container"></div>
-<div id="loading-spinner" class="hidden">Loading...</div>
+  window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      
+      if (installBanner && !localStorage.getItem('pwa_banner_dismissed')) {
+          installBanner.classList.remove('hidden');
+      }
+  });
 
-
-
-
-
-    <!-- 1. PWA Custom Install Banner HTML -->
-    <div id="pwa-install-banner" class="fixed bottom-4 left-4 right-4 z-50 bg-slate-900 border border-emerald-500/40 p-4 rounded-2xl shadow-2xl flex items-center justify-between hidden">
-        <div class="flex items-center gap-3">
-            <img src="./icons/icon-192.png" alt="StepLK" class="w-10 h-10 rounded-xl">
-            <div>
-                <h4 class="text-sm font-bold text-white">StepLK App එක Install කරගන්න</h4>
-                <p class="text-xs text-slate-400">Home Screen එකට එකතු කරගන්න</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-2">
-            <button id="btn-pwa-install" class="bg-emerald-500 text-slate-950 font-bold text-xs px-3 py-2 rounded-xl">INSTALL</button>
-            <button id="btn-pwa-close" onclick="document.getElementById('pwa-install-banner').classList.add('hidden')" class="text-slate-400 hover:text-white px-2">✕</button>
-        </div>
-    </div>
-
-    <!-- 2. PWA Script (වෙනම Script Tag එකක් ලෙස) -->
-    <script>
-      let deferredPrompt;
-      const installBanner = document.getElementById('pwa-install-banner');
-      const installBtn = document.getElementById('btn-pwa-install');
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-          e.preventDefault();
-          deferredPrompt = e;
-          if (installBanner) {
-              installBanner.classList.remove('hidden');
+  if (btnInstall) {
+      btnInstall.addEventListener('click', async () => {
+          if (deferredPrompt) {
+              deferredPrompt.prompt();
+              const { outcome } = await deferredPrompt.userChoice;
+              console.log(`User response to install prompt: ${outcome}`);
+              deferredPrompt = null;
+              if (installBanner) installBanner.classList.add('hidden');
           }
       });
+  }
 
-      if (installBtn) {
-          installBtn.addEventListener('click', async () => {
-              if (deferredPrompt) {
-                  deferredPrompt.prompt();
-                  const { outcome } = await deferredPrompt.userChoice;
-                  console.log(`User response: ${outcome}`);
-                  deferredPrompt = null;
-                  if (installBanner) installBanner.classList.add('hidden');
-              }
-          });
-      }
-    </script>
-
+  window.addEventListener('appinstalled', () => {
+      if (installBanner) installBanner.classList.add('hidden');
+      deferredPrompt = null;
+      console.log('PWA installed successfully');
+  });
+</script>
     
     
 </body>
