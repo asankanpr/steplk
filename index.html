@@ -529,6 +529,19 @@
   }
 </script>
 
+
+
+    
+<script>
+    if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(reg => console.log('Service Worker Registered:', reg))
+    .catch(err => console.log('Service Worker Error:', err));
+}
+</script>
+
+
+    
     <!-- Custom PWA Install Banner -->
 <div id="pwa-install-banner" class="fixed bottom-4 left-4 right-4 z-50 bg-brand-card border border-brand-emerald/40 p-4 rounded-2xl shadow-2xl flex items-center justify-between hidden transition-all duration-300">
     <div class="flex items-center gap-3">
@@ -545,6 +558,8 @@
         </button>
     </div>
 </div>
+
+    
     
 </body>
 </html>
