@@ -53,23 +53,3 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       })
-
-    // Simple Service Worker for PWA Criteria
-    const CACHE_NAME = 'steplk-v1';
-    
-    self.addEventListener('install', (e) => {
-      self.skipWaiting();
-    });
-    
-    self.addEventListener('activate', (e) => {
-      return self.clients.claim();
-    });
-    
-    self.addEventListener('fetch', (e) => {
-      // Fetch event listener required by Chrome PWA
-    });
-      .catch(() => {
-        return caches.match(event.request);
-      })
-  );
-});
