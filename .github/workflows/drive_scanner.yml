@@ -1,0 +1,37 @@
+name: Google Drive Document Extractor
+
+on:
+  schedule:
+    # පැය 3කට සැරයක් Automatic Run වේ (UTC Time)
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+    # GitHub Dashboard එකෙන් ඕනෑම වෙලාවක Run button එක ඔබා Trigger කළ හැක
+
+jobs:
+  process-drive-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run Drive Extractor Script
+        env:
+          GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python process_drive_docs.py
