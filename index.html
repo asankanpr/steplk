@@ -58,49 +58,72 @@
         </div>
     </div>
 
-    <!-- 2. MAIN HEADER (Updated Branding without Admin Link) -->
+    <!-- 2. MAIN HEADER (Modern Professional Logo Branding) -->
     <header class="bg-brand-dark/90 backdrop-blur-md border-b border-brand-border sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="#" class="flex items-center gap-2.5">
-                <div class="bg-gradient-to-r from-brand-emerald to-brand-yellow p-2 rounded-xl text-brand-dark font-black text-xl tracking-wider flex items-center gap-1.5 shadow-md">
-                    <span>StepLK</span>
-                    <span class="text-base">🚀</span>
+        <div class="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+            
+            <!-- Clickable Logo Unit -->
+            <a href="#" onclick="window.location.reload(); return false;" class="flex items-center gap-2.5 group">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-emerald via-teal-500 to-brand-yellow flex items-center justify-center text-brand-dark font-black text-lg shadow-lg shadow-brand-emerald/20 group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-chart-line text-sm"></i>
                 </div>
                 <div class="flex flex-col">
-                    <span class="text-[11px] text-brand-emerald font-bold tracking-wider">ඔබ වෙනුවෙන්මයි</span>
+                    <div class="flex items-center gap-1 leading-none">
+                        <span class="text-xl font-black tracking-tight text-white">Step<span class="text-brand-emerald">LK</span></span>
+                        <span class="text-xs">🚀</span>
+                    </div>
+                    <span class="text-[9px] text-brand-yellow font-bold tracking-wider uppercase mt-0.5 group-hover:text-white transition">ඔබ වෙනුවෙන්මයි</span>
                 </div>
             </a>
             
-            <div class="relative w-48 md:w-64">
+            <!-- Search Input -->
+            <div class="relative w-40 sm:w-60 md:w-72">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                <input type="text" id="search-input" placeholder="සොයන්න (Search)..." class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-9 pr-3 py-1.5 text-xs text-white outline-none">
+                <input type="text" id="search-input" placeholder="සොයන්න (Search)..." class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-8 pr-3 py-1.5 text-xs text-white outline-none">
             </div>
         </div>
     </header>
 
     <!-- 3. MAIN SECTION -->
-    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+    <main class="max-w-7xl mx-auto px-4 py-5 flex-1 w-full">
 
-        <!-- 4. TAB NAVIGATION & QUALIFICATION / CATEGORY FILTER -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <!-- Jobs / Courses / EB Exams Tabs -->
-            <div class="flex bg-brand-charcoal p-1 rounded-xl border border-brand-border w-full md:w-auto">
-                <button id="tab-all" onclick="switchTab('ALL')" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-border-all"></i> සියල්ල
+        <!-- Hero Intro Badge -->
+        <div class="mb-5 bg-brand-card/60 p-3.5 rounded-2xl border border-brand-border/80">
+            <h1 class="text-sm md:text-base font-bold text-white mb-0.5 flex items-center gap-2">
+                <i class="fa-solid fa-bullhorn text-brand-yellow text-xs"></i> රාජ්‍ය හා පෞද්ගලික අංශයේ රැකියා, විභාග හා පාඨමාලා සියල්ල
+            </h1>
+            <p class="text-xs text-slate-400">දිවයිනේ සියලුම නවතම ඇබෑර්තු සහ පාඨමාලා තොරතුරු එසැණින් එකම තැනින් දැනගන්න.</p>
+        </div>
+
+        <!-- MOBILE AD BANNERS (Visible on Mobile Screens) -->
+        <div class="block lg:hidden mb-4 bg-brand-card border border-dashed border-slate-700/80 rounded-2xl p-3 text-center">
+            <span class="text-[9px] text-slate-500 uppercase tracking-widest block mb-1">Advertisement</span>
+            <div id="mobile-ad-container" class="h-20 bg-brand-dark/80 rounded-xl flex items-center justify-center text-xs text-slate-400 border border-slate-800">
+                <span class="flex items-center gap-2"><i class="fa-solid fa-rectangle-ad text-brand-yellow"></i> Google AdSense / Banner Ad Space</span>
+            </div>
+        </div>
+
+        <!-- 4. TAB NAVIGATION & QUALIFICATION FILTER (Mobile Responsive Fix) -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
+            
+            <!-- Scrollable Tab Buttons on Mobile -->
+            <div class="flex bg-brand-charcoal p-1 rounded-xl border border-brand-border w-full md:w-auto overflow-x-auto whitespace-nowrap scrollbar-none">
+                <button id="tab-all" onclick="switchTab('ALL')" class="flex-1 min-w-[70px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-border-all text-[10px]"></i> සියල්ල
                 </button>
-                <button id="tab-jobs" onclick="switchTab('JOB')" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-briefcase"></i> රැකියා (Jobs)
+                <button id="tab-jobs" onclick="switchTab('JOB')" class="flex-1 min-w-[80px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-briefcase text-[10px]"></i> රැකියා
                 </button>
-                <button id="tab-eb" onclick="switchTab('EB_EXAM')" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-file-signature"></i> කඩඉම් විභාග
+                <button id="tab-eb" onclick="switchTab('EB_EXAM')" class="flex-1 min-w-[105px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-file-signature text-[10px]"></i> කඩඉම් විභාග
                 </button>
-                <button id="tab-courses" onclick="switchTab('COURSE')" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-graduation-cap"></i> පාඨමාලා
+                <button id="tab-courses" onclick="switchTab('COURSE')" class="flex-1 min-w-[85px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-graduation-cap text-[10px]"></i> පාඨමාලා
                 </button>
             </div>
 
             <!-- Qualification Filter Chips -->
-            <div class="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
                 <span class="text-xs font-semibold text-slate-400 whitespace-nowrap"><i class="fa-solid fa-filter text-brand-yellow"></i> සුදුසුකම:</span>
                 <button onclick="filterMEQ('ALL')" class="meq-btn active px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-emerald bg-brand-emerald/20 text-brand-emerald whitespace-nowrap">සියල්ල</button>
                 <button onclick="filterMEQ('OL')" class="meq-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 whitespace-nowrap">O/L</button>
@@ -156,9 +179,10 @@
                         </div>
                     </div>
 
+                    <!-- Desktop Banner Ad Container -->
                     <div class="mt-5 bg-slate-900 border border-dashed border-slate-700 rounded-xl p-4 text-center">
                         <span class="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Advertisement</span>
-                        <div class="h-32 bg-slate-800/50 rounded-lg flex items-center justify-center text-xs text-slate-500">
+                        <div id="desktop-ad-container" class="h-32 bg-slate-800/50 rounded-lg flex items-center justify-center text-xs text-slate-500">
                             Google AdSense Banner
                         </div>
                     </div>
@@ -251,7 +275,6 @@
         let selectedMeq = 'ALL';  
         let searchQuery = '';
         
-        // Pagination state
         let allFetchedPosts = [];
         let currentPage = 1;
         const postsPerPage = 10;
@@ -496,8 +519,8 @@
             const btnEb = document.getElementById('tab-eb');
             const btnCourses = document.getElementById('tab-courses');
 
-            const activeClass = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-1.5";
-            const inactiveClass = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
+            const activeClass = "flex-1 min-w-[70px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-1";
+            const inactiveClass = "flex-1 min-w-[70px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1";
 
             btnAll.className = (type === 'ALL') ? activeClass : inactiveClass;
             btnJobs.className = (type === 'JOB') ? activeClass : inactiveClass;
