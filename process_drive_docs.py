@@ -109,12 +109,12 @@ def extract_data_with_gemini(file_bytes, mime_type):
 # -------------------------------------------------------------
 def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
     """
-    Re-scans document, checks character-by-character details, and recovers missed positions.
+    Re-scans document, checks character-by-character details, and recovers missed positions with Retries.
     """
     extracted_titles = [p.get("title", "") for p in primary_posts]
 
     qc_prompt = f"""
-    You are an Quality Control Inspector for Sri Lankan Gazette data extractions.
+    You are a Quality Control Inspector for Sri Lankan Gazette data extractions.
     
     Initial pass extracted the following {len(extracted_titles)} titles:
     {json.dumps(extracted_titles, ensure_ascii=False)}
@@ -138,24 +138,32 @@ def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
         response_mime_type="application/json"
     )
 
-    try:
-        response = ai_client.models.generate_content(
-            model='gemini-3.8-flash',
-            contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), qc_prompt],
-            config=config
-        )
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            # API Rate Limits වැළැක්වීමට තත්පර 3 ක Pause එකක්
+            time.sleep(3)
+            
+            response = ai_client.models.generate_content(
+                model='gemini-3.8-flash',
+                contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), qc_prompt],
+                config=config
+            )
 
-        qc_result = json.loads(response.text.strip())
-        missing_posts = qc_result.get("missing_posts", [])
-        qc_summary = qc_result.get("qc_summary", "Quality check completed.")
+            qc_result = json.loads(response.text.strip())
+            missing_posts = qc_result.get("missing_posts", [])
+            qc_summary = qc_result.get("qc_summary", "Quality check completed.")
 
-        # Combine Primary + Recovered Missing Posts
-        final_posts = primary_posts + missing_posts
-        return final_posts, len(missing_posts), qc_summary
+            final_posts = primary_posts + missing_posts
+            return final_posts, len(missing_posts), qc_summary
 
-    except Exception as e:
-        print(f"⚠️ Quality check pass error (using primary extraction): {str(e)}")
-        return primary_posts, 0, "QC Verification bypass due to minor notice."
+        except Exception as e:
+            print(f"⚠️ Quality check pass retry {attempt}/{max_retries} error: {str(e)}")
+            if attempt < max_retries:
+                time.sleep(5)
+            else:
+                # Retries 3 ම අසාර්ථක වුවහොත් පමණක් Bypass වේ
+                return primary_posts, 0, "QC Verification bypassed after retries."
 
 def log_document_status(file_name, file_id, status, count, titles_str, qc_note, error_msg=None):
     try:
