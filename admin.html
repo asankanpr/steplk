@@ -23,8 +23,7 @@
                             emeraldDark: '#059669',
                             yellow: '#F59E0B',
                             charcoal: '#0F172A',
-                            border: '#1E293B',
-                            red: '#EF4444'
+                            border: '#1E293B'
                         }
                     }
                 }
@@ -62,6 +61,27 @@
         </div>
     </div>
 
+    <!-- MODERN REJECT CONFIRMATION MODAL -->
+    <div id="reject-modal" class="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center space-y-4">
+            <div class="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-white">පෝස්ටුව ප්‍රතික්ෂේප කිරීම</h3>
+                <p class="text-xs text-slate-400 mt-1">මෙම පෝස්ටුව ප්‍රතික්ෂේප (Reject) කිරීමට ඔබට විශ්වාසද?</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button type="button" onclick="closeRejectModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl text-xs font-bold transition">
+                    අවලංගු කරන්න
+                </button>
+                <button type="button" id="btn-confirm-reject" class="bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-lg shadow-red-500/20">
+                    ඔව්, Reject කරන්න
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MAIN ADMIN DASHBOARD -->
     <div id="admin-app" class="hidden pb-20">
         
@@ -84,11 +104,6 @@
         </header>
 
         <main class="max-w-3xl mx-auto px-4 py-4 space-y-4">
-
-            <div id="toast" class="hidden bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
-                <i class="fa-solid fa-circle-check text-base"></i>
-                <span id="toast-msg">Action successful!</span>
-            </div>
 
             <!-- TABS -->
             <div class="flex border-b border-slate-800 mb-4 gap-4 overflow-x-auto">
@@ -194,6 +209,12 @@
                         </button>
                     </div>
 
+                    <!-- 📍 TOAST NOTIFICATION POSITIONED DIRECTLY BELOW PUBLISH BUTTON -->
+                    <div id="toast" class="hidden bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 p-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 text-center transition-all">
+                        <i class="fa-solid fa-circle-check text-base"></i>
+                        <span id="toast-msg">Action successful!</span>
+                    </div>
+
                 </div>
             </div>
 
@@ -225,6 +246,7 @@
         const adminApp = document.getElementById('admin-app');
         const loginForm = document.getElementById('login-form');
         const loginError = document.getElementById('login-error');
+        const rejectModal = document.getElementById('reject-modal');
 
         document.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabase.auth.getSession();
@@ -440,20 +462,33 @@
                 showToast("✅ පෝස්ටුව සාර්ථකව Live Publish කරන ලදී!");
                 loadPendingPosts();
             } else {
-                showToast("❌ Error: " + error.message);
+                showToast("❌ Error: " + error.message, true);
             }
         });
 
-        document.getElementById('btn-reject').addEventListener('click', async () => {
+        // REJECT MODAL TRIGGERS
+        document.getElementById('btn-reject').addEventListener('click', () => {
+            const postId = document.getElementById('current-post-id').value;
+            if (!postId) return;
+            rejectModal.classList.remove('hidden');
+        });
+
+        window.closeRejectModal = function() {
+            rejectModal.classList.add('hidden');
+        };
+
+        document.getElementById('btn-confirm-reject').addEventListener('click', async () => {
             const postId = document.getElementById('current-post-id').value;
             if (!postId) return;
 
-            if (confirm("මෙම පෝස්ටුව ප්‍රතික්ෂේප කිරීමට අවශ්‍යද?")) {
-                const { error } = await supabase.from('posts').update({ status: 'REJECTED' }).eq('id', postId);
-                if (!error) {
-                    showToast("❌ පෝස්ටුව ප්‍රතික්ෂේප කරන ලදී.");
-                    loadPendingPosts();
-                }
+            closeRejectModal();
+
+            const { error } = await supabase.from('posts').update({ status: 'REJECTED' }).eq('id', postId);
+            if (!error) {
+                showToast("❌ පෝස්ටුව ප්‍රතික්ෂේප කරන ලදී.", true);
+                loadPendingPosts();
+            } else {
+                showToast("❌ Error: " + error.message, true);
             }
         });
 
@@ -467,11 +502,20 @@
             adminApp.classList.add('hidden');
         }
 
-        function showToast(msg) {
+        function showToast(msg, isError = false) {
             const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = msg;
+            const toastMsg = document.getElementById('toast-msg');
+
+            toastMsg.innerText = msg;
+            
+            if (isError) {
+                toast.className = "bg-red-500/20 border border-red-500/50 text-red-300 p-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 text-center transition-all";
+            } else {
+                toast.className = "bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 p-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 text-center transition-all";
+            }
+
             toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
+            setTimeout(() => toast.classList.add('hidden'), 3500);
         }
     </script>
 </body>
