@@ -58,19 +58,36 @@
 </head>
 <body class="bg-brand-dark text-slate-100 font-sans antialiased min-h-screen flex flex-col">
 
-    <!-- 1. TOP TICKER TAPE (Daily Utilities) -->
-    <div class="bg-brand-charcoal border-b border-brand-border py-2 px-4 text-xs font-medium overflow-x-auto whitespace-nowrap scrollbar-none flex items-center justify-between gap-6 text-slate-300">
-        <div class="flex items-center gap-6 animate-pulse">
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-dollar-sign text-brand-emerald"></i> USD: <strong id="ticker-usd" class="text-white">LKR 302.50</strong></span>
-            <span class="border-r border-slate-700 h-3"></span>
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-ring text-brand-yellow"></i> Gold 22K: <strong id="ticker-gold" class="text-white">LKR 188,500</strong></span>
-            <span class="border-r border-slate-700 h-3"></span>
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-clock text-amber-400"></i> රාහු කාලය: <strong id="ticker-rahu" class="text-white">1:32 PM - 3:04 PM</strong></span>
-            <span class="border-r border-slate-700 h-3"></span>
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-compass text-emerald-400"></i> සුබ දිශාව: <strong id="ticker-disawa" class="text-white">දකුණ</strong></span>
-        </div>
-        <div class="hidden md:flex items-center gap-2 text-slate-400">
-            <i class="fa-solid fa-shield-halved text-brand-emerald"></i> Verified Govt Sources
+    <!-- 1. TOP TICKER TAPE (Continuous Infinite Marquee) -->
+    <div class="bg-brand-charcoal border-b border-brand-border py-2 text-xs font-medium overflow-hidden whitespace-nowrap text-slate-300 relative">
+        <div class="animate-marquee items-center gap-6">
+            
+            <!-- Items Block 1 -->
+            <div class="flex items-center gap-6 px-3">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-dollar-sign text-brand-emerald"></i> USD: <strong class="val-usd text-white">LKR 302.50</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-ring text-brand-yellow"></i> Gold 22K: <strong class="val-gold text-white">LKR 188,500</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-clock text-amber-400"></i> රාහු කාලය: <strong class="val-rahu text-white">1:32 PM - 3:04 PM</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-compass text-emerald-400"></i> සුබ දිශාව: <strong class="val-disawa text-white">දකුණ</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <span class="flex items-center gap-1.5 text-slate-400"><i class="fa-solid fa-shield-halved text-brand-emerald"></i> Verified Govt Sources</span>
+            </div>
+
+            <!-- Items Block 2 (Seamless Infinite Loop එක සඳහා Duplicate එකක්) -->
+            <div class="flex items-center gap-6 px-3">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-dollar-sign text-brand-emerald"></i> USD: <strong class="val-usd text-white">LKR 302.50</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-ring text-brand-yellow"></i> Gold 22K: <strong class="val-gold text-white">LKR 188,500</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-clock text-amber-400"></i> රාහු කාලය: <strong class="val-rahu text-white">1:32 PM - 3:04 PM</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-compass text-emerald-400"></i> සුබ දිශාව: <strong class="val-disawa text-white">දකුණ</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <span class="flex items-center gap-1.5 text-slate-400"><i class="fa-solid fa-shield-halved text-brand-emerald"></i> Verified Govt Sources</span>
+            </div>
+
         </div>
     </div>
 
@@ -328,16 +345,16 @@
             data.forEach(item => {
                 const val = item.data_value?.value || item.value || '-';
                 if (item.key_name === 'USD_LKR') {
-                    if(document.getElementById('ticker-usd')) document.getElementById('ticker-usd').innerText = val;
+                    document.querySelectorAll('.val-usd').forEach(el => el.innerText = val);
                     if(document.getElementById('sidebar-usd')) document.getElementById('sidebar-usd').innerText = val;
                 } else if (item.key_name === 'GOLD_22K') {
-                    if(document.getElementById('ticker-gold')) document.getElementById('ticker-gold').innerText = val;
+                    document.querySelectorAll('.val-gold').forEach(el => el.innerText = val);
                     if(document.getElementById('sidebar-gold')) document.getElementById('sidebar-gold').innerText = val;
                 } else if (item.key_name === 'RAHU_TIME') {
-                    if(document.getElementById('ticker-rahu')) document.getElementById('ticker-rahu').innerText = val;
+                    document.querySelectorAll('.val-rahu').forEach(el => el.innerText = val);
                     if(document.getElementById('sidebar-rahu')) document.getElementById('sidebar-rahu').innerText = val;
                 } else if (item.key_name === 'SUBHA_DISAWA') {
-                    if(document.getElementById('ticker-disawa')) document.getElementById('ticker-disawa').innerText = val;
+                    document.querySelectorAll('.val-disawa').forEach(el => el.innerText = val);
                 }
             });
         } catch (err) {
