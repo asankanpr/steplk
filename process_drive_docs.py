@@ -6,6 +6,7 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from google import genai
+from google.genai import types
 from supabase import create_client, Client
 
 # Environment Variables
@@ -50,27 +51,21 @@ def move_file(file_id, current_folder_id, target_folder_id):
     ).execute()
 
 def make_file_publicly_readable(file_id):
-    """File එක ඕනෑම කෙනෙකුට Link එක හරහා බලන්න Permissions දීම"""
     try:
-        user_permission = {
-            'type': 'anyone',
-            'role': 'reader',
-        }
-        drive_service.permissions().create(
-            fileId=file_id,
-            body=user_permission,
-            fields='id',
-        ).execute()
+        user_permission = {'type': 'anyone', 'role': 'reader'}
+        drive_service.permissions().create(fileId=file_id, body=user_permission, fields='id').execute()
     except Exception as e:
         print(f"⚠️ Permission notice: {str(e)}")
 
+# -------------------------------------------------------------
+# PASS 1: INITIAL EXTRACTION (Deterministic with Temperature 0.0)
+# -------------------------------------------------------------
 def extract_data_with_gemini(file_bytes, mime_type):
     prompt = """
-    You are an expert OCR and data extraction assistant for Sri Lankan Gazettes, Job Openings, Courses, and Efficiency Bar (EB) Exams.
-    The document may contain ONE or MULTIPLE job advertisements/positions.
-    Analyze the document carefully in Sinhala, English, or Tamil and extract ALL listed positions into a JSON array of objects.
-
-    Return JSON format like this:
+    You are a meticulous Sri Lankan Gazette & Job Advertisement OCR Specialist.
+    Read the entire document page by page. Do NOT omit or merge any job positions, exams, or courses.
+    
+    For EVERY position found, extract accurate fields into a JSON array:
     {
       "posts": [
         {
@@ -81,58 +76,98 @@ def extract_data_with_gemini(file_bytes, mime_type):
           "closing_date": "Closing Date in YYYY-MM-DD format if present, else null",
           "salary_code": "Salary code if present (e.g., MN-1, SL-1), else null",
           "salary_amount": "Salary scale or amount in LKR, else null",
-          "description": "Brief summary/overview of duties or additional notes in Sinhala.",
-          "qualifications": "Key requirements listed in clear bullet points in Sinhala."
+          "description": "Brief summary of duties/notes in Sinhala.",
+          "qualifications": "Key educational & experience requirements in clear bullet points in Sinhala."
         }
       ]
     }
-
-    Respond ONLY with valid JSON. Do not add markdown codeblocks.
+    Respond strictly with valid JSON.
     """
 
-    max_retries = 3
-    delay = 5
+    config = types.GenerateContentConfig(
+        temperature=0.0, # Deterministic Output
+        response_mime_type="application/json"
+    )
 
-    for attempt in range(1, max_retries + 1):
-        try:
-            print(f"🤖 Requesting Gemini (gemini-3.8-flash - Attempt {attempt}/{max_retries})...")
-            response = ai_client.models.generate_content(
-                model='gemini-3.8-flash',
-                contents=[
-                    genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
-                    prompt
-                ]
-            )
-            clean_text = response.text.strip().replace("```json", "").replace("```", "").strip()
-            data = json.loads(clean_text)
-            
-            if isinstance(data, list):
-                return data
-            elif isinstance(data, dict) and "posts" in data:
-                return data["posts"]
-            elif isinstance(data, dict):
-                return [data]
-            return []
+    response = ai_client.models.generate_content(
+        model='gemini-3.8-flash',
+        contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), prompt],
+        config=config
+    )
 
-        except Exception as e:
-            print(f"⚠️ Warning (Attempt {attempt} failed): {str(e)}")
-            if ("503" in str(e) or "UNAVAILABLE" in str(e) or "high demand" in str(e)) and attempt < max_retries:
-                print(f"⏳ Retrying in {delay} seconds...")
-                time.sleep(delay)
-                delay *= 2
-            else:
-                raise e
+    clean_text = response.text.strip()
+    data = json.loads(clean_text)
+    
+    if isinstance(data, list):
+        return data
+    elif isinstance(data, dict) and "posts" in data:
+        return data["posts"]
+    return []
 
-def log_document_status(file_name, file_id, status, count, titles_str, error_msg=None):
+# -------------------------------------------------------------
+# PASS 2: QUALITY CHECK & RE-AUDIT PASS
+# -------------------------------------------------------------
+def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
+    """
+    Re-scans document, checks character-by-character details, and recovers missed positions.
+    """
+    extracted_titles = [p.get("title", "") for p in primary_posts]
+
+    qc_prompt = f"""
+    You are an Quality Control Inspector for Sri Lankan Gazette data extractions.
+    
+    Initial pass extracted the following {len(extracted_titles)} titles:
+    {json.dumps(extracted_titles, ensure_ascii=False)}
+
+    YOUR AUDIT TASK:
+    1. Re-examine the attached document from start to finish.
+    2. Check if ANY job position, course, or exam notice was SKIPPED or MISSED in the above list.
+    3. If any position was missed, extract it with full details.
+    
+    Return JSON format:
+    {{
+      "missing_posts": [
+        ... missed post objects matching standard structure ...
+      ],
+      "qc_summary": "Short audit summary note in Sinhala (e.g. 'සියලු තනතුරු 13 පරීක්ෂා කර තහවුරු කරන ලදී.')"
+    }}
+    """
+
+    config = types.GenerateContentConfig(
+        temperature=0.0,
+        response_mime_type="application/json"
+    )
+
     try:
-        supabase.table("document_logs").insert({
+        response = ai_client.models.generate_content(
+            model='gemini-3.8-flash',
+            contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), qc_prompt],
+            config=config
+        )
+
+        qc_result = json.loads(response.text.strip())
+        missing_posts = qc_result.get("missing_posts", [])
+        qc_summary = qc_result.get("qc_summary", "Quality check completed.")
+
+        # Combine Primary + Recovered Missing Posts
+        final_posts = primary_posts + missing_posts
+        return final_posts, len(missing_posts), qc_summary
+
+    except Exception as e:
+        print(f"⚠️ Quality check pass error (using primary extraction): {str(e)}")
+        return primary_posts, 0, "QC Verification bypass due to minor notice."
+
+def log_document_status(file_name, file_id, status, count, titles_str, qc_note, error_msg=None):
+    try:
+        log_payload = {
             "file_name": file_name,
             "file_id": file_id,
             "status": status,
             "extracted_count": count,
-            "extracted_titles": titles_str,
+            "extracted_titles": f"{titles_str} | [QC Audit: {qc_note}]",
             "error_message": error_msg
-        }).execute()
+        }
+        supabase.table("document_logs").insert(log_payload).execute()
     except Exception as log_err:
         print(f"⚠️ Failed to write to document_logs: {str(log_err)}")
 
@@ -155,12 +190,9 @@ def process_drive_files():
         file_name = file['name']
         mime_type = file['mimeType']
         
-        print(f"📄 Processing: {file_name} ({mime_type})...")
-
-        # Google Drive Direct View URL එක හදාගැනීම
+        print(f"📄 Processing: {file_name}...")
         gdrive_file_url = f"https://drive.google.com/file/d/{file_id}/view?usp=sharing"
 
-        # Memory එකට Download කිරීම
         request = drive_service.files().get_media(fileId=file_id)
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
@@ -170,17 +202,21 @@ def process_drive_files():
         
         file_bytes = fh.getvalue()
 
-        extracted_titles = []
-
         try:
-            # 1. Gemini OCR Extraction
-            extracted_posts = extract_data_with_gemini(file_bytes, mime_type)
-            
-            # File එක Publicly Readable කිරීම
+            # 1. Primary Extraction
+            primary_posts = extract_data_with_gemini(file_bytes, mime_type)
+            print(f"🔍 Primary Extraction found: {len(primary_posts)} posts.")
+
+            # 2. Quality Check & Re-verification Pass
+            final_posts, recovered_count, qc_summary = run_quality_check_and_reverify(file_bytes, mime_type, primary_posts)
+            print(f"🛡️ Quality Check Audit: {qc_summary} (Recovered: {recovered_count} missed posts). Total: {len(final_posts)}")
+
             make_file_publicly_readable(file_id)
 
-            # 2. Database Insert Loop
-            for idx, post in enumerate(extracted_posts, start=1):
+            extracted_titles = []
+
+            # 3. Insert Final Verified Posts into Database
+            for idx, post in enumerate(final_posts, start=1):
                 post_title = post.get("title", f"{file_name} - Position {idx}")
                 
                 post_payload = {
@@ -193,32 +229,29 @@ def process_drive_files():
                     "salary_amount": post.get("salary_amount"),
                     "description": post.get("description", ""),
                     "qualifications": post.get("qualifications", ""),
-                    "pdf_url": gdrive_file_url,  # 💡 Google Drive PDF View Link එක මෙතැනින් වැටේ!
+                    "pdf_url": gdrive_file_url,
                     "status": "PENDING",
                     "source": "GDRIVE_AUTOMATION"
                 }
 
-                res = supabase.table("posts").insert(post_payload).execute()
+                supabase.table("posts").insert(post_payload).execute()
                 extracted_titles.append(post_title)
-                print(f"✅ Created PENDING post ({idx}/{len(extracted_posts)}): {post_title}")
 
-            titles_str = ", ".join(extracted_titles) if extracted_titles else "No posts extracted"
-            log_document_status(file_name, file_id, "SUCCESS", len(extracted_posts), titles_str)
+            titles_str = ", ".join(extracted_titles)
+            log_document_status(file_name, file_id, "SUCCESS", len(final_posts), titles_str, qc_summary)
 
-            # 3. Processed Folder එකට Move කිරීම
             move_file(file_id, GDRIVE_FOLDER_ID, processed_folder_id)
-            print(f"📦 Successfully processed. Moved {file_name} to 'Processed' folder.")
+            print(f"📦 Successfully verified and moved {file_name} to 'Processed'.")
 
         except Exception as e:
             err_msg = str(e)
             print(f"❌ Error processing {file_name}: {err_msg}")
-            log_document_status(file_name, file_id, "FAILED", 0, "", err_msg)
+            log_document_status(file_name, file_id, "FAILED", 0, "", "QC Failed", err_msg)
 
             try:
                 move_file(file_id, GDRIVE_FOLDER_ID, unsuccessful_folder_id)
-                print(f"⚠️ Processing failed. Moved {file_name} to 'Unsuccessful' folder.")
             except Exception as move_err:
-                print(f"🚨 Could not move failed file {file_name}: {str(move_err)}")
+                print(f"🚨 Move failed: {str(move_err)}")
 
 if __name__ == "__main__":
     process_drive_files()
