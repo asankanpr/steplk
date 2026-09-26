@@ -102,34 +102,38 @@
             </div>
         </div>
 
-        <!-- 4. TAB NAVIGATION & QUALIFICATION FILTER -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
+        <!-- 4. MOBILE-OPTIMIZED TAB NAVIGATION & QUALIFICATION FILTER -->
+        <div class="space-y-2.5 mb-5">
             
-            <!-- Scrollable Tab Buttons on Mobile -->
-            <div class="flex bg-brand-charcoal p-1 rounded-xl border border-brand-border w-full md:w-auto overflow-x-auto whitespace-nowrap scrollbar-none">
-                <button id="tab-all" onclick="switchTab('ALL')" class="flex-1 min-w-[70px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-border-all text-[10px]"></i> සියල්ල
+            <!-- Category Tabs (Icon centered on top, Grid 4 Columns) -->
+            <div class="grid grid-cols-4 gap-1.5 bg-brand-charcoal p-1.5 rounded-2xl border border-brand-border w-full">
+                <button id="tab-all" onclick="switchTab('ALL')" class="px-2 py-2 rounded-xl text-[11px] md:text-xs font-bold transition bg-brand-emerald text-brand-dark shadow-md flex flex-col items-center justify-center gap-1 text-center">
+                    <i class="fa-solid fa-border-all text-xs md:text-sm"></i>
+                    <span>සියල්ල</span>
                 </button>
-                <button id="tab-jobs" onclick="switchTab('JOB')" class="flex-1 min-w-[80px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-briefcase text-[10px]"></i> රැකියා
+                <button id="tab-jobs" onclick="switchTab('JOB')" class="px-2 py-2 rounded-xl text-[11px] md:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center">
+                    <i class="fa-solid fa-briefcase text-xs md:text-sm"></i>
+                    <span>රැකියා</span>
                 </button>
-                <button id="tab-eb" onclick="switchTab('EB_EXAM')" class="flex-1 min-w-[105px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-file-signature text-[10px]"></i> කඩඉම් විභාග
+                <button id="tab-eb" onclick="switchTab('EB_EXAM')" class="px-2 py-2 rounded-xl text-[11px] md:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center">
+                    <i class="fa-solid fa-file-signature text-xs md:text-sm"></i>
+                    <span>කඩඉම්</span>
                 </button>
-                <button id="tab-courses" onclick="switchTab('COURSE')" class="flex-1 min-w-[85px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-graduation-cap text-[10px]"></i> පාඨමාලා
+                <button id="tab-courses" onclick="switchTab('COURSE')" class="px-2 py-2 rounded-xl text-[11px] md:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center">
+                    <i class="fa-solid fa-graduation-cap text-xs md:text-sm"></i>
+                    <span>පාඨමාලා</span>
                 </button>
             </div>
 
-            <!-- Qualification Filter Chips -->
-            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-                <span class="text-xs font-semibold text-slate-400 whitespace-nowrap"><i class="fa-solid fa-filter text-brand-yellow"></i> සුදුසුකම:</span>
-                <button onclick="filterMEQ('ALL')" class="meq-btn active px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-emerald bg-brand-emerald/20 text-brand-emerald whitespace-nowrap">සියල්ල</button>
-                <button onclick="filterMEQ('OL')" class="meq-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 whitespace-nowrap">O/L</button>
-                <button onclick="filterMEQ('AL')" class="meq-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 whitespace-nowrap">A/L</button>
-                <button onclick="filterMEQ('NVQ')" class="meq-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 whitespace-nowrap">NVQ</button>
-                <button onclick="filterMEQ('DEGREE')" class="meq-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 whitespace-nowrap">Degree</button>
+            <!-- Qualification Filter Chips (Grid 5 Columns - Fits 100% on Mobile) -->
+            <div class="grid grid-cols-5 gap-1.5 w-full">
+                <button onclick="filterMEQ('ALL')" class="meq-btn active py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-brand-emerald bg-brand-emerald/20 text-brand-emerald text-center transition">සියල්ල</button>
+                <button onclick="filterMEQ('OL')" class="meq-btn py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 text-center transition">O/L</button>
+                <button onclick="filterMEQ('AL')" class="meq-btn py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 text-center transition">A/L</button>
+                <button onclick="filterMEQ('NVQ')" class="meq-btn py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 text-center transition">NVQ</button>
+                <button onclick="filterMEQ('DEGREE')" class="meq-btn py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 text-center transition">Degree</button>
             </div>
+
         </div>
 
         <!-- 5. CONTENT GRID & DESKTOP SIDEBAR -->
@@ -612,23 +616,23 @@
     };
 
     window.switchTab = function(type) {
-        selectedType = type;
-        
-        const btnAll = document.getElementById('tab-all');
-        const btnJobs = document.getElementById('tab-jobs');
-        const btnEb = document.getElementById('tab-eb');
-        const btnCourses = document.getElementById('tab-courses');
+            selectedType = type;
+            
+            const btnAll = document.getElementById('tab-all');
+            const btnJobs = document.getElementById('tab-jobs');
+            const btnEb = document.getElementById('tab-eb');
+            const btnCourses = document.getElementById('tab-courses');
 
-        const activeClass = "flex-1 min-w-[70px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-1";
-        const inactiveClass = "flex-1 min-w-[70px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1";
+            const activeClass = "px-2 py-2 rounded-xl text-[11px] md:text-xs font-bold transition bg-brand-emerald text-brand-dark shadow-md flex flex-col items-center justify-center gap-1 text-center";
+            const inactiveClass = "px-2 py-2 rounded-xl text-[11px] md:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center";
 
-        btnAll.className = (type === 'ALL') ? activeClass : inactiveClass;
-        btnJobs.className = (type === 'JOB') ? activeClass : inactiveClass;
-        btnEb.className = (type === 'EB_EXAM') ? activeClass : inactiveClass;
-        btnCourses.className = (type === 'COURSE') ? activeClass : inactiveClass;
+            btnAll.className = (type === 'ALL') ? activeClass : inactiveClass;
+            btnJobs.className = (type === 'JOB') ? activeClass : inactiveClass;
+            btnEb.className = (type === 'EB_EXAM') ? activeClass : inactiveClass;
+            btnCourses.className = (type === 'COURSE') ? activeClass : inactiveClass;
 
-        fetchPublishedPosts();
-    };
+            fetchPublishedPosts();
+     };
 
     window.filterMEQ = function(level) {
         selectedMeq = level;
