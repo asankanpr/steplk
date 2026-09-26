@@ -390,6 +390,7 @@
                 .from('posts')
                 .select('*')
                 .eq('status', 'PUBLISHED')
+                .order('updated_at', { ascending: false }) // 💡 අලුතෙන්ම Publish කළ ඒවා උඩින්ම පෙන්වයි.
                 .order('created_at', { ascending: false });
 
             if (selectedType !== 'ALL') {
