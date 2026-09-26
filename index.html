@@ -277,368 +277,381 @@
 
     <!-- SUPABASE & APPLICATION SCRIPT MODULE -->
     <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-        const SUPABASE_URL = 'https://wlgnfprghzczwjjpoqym.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_j4dFy0AhNEmQOIEUpsS7mg_83NOxeFj';
-        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SUPABASE_URL = 'https://wlgnfprghzczwjjpoqym.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_j4dFy0AhNEmQOIEUpsS7mg_83NOxeFj';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let selectedType = 'ALL'; 
-        let selectedMeq = 'ALL';  
-        let searchQuery = '';
-        
-        let allFetchedPosts = [];
-        let currentPage = 1;
-        const postsPerPage = 10;
-        let loadedPostsMap = {};
+    let selectedType = 'ALL'; 
+    let selectedMeq = 'ALL';  
+    let searchQuery = '';
+    
+    let allFetchedPosts = [];
+    let filteredPostsList = [];
+    let currentPage = 1;
+    const postsPerPage = 10;
+    let loadedPostsMap = {};
 
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchDailyUtilities();
-            fetchPublishedPosts();
-            setupSearchListener();
-        });
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchDailyUtilities();
+        fetchPublishedPosts();
+        setupSearchListener();
+    });
 
-        async function fetchDailyUtilities() {
-            try {
-                const { data, error } = await supabase.from('daily_utilities').select('*');
-                if (error || !data) return;
+    async function fetchDailyUtilities() {
+        try {
+            const { data, error } = await supabase.from('daily_utilities').select('*');
+            if (error || !data) return;
 
-                data.forEach(item => {
-                    const val = item.data_value?.value || item.value || '-';
-                    if (item.key_name === 'USD_LKR') {
-                        if(document.getElementById('ticker-usd')) document.getElementById('ticker-usd').innerText = val;
-                        if(document.getElementById('sidebar-usd')) document.getElementById('sidebar-usd').innerText = val;
-                    } else if (item.key_name === 'GOLD_22K') {
-                        if(document.getElementById('ticker-gold')) document.getElementById('ticker-gold').innerText = val;
-                        if(document.getElementById('sidebar-gold')) document.getElementById('sidebar-gold').innerText = val;
-                    } else if (item.key_name === 'RAHU_TIME') {
-                        if(document.getElementById('ticker-rahu')) document.getElementById('ticker-rahu').innerText = val;
-                        if(document.getElementById('sidebar-rahu')) document.getElementById('sidebar-rahu').innerText = val;
-                    } else if (item.key_name === 'SUBHA_DISAWA') {
-                        if(document.getElementById('ticker-disawa')) document.getElementById('ticker-disawa').innerText = val;
-                    }
-                });
-            } catch (err) {
-                console.error('Error fetching utilities:', err);
-            }
+            data.forEach(item => {
+                const val = item.data_value?.value || item.value || '-';
+                if (item.key_name === 'USD_LKR') {
+                    if(document.getElementById('ticker-usd')) document.getElementById('ticker-usd').innerText = val;
+                    if(document.getElementById('sidebar-usd')) document.getElementById('sidebar-usd').innerText = val;
+                } else if (item.key_name === 'GOLD_22K') {
+                    if(document.getElementById('ticker-gold')) document.getElementById('ticker-gold').innerText = val;
+                    if(document.getElementById('sidebar-gold')) document.getElementById('sidebar-gold').innerText = val;
+                } else if (item.key_name === 'RAHU_TIME') {
+                    if(document.getElementById('ticker-rahu')) document.getElementById('ticker-rahu').innerText = val;
+                    if(document.getElementById('sidebar-rahu')) document.getElementById('sidebar-rahu').innerText = val;
+                } else if (item.key_name === 'SUBHA_DISAWA') {
+                    if(document.getElementById('ticker-disawa')) document.getElementById('ticker-disawa').innerText = val;
+                }
+            });
+        } catch (err) {
+            console.error('Error fetching utilities:', err);
         }
+    }
 
-        async function fetchPublishedPosts() {
-            const listContainer = document.getElementById('posts-container');
-            const spinner = document.getElementById('loading-spinner');
+    async function fetchPublishedPosts() {
+        const listContainer = document.getElementById('posts-container');
+        const spinner = document.getElementById('loading-spinner');
 
-            if (spinner) spinner.classList.remove('hidden');
+        if (spinner) spinner.classList.remove('hidden');
 
-            try {
-                let query = supabase
-                    .from('posts')
-                    .select('*')
-                    .eq('status', 'PUBLISHED')
-                    .order('created_at', { ascending: false });
+        try {
+            let query = supabase
+                .from('posts')
+                .select('*')
+                .eq('status', 'PUBLISHED')
+                .order('created_at', { ascending: false });
 
-                if (selectedType !== 'ALL') {
-                    if (selectedType === 'EB_EXAM') {
-                        query = query.or('category.ilike.%කඩඉම්%,category.ilike.%EB_EXAM%,title.ilike.%කඩඉම්%');
-                    } else {
-                        query = query.or(`category.ilike.%${selectedType}%,type.ilike.%${selectedType}%`);
-                    }
+            if (selectedType !== 'ALL') {
+                if (selectedType === 'EB_EXAM') {
+                    query = query.or('category.ilike.%කඩඉම්%,category.ilike.%EB_EXAM%,title.ilike.%කඩඉම්%');
+                } else {
+                    query = query.or(`category.ilike.%${selectedType}%,type.ilike.%${selectedType}%`);
                 }
-
-                if (selectedMeq !== 'ALL') {
-                    query = query.eq('meq_level', selectedMeq);
-                }
-
-                if (searchQuery.trim() !== '') {
-                    query = query.or(`title.ilike.%${searchQuery}%,organization.ilike.%${searchQuery}%`);
-                }
-
-                const { data: posts, error } = await query;
-
-                if (spinner) spinner.classList.add('hidden');
-
-                if (error) {
-                    listContainer.innerHTML = `
-                        <div class="text-center text-red-400 py-8 bg-brand-card rounded-2xl border border-red-500/20">
-                            <i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i>
-                            <p class="text-xs">දත්ත ලබා ගැනීමේ දෝෂයක් සිදු විය.</p>
-                        </div>`;
-                    return;
-                }
-
-                // 💡 EXPIRED POSTS DOWN-SORTING LOGIC
-                const now = new Date();
-                now.setHours(0,0,0,0);
-
-                let rawPosts = posts || [];
-                let activePosts = [];
-                let expiredPosts = [];
-
-                rawPosts.forEach(post => {
-                    if (post.closing_date) {
-                        const cDate = new Date(post.closing_date);
-                        if (cDate < now) {
-                            expiredPosts.push(post);
-                        } else {
-                            activePosts.push(post);
-                        }
-                    } else {
-                        activePosts.push(post);
-                    }
-                });
-
-                allFetchedPosts = [...activePosts, ...expiredPosts];
-
-                loadedPostsMap = {};
-                allFetchedPosts.forEach(p => loadedPostsMap[p.id] = p);
-
-                currentPage = 1;
-                renderPage();
-
-            } catch (err) {
-                if (spinner) spinner.classList.add('hidden');
-                console.error('Unexpected error:', err);
             }
-        }
 
-        function renderPage() {
-            const listContainer = document.getElementById('posts-container');
-            const pagContainer = document.getElementById('pagination-container');
+            if (selectedMeq !== 'ALL') {
+                query = query.eq('meq_level', selectedMeq);
+            }
 
-            if (!allFetchedPosts || allFetchedPosts.length === 0) {
+            const { data: posts, error } = await query;
+
+            if (spinner) spinner.classList.add('hidden');
+
+            if (error) {
                 listContainer.innerHTML = `
-                    <div class="text-center text-slate-400 py-10 bg-brand-card rounded-2xl border border-brand-border">
-                        <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-600"></i>
-                        <p class="text-xs">ඔබ සොයන නිර්ණායකවලට අදාළ සටහන් කිසිවක් හමු නොවුණි.</p>
+                    <div class="text-center text-red-400 py-8 bg-brand-card rounded-2xl border border-red-500/20">
+                        <i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i>
+                        <p class="text-xs">දත්ත ලබා ගැනීමේ දෝෂයක් සිදු විය.</p>
                     </div>`;
-                pagContainer.classList.add('hidden');
                 return;
             }
 
-            const totalPages = Math.ceil(allFetchedPosts.length / postsPerPage);
-            const startIndex = (currentPage - 1) * postsPerPage;
-            const currentPosts = allFetchedPosts.slice(startIndex, startIndex + postsPerPage);
+            // 💡 EXPIRED POSTS DOWN-SORTING LOGIC
+            const now = new Date();
+            now.setHours(0,0,0,0);
 
-            renderPosts(currentPosts, listContainer);
+            let rawPosts = posts || [];
+            let activePosts = [];
+            let expiredPosts = [];
 
-            if (totalPages > 1) {
-                pagContainer.classList.remove('hidden');
-                document.getElementById('btn-prev-page').disabled = (currentPage === 1);
-                document.getElementById('btn-next-page').disabled = (currentPage === totalPages);
-
-                let pageBtnsHtml = '';
-                for (let i = 1; i <= totalPages; i++) {
-                    const activeStyle = i === currentPage 
-                        ? 'bg-brand-emerald text-brand-dark border-brand-emerald' 
-                        : 'bg-brand-charcoal text-slate-300 border-slate-700 hover:border-slate-500';
-                    pageBtnsHtml += `<button onclick="goToPage(${i})" class="w-8 h-8 rounded-lg border text-xs font-bold transition ${activeStyle}">${i}</button>`;
-                }
-                document.getElementById('page-numbers').innerHTML = pageBtnsHtml;
-            } else {
-                pagContainer.classList.add('hidden');
-            }
-        }
-
-        // Render Posts + Expiry Clock Logic + In-Feed Native Ads Loop
-        function renderPosts(posts, container) {
-            let htmlContent = '';
-            const today = new Date();
-            today.setHours(0,0,0,0);
-
-            posts.forEach((post, index) => {
-                const isCourse = (post.category && post.category.toLowerCase().includes('course')) || 
-                                 (post.type && post.type.toLowerCase().includes('course'));
-                
-                const badgeColor = isCourse 
-                    ? 'bg-amber-500/10 text-brand-yellow border-amber-500/30'
-                    : 'bg-emerald-500/10 text-brand-emerald border-emerald-500/30';
-
-                const categoryLabel = post.category || post.type || (isCourse ? 'COURSE' : 'JOB');
-                const qualificationsText = post.qualifications || post.educational_qualifications || 'සඳහන් නැත';
-                
-                const salaryCode = post.salary_code || 'සඳහන් නැත';
-                const salaryAmount = post.salary_amount || post.salary_or_fee || 'සඳහන් නැත';
-
-                // 💡 UPDATED CLOSING DATE & URGENCY LOGIC
-                let dateDisplayHtml = '';
+            rawPosts.forEach(post => {
                 if (post.closing_date) {
-                    const closingDateObj = new Date(post.closing_date);
-                    const diffTime = closingDateObj - today;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays < 0) {
-                        // EXPIRED POST (Shortened text to "(අවසන්)")
-                        dateDisplayHtml = `<span class="font-bold text-red-400 flex items-center gap-1"><i class="fa-regular fa-calendar-xmark"></i> ${post.closing_date} (අවසන්)</span>`;
-                    } else if (diffDays <= 3) {
-                        // CLOSING IN <= 3 DAYS (Normal color + Red Blinking Clock)
-                        dateDisplayHtml = `<span class="font-bold text-amber-400 flex items-center gap-1.5">
-                            <i class="fa-regular fa-calendar-days"></i> ${post.closing_date}
-                            <i class="fa-solid fa-clock text-red-500 animate-pulse" title="අවසන් වීමට දින ${diffDays}යි!"></i>
-                        </span>`;
+                    const cDate = new Date(post.closing_date);
+                    if (cDate < now) {
+                        expiredPosts.push(post);
                     } else {
-                        // NORMAL ACTIVE POST
-                        dateDisplayHtml = `<span class="font-bold text-amber-400 flex items-center gap-1"><i class="fa-regular fa-calendar-days"></i> ${post.closing_date}</span>`;
+                        activePosts.push(post);
                     }
                 } else {
-                    dateDisplayHtml = `<span class="font-bold text-slate-400">සඳහන් නැත</span>`;
+                    activePosts.push(post);
                 }
+            });
 
-                // Standard Post Card
-                htmlContent += `
-                <div class="bg-brand-card border border-brand-border hover:border-brand-emerald/50 transition rounded-2xl p-5 shadow-lg relative overflow-hidden group space-y-3">
-                    <div class="flex items-center justify-between text-[11px]">
-                        <span class="${badgeColor} border px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1">
-                            <i class="fa-solid ${isCourse ? 'fa-graduation-cap' : 'fa-briefcase'}"></i> ${categoryLabel}
-                        </span>
-                        <span class="bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-md font-mono border border-slate-700 font-semibold">
-                            සුදුසුකම: ${post.meq_level || 'NONE'}
-                        </span>
-                    </div>
+            allFetchedPosts = [...activePosts, ...expiredPosts];
 
+            loadedPostsMap = {};
+            allFetchedPosts.forEach(p => loadedPostsMap[p.id] = p);
+
+            // Apply Search Filtering
+            applyFilterAndRender();
+
+        } catch (err) {
+            if (spinner) spinner.classList.add('hidden');
+            console.error('Unexpected error:', err);
+        }
+    }
+
+    // 💡 INSTANT KEYWORD SEARCH FILTERING LOGIC
+    function applyFilterAndRender() {
+        const query = searchQuery.trim().toLowerCase();
+
+        if (query === '') {
+            filteredPostsList = [...allFetchedPosts];
+        } else {
+            filteredPostsList = allFetchedPosts.filter(post => {
+                const title = (post.title || '').toLowerCase();
+                const org = (post.organization || '').toLowerCase();
+                const qual = (post.qualifications || post.educational_qualifications || '').toLowerCase();
+                const cat = (post.category || post.type || '').toLowerCase();
+                const desc = (post.description || '').toLowerCase();
+
+                return title.includes(query) || 
+                       org.includes(query) || 
+                       qual.includes(query) || 
+                       cat.includes(query) || 
+                       desc.includes(query);
+            });
+        }
+
+        currentPage = 1;
+        renderPage();
+    }
+
+    function renderPage() {
+        const listContainer = document.getElementById('posts-container');
+        const pagContainer = document.getElementById('pagination-container');
+
+        if (!filteredPostsList || filteredPostsList.length === 0) {
+            listContainer.innerHTML = `
+                <div class="text-center text-slate-400 py-10 bg-brand-card rounded-2xl border border-brand-border">
+                    <i class="fa-solid fa-magnifying-glass text-3xl mb-2 text-slate-600"></i>
+                    <p class="text-xs font-semibold text-slate-300">"${searchQuery}" සඳහා ගැලපෙන සටහන් කිසිවක් හමු නොවුණි.</p>
+                    <p class="text-[11px] text-slate-500 mt-1">කරුණාකර වෙනත් වචනයක් යොදා නැවත සොයන්න.</p>
+                </div>`;
+            pagContainer.classList.add('hidden');
+            return;
+        }
+
+        const totalPages = Math.ceil(filteredPostsList.length / postsPerPage);
+        const startIndex = (currentPage - 1) * postsPerPage;
+        const currentPosts = filteredPostsList.slice(startIndex, startIndex + postsPerPage);
+
+        renderPosts(currentPosts, listContainer);
+
+        if (totalPages > 1) {
+            pagContainer.classList.remove('hidden');
+            document.getElementById('btn-prev-page').disabled = (currentPage === 1);
+            document.getElementById('btn-next-page').disabled = (currentPage === totalPages);
+
+            let pageBtnsHtml = '';
+            for (let i = 1; i <= totalPages; i++) {
+                const activeStyle = i === currentPage 
+                    ? 'bg-brand-emerald text-brand-dark border-brand-emerald' 
+                    : 'bg-brand-charcoal text-slate-300 border-slate-700 hover:border-slate-500';
+                pageBtnsHtml += `<button onclick="goToPage(${i})" class="w-8 h-8 rounded-lg border text-xs font-bold transition ${activeStyle}">${i}</button>`;
+            }
+            document.getElementById('page-numbers').innerHTML = pageBtnsHtml;
+        } else {
+            pagContainer.classList.add('hidden');
+        }
+    }
+
+    function renderPosts(posts, container) {
+        let htmlContent = '';
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        posts.forEach((post, index) => {
+            const isCourse = (post.category && post.category.toLowerCase().includes('course')) || 
+                             (post.type && post.type.toLowerCase().includes('course'));
+            
+            const badgeColor = isCourse 
+                ? 'bg-amber-500/10 text-brand-yellow border-amber-500/30'
+                : 'bg-emerald-500/10 text-brand-emerald border-emerald-500/30';
+
+            const categoryLabel = post.category || post.type || (isCourse ? 'COURSE' : 'JOB');
+            const qualificationsText = post.qualifications || post.educational_qualifications || 'සඳහන් නැත';
+            
+            const salaryCode = post.salary_code || 'සඳහන් නැත';
+            const salaryAmount = post.salary_amount || post.salary_or_fee || 'සඳහන් නැත';
+
+            let dateDisplayHtml = '';
+            if (post.closing_date) {
+                const closingDateObj = new Date(post.closing_date);
+                const diffTime = closingDateObj - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays < 0) {
+                    dateDisplayHtml = `<span class="font-bold text-red-400 flex items-center gap-1"><i class="fa-regular fa-calendar-xmark"></i> ${post.closing_date} (අවසන්)</span>`;
+                } else if (diffDays <= 3) {
+                    dateDisplayHtml = `<span class="font-bold text-amber-400 flex items-center gap-1.5">
+                        <i class="fa-regular fa-calendar-days"></i> ${post.closing_date}
+                        <i class="fa-solid fa-clock text-red-500 animate-pulse" title="අවසන් වීමට දින ${diffDays}යි!"></i>
+                    </span>`;
+                } else {
+                    dateDisplayHtml = `<span class="font-bold text-amber-400 flex items-center gap-1"><i class="fa-regular fa-calendar-days"></i> ${post.closing_date}</span>`;
+                }
+            } else {
+                dateDisplayHtml = `<span class="font-bold text-slate-400">සඳහන් නැත</span>`;
+            }
+
+            htmlContent += `
+            <div class="bg-brand-card border border-brand-border hover:border-brand-emerald/50 transition rounded-2xl p-5 shadow-lg relative overflow-hidden group space-y-3">
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="${badgeColor} border px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1">
+                        <i class="fa-solid ${isCourse ? 'fa-graduation-cap' : 'fa-briefcase'}"></i> ${categoryLabel}
+                    </span>
+                    <span class="bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-md font-mono border border-slate-700 font-semibold">
+                        සුදුසුකම: ${post.meq_level || 'NONE'}
+                    </span>
+                </div>
+
+                <div>
+                    <h2 class="text-base font-bold text-white group-hover:text-brand-emerald transition leading-snug">
+                        ${post.title || 'No Title'}
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-building text-slate-500"></i> ${post.organization || 'රාජ්‍ය ආයතනය'}
+                    </p>
+                </div>
+
+                <div class="bg-brand-dark/60 p-3 rounded-xl border border-slate-800 text-xs space-y-1 text-slate-300">
+                    <p class="line-clamp-2">
+                        <strong class="text-brand-emerald"><i class="fa-solid fa-graduation-cap"></i> සුදුසුකම්:</strong> ${qualificationsText}
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs bg-brand-dark/40 p-2 rounded-xl border border-slate-800/80">
                     <div>
-                        <h2 class="text-base font-bold text-white group-hover:text-brand-emerald transition leading-snug">
-                            ${post.title || 'No Title'}
-                        </h2>
-                        <p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
-                            <i class="fa-solid fa-building text-slate-500"></i> ${post.organization || 'රාජ්‍ය ආයතනය'}
-                        </p>
+                        <span class="text-[10px] text-slate-400 block"><i class="fa-solid fa-barcode text-slate-500"></i> වැටුප් කේතය:</span>
+                        <strong class="text-brand-yellow font-mono text-[11px]">${salaryCode}</strong>
                     </div>
-
-                    <div class="bg-brand-dark/60 p-3 rounded-xl border border-slate-800 text-xs space-y-1 text-slate-300">
-                        <p class="line-clamp-2">
-                            <strong class="text-brand-emerald"><i class="fa-solid fa-graduation-cap"></i> සුදුසුකම්:</strong> ${qualificationsText}
-                        </p>
+                    <div>
+                        <span class="text-[10px] text-slate-400 block"><i class="fa-solid fa-money-bill-wave text-emerald-400"></i> වැටුප / ගාස්තුව:</span>
+                        <strong class="text-white text-[11px]">${salaryAmount}</strong>
                     </div>
+                </div>
 
-                    <div class="grid grid-cols-2 gap-2 text-xs bg-brand-dark/40 p-2 rounded-xl border border-slate-800/80">
-                        <div>
-                            <span class="text-[10px] text-slate-400 block"><i class="fa-solid fa-barcode text-slate-500"></i> වැටුප් කේතය:</span>
-                            <strong class="text-brand-yellow font-mono text-[11px]">${salaryCode}</strong>
-                        </div>
-                        <div>
-                            <span class="text-[10px] text-slate-400 block"><i class="fa-solid fa-money-bill-wave text-emerald-400"></i> වැටුප / ගාස්තුව:</span>
-                            <strong class="text-white text-[11px]">${salaryAmount}</strong>
-                        </div>
+                <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
+                    <div class="text-slate-400">
+                        <span class="block text-[10px] text-slate-500">අවසන් දිනය</span>
+                        ${dateDisplayHtml}
                     </div>
+                    
+                    <button onclick="openDetailModal('${post.id}')" class="bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-black px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-xs shadow-md shadow-brand-emerald/10">
+                        තවත් විස්තර බලන්න <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </button>
+                </div>
+            </div>`;
 
-                    <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
-                        <div class="text-slate-400">
-                            <span class="block text-[10px] text-slate-500">අවසන් දිනය</span>
-                            ${dateDisplayHtml}
-                        </div>
-                        
-                        <button onclick="openDetailModal('${post.id}')" class="bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-black px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-xs shadow-md shadow-brand-emerald/10">
-                            තවත් විස්තර බලන්න <i class="fa-solid fa-arrow-right text-[10px]"></i>
-                        </button>
+            if ((index + 1) % 5 === 0 && (index + 1) < posts.length) {
+                htmlContent += `
+                <div class="bg-brand-card border border-dashed border-slate-700/80 rounded-2xl p-4 shadow-lg text-center space-y-2">
+                    <div class="flex items-center justify-between text-[10px] text-slate-500 uppercase tracking-wider">
+                        <span class="flex items-center gap-1 text-brand-yellow font-bold"><i class="fa-solid fa-rectangle-ad"></i> Sponsored Notice</span>
+                        <span class="bg-slate-800 px-2 py-0.5 rounded text-slate-400 border border-slate-700">Ad</span>
+                    </div>
+                    <div class="h-28 bg-brand-dark/80 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+                        <a href="https://google.com" target="_blank" class="w-full h-full block">
+                            <img src="https://placehold.co/600x200/0b1e36/10b981?text=In-Feed+Native+Ad+Space" alt="Ad" class="w-full h-full object-cover rounded-xl">
+                        </a>
                     </div>
                 </div>`;
+            }
+        });
 
-                // 📍 AD SPOT 4: IN-FEED NATIVE AD (Appears after every 5th post)
-                if ((index + 1) % 5 === 0 && (index + 1) < posts.length) {
-                    htmlContent += `
-                    <div class="bg-brand-card border border-dashed border-slate-700/80 rounded-2xl p-4 shadow-lg text-center space-y-2">
-                        <div class="flex items-center justify-between text-[10px] text-slate-500 uppercase tracking-wider">
-                            <span class="flex items-center gap-1 text-brand-yellow font-bold"><i class="fa-solid fa-rectangle-ad"></i> Sponsored Notice</span>
-                            <span class="bg-slate-800 px-2 py-0.5 rounded text-slate-400 border border-slate-700">Ad</span>
-                        </div>
-                        <div class="h-28 bg-brand-dark/80 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
-                            <a href="https://google.com" target="_blank" class="w-full h-full block">
-                                <img src="https://placehold.co/600x200/0b1e36/10b981?text=In-Feed+Native+Ad+Space" alt="Ad" class="w-full h-full object-cover rounded-xl">
-                            </a>
-                        </div>
-                    </div>`;
-                }
-            });
+        container.innerHTML = htmlContent;
+    }
 
-            container.innerHTML = htmlContent;
+    window.openDetailModal = function(postId) {
+        const post = loadedPostsMap[postId];
+        if (!post) return;
+
+        document.getElementById('modal-title').innerText = post.title || 'No Title';
+        document.getElementById('modal-org').innerText = post.organization || 'රාජ්‍ය ආයතනය';
+        document.getElementById('modal-qualifications').innerText = post.qualifications || post.educational_qualifications || 'සඳහන් නැත';
+        document.getElementById('modal-salary-code').innerText = post.salary_code || 'සඳහන් නැත';
+        document.getElementById('modal-salary-amount').innerText = post.salary_amount || post.salary_or_fee || 'සඳහන් නැත';
+        document.getElementById('modal-closing-date').innerText = post.closing_date || 'සඳහන් නැත';
+        document.getElementById('modal-description').innerText = post.description || post.experience_qualifications || 'අමතර කරුණු නොමැත.';
+        document.getElementById('modal-category-badge').innerText = post.category || post.type || 'JOB';
+
+        const dlBtn = document.getElementById('modal-download-btn');
+        const fileUrl = post.pdf_url || post.image_url;
+        if (fileUrl && fileUrl.startsWith('http')) {
+            dlBtn.href = fileUrl;
+            dlBtn.classList.remove('hidden');
+        } else {
+            dlBtn.classList.add('hidden');
         }
 
-        window.openDetailModal = function(postId) {
-            const post = loadedPostsMap[postId];
-            if (!post) return;
+        document.getElementById('post-detail-modal').classList.remove('hidden');
+    };
 
-            document.getElementById('modal-title').innerText = post.title || 'No Title';
-            document.getElementById('modal-org').innerText = post.organization || 'රාජ්‍ය ආයතනය';
-            document.getElementById('modal-qualifications').innerText = post.qualifications || post.educational_qualifications || 'සඳහන් නැත';
-            document.getElementById('modal-salary-code').innerText = post.salary_code || 'සඳහන් නැත';
-            document.getElementById('modal-salary-amount').innerText = post.salary_amount || post.salary_or_fee || 'සඳහන් නැත';
-            document.getElementById('modal-closing-date').innerText = post.closing_date || 'සඳහන් නැත';
-            document.getElementById('modal-description').innerText = post.description || post.experience_qualifications || 'අමතර කරුණු නොමැත.';
-            document.getElementById('modal-category-badge').innerText = post.category || post.type || 'JOB';
+    window.closeDetailModal = function() {
+        document.getElementById('post-detail-modal').classList.add('hidden');
+    };
 
-            const dlBtn = document.getElementById('modal-download-btn');
-            const fileUrl = post.pdf_url || post.image_url;
-            if (fileUrl && fileUrl.startsWith('http')) {
-                dlBtn.href = fileUrl;
-                dlBtn.classList.remove('hidden');
-            } else {
-                dlBtn.classList.add('hidden');
-            }
+    window.changePage = function(delta) {
+        currentPage += delta;
+        renderPage();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
-            document.getElementById('post-detail-modal').classList.remove('hidden');
-        };
+    window.goToPage = function(pageNum) {
+        currentPage = pageNum;
+        renderPage();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
-        window.closeDetailModal = function() {
-            document.getElementById('post-detail-modal').classList.add('hidden');
-        };
+    window.switchTab = function(type) {
+        selectedType = type;
+        
+        const btnAll = document.getElementById('tab-all');
+        const btnJobs = document.getElementById('tab-jobs');
+        const btnEb = document.getElementById('tab-eb');
+        const btnCourses = document.getElementById('tab-courses');
 
-        window.changePage = function(delta) {
-            currentPage += delta;
-            renderPage();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
+        const activeClass = "flex-1 min-w-[70px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-1";
+        const inactiveClass = "flex-1 min-w-[70px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1";
 
-        window.goToPage = function(pageNum) {
-            currentPage = pageNum;
-            renderPage();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
+        btnAll.className = (type === 'ALL') ? activeClass : inactiveClass;
+        btnJobs.className = (type === 'JOB') ? activeClass : inactiveClass;
+        btnEb.className = (type === 'EB_EXAM') ? activeClass : inactiveClass;
+        btnCourses.className = (type === 'COURSE') ? activeClass : inactiveClass;
 
-        window.switchTab = function(type) {
-            selectedType = type;
-            
-            const btnAll = document.getElementById('tab-all');
-            const btnJobs = document.getElementById('tab-jobs');
-            const btnEb = document.getElementById('tab-eb');
-            const btnCourses = document.getElementById('tab-courses');
+        fetchPublishedPosts();
+    };
 
-            const activeClass = "flex-1 min-w-[70px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-1";
-            const inactiveClass = "flex-1 min-w-[70px] md:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1";
+    window.filterMEQ = function(level) {
+        selectedMeq = level;
 
-            btnAll.className = (type === 'ALL') ? activeClass : inactiveClass;
-            btnJobs.className = (type === 'JOB') ? activeClass : inactiveClass;
-            btnEb.className = (type === 'EB_EXAM') ? activeClass : inactiveClass;
-            btnCourses.className = (type === 'COURSE') ? activeClass : inactiveClass;
+        document.querySelectorAll('.meq-btn').forEach(btn => {
+            btn.className = "meq-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 whitespace-nowrap";
+        });
 
-            fetchPublishedPosts();
-        };
-
-        window.filterMEQ = function(level) {
-            selectedMeq = level;
-
-            document.querySelectorAll('.meq-btn').forEach(btn => {
-                btn.className = "meq-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 whitespace-nowrap";
-            });
-
-            if (window.event && window.event.target) {
-                window.event.target.className = "meq-btn active px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-emerald bg-brand-emerald/20 text-brand-emerald whitespace-nowrap";
-            }
-
-            fetchPublishedPosts();
-        };
-
-        function setupSearchListener() {
-            const searchInput = document.getElementById('search-input');
-            if (searchInput) {
-                let timeout = null;
-                searchInput.addEventListener('input', (e) => {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => {
-                        searchQuery = e.target.value;
-                        fetchPublishedPosts();
-                    }, 300);
-                });
-            }
+        if (window.event && window.event.target) {
+            window.event.target.className = "meq-btn active px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-emerald bg-brand-emerald/20 text-brand-emerald whitespace-nowrap";
         }
-    </script>
+
+        fetchPublishedPosts();
+    };
+
+    function setupSearchListener() {
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                applyFilterAndRender();
+            });
+        }
+    }
+</script>
 </body>
 </html>
