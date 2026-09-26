@@ -26,7 +26,6 @@ ai_client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def get_or_create_folder(parent_folder_id, folder_name):
-    """Processed හෝ Unsuccessful වැනි Subfolder සොයාගැනීම හෝ සෑදීම"""
     query = f"'{parent_folder_id}' in parents and name = '{folder_name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
     results = drive_service.files().list(q=query, fields="files(id, name)").execute()
     folders = results.get('files', [])
@@ -43,13 +42,27 @@ def get_or_create_folder(parent_folder_id, folder_name):
         return folder.get('id')
 
 def move_file(file_id, current_folder_id, target_folder_id):
-    """File එක අදාළ target folder එකට Move කිරීම"""
     drive_service.files().update(
         fileId=file_id,
         addParents=target_folder_id,
         removeParents=current_folder_id,
         fields='id, parents'
     ).execute()
+
+def make_file_publicly_readable(file_id):
+    """File එක ඕනෑම කෙනෙකුට Link එක හරහා බලන්න Permissions දීම"""
+    try:
+        user_permission = {
+            'type': 'anyone',
+            'role': 'reader',
+        }
+        drive_service.permissions().create(
+            fileId=file_id,
+            body=user_permission,
+            fields='id',
+        ).execute()
+    except Exception as e:
+        print(f"⚠️ Permission notice: {str(e)}")
 
 def extract_data_with_gemini(file_bytes, mime_type):
     prompt = """
@@ -111,7 +124,6 @@ def extract_data_with_gemini(file_bytes, mime_type):
                 raise e
 
 def log_document_status(file_name, file_id, status, count, titles_str, error_msg=None):
-    """Supabase document_logs table එකට Process වූ විස්තර සටහන් කිරීම"""
     try:
         supabase.table("document_logs").insert({
             "file_name": file_name,
@@ -145,6 +157,9 @@ def process_drive_files():
         
         print(f"📄 Processing: {file_name} ({mime_type})...")
 
+        # Google Drive Direct View URL එක හදාගැනීම
+        gdrive_file_url = f"https://drive.google.com/file/d/{file_id}/view?usp=sharing"
+
         # Memory එකට Download කිරීම
         request = drive_service.files().get_media(fileId=file_id)
         fh = io.BytesIO()
@@ -161,6 +176,9 @@ def process_drive_files():
             # 1. Gemini OCR Extraction
             extracted_posts = extract_data_with_gemini(file_bytes, mime_type)
             
+            # File එක Publicly Readable කිරීම
+            make_file_publicly_readable(file_id)
+
             # 2. Database Insert Loop
             for idx, post in enumerate(extracted_posts, start=1):
                 post_title = post.get("title", f"{file_name} - Position {idx}")
@@ -175,6 +193,7 @@ def process_drive_files():
                     "salary_amount": post.get("salary_amount"),
                     "description": post.get("description", ""),
                     "qualifications": post.get("qualifications", ""),
+                    "pdf_url": gdrive_file_url,  # 💡 Google Drive PDF View Link එක මෙතැනින් වැටේ!
                     "status": "PENDING",
                     "source": "GDRIVE_AUTOMATION"
                 }
@@ -186,7 +205,7 @@ def process_drive_files():
             titles_str = ", ".join(extracted_titles) if extracted_titles else "No posts extracted"
             log_document_status(file_name, file_id, "SUCCESS", len(extracted_posts), titles_str)
 
-            # 3. SUCCESS වුණු නිසා 'Processed' Folder එකට Move කිරීම
+            # 3. Processed Folder එකට Move කිරීම
             move_file(file_id, GDRIVE_FOLDER_ID, processed_folder_id)
             print(f"📦 Successfully processed. Moved {file_name} to 'Processed' folder.")
 
@@ -195,7 +214,6 @@ def process_drive_files():
             print(f"❌ Error processing {file_name}: {err_msg}")
             log_document_status(file_name, file_id, "FAILED", 0, "", err_msg)
 
-            # 4. FAILED වුණු නිසා 'Unsuccessful' Folder එකට Move කිරීම
             try:
                 move_file(file_id, GDRIVE_FOLDER_ID, unsuccessful_folder_id)
                 print(f"⚠️ Processing failed. Moved {file_name} to 'Unsuccessful' folder.")
