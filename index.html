@@ -16,7 +16,7 @@
     <meta name="apple-mobile-web-app-title" content="StepLK">
     <link rel="apple-touch-icon" href="./icons/icon-192.png">
     
-    <title>StepLK - Government Jobs, Courses & Daily Utilities</title>
+    <title>StepLK - ඔබ වෙනුවෙන්මයි</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -58,49 +58,44 @@
         </div>
     </div>
 
-    <!-- 2. MAIN HEADER -->
+    <!-- 2. MAIN HEADER (Updated Branding without Admin Link) -->
     <header class="bg-brand-dark/90 backdrop-blur-md border-b border-brand-border sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="#" class="flex items-center gap-2">
-                <div class="bg-gradient-to-r from-brand-emerald to-brand-yellow p-2 rounded-xl text-brand-dark font-black text-xl tracking-wider">
-                    STEP<span class="text-white">.LK</span>
+            <a href="#" class="flex items-center gap-2.5">
+                <div class="bg-gradient-to-r from-brand-emerald to-brand-yellow p-2 rounded-xl text-brand-dark font-black text-xl tracking-wider flex items-center gap-1.5 shadow-md">
+                    <span>StepLK</span>
+                    <span class="text-base">🚀</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-[11px] text-brand-emerald font-bold tracking-wider">ඔබ වෙනුවෙන්මයි</span>
                 </div>
             </a>
             
-            <div class="flex items-center gap-3">
-                <a href="/admin" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-user-gear text-brand-yellow"></i> Admin Panel
-                </a>
+            <div class="relative w-48 md:w-64">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input type="text" id="search-input" placeholder="සොයන්න (Search)..." class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-9 pr-3 py-1.5 text-xs text-white outline-none">
             </div>
         </div>
     </header>
 
-    <!-- 3. HERO & SEARCH SECTION -->
+    <!-- 3. MAIN SECTION -->
     <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
-        <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h1 class="text-xl md:text-2xl font-bold text-white mb-1">රැකියා සහ පාඨමාලා මගපෙන්වන්නා</h1>
-                <p class="text-slate-400 text-sm">ආණ්ඩුවේ ගැසට්, පුවත්පත් සහ රාජ්‍ය ආයතනවල නවතම ඇබෑර්තු එකම තැනින්.</p>
-            </div>
-            <!-- Search Input -->
-            <div class="relative w-full md:w-72">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                <input type="text" id="search-input" placeholder="සොයන්න (Search)..." class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-9 pr-3 py-2 text-xs text-white outline-none">
-            </div>
-        </div>
 
-        <!-- 4. TAB NAVIGATION & QUALIFICATION FILTER -->
+        <!-- 4. TAB NAVIGATION & QUALIFICATION / CATEGORY FILTER -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <!-- Jobs / Courses Tabs -->
+            <!-- Jobs / Courses / EB Exams Tabs -->
             <div class="flex bg-brand-charcoal p-1 rounded-xl border border-brand-border w-full md:w-auto">
                 <button id="tab-all" onclick="switchTab('ALL')" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-border-all"></i> සියල්ල (All)
+                    <i class="fa-solid fa-border-all"></i> සියල්ල
                 </button>
                 <button id="tab-jobs" onclick="switchTab('JOB')" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
                     <i class="fa-solid fa-briefcase"></i> රැකියා (Jobs)
                 </button>
+                <button id="tab-eb" onclick="switchTab('EB_EXAM')" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-file-signature"></i> කඩඉම් විභාග
+                </button>
                 <button id="tab-courses" onclick="switchTab('COURSE')" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-graduation-cap"></i> පාඨමාලා (Courses)
+                    <i class="fa-solid fa-graduation-cap"></i> පාඨමාලා
                 </button>
             </div>
 
@@ -124,12 +119,23 @@
                     <i class="fa-solid fa-spinner fa-spin text-2xl text-brand-emerald mb-2"></i>
                     <p class="text-xs text-slate-400">නවතම ඇබෑර්තු ලෝඩ් වෙමින් පවතී...</p>
                 </div>
+                
                 <div id="posts-container" class="space-y-4"></div>
+
+                <!-- PAGINATION CONTROLS -->
+                <div id="pagination-container" class="flex items-center justify-center gap-2 pt-6 pb-2 hidden">
+                    <button id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1.5 bg-brand-charcoal border border-slate-700 hover:border-brand-emerald text-xs rounded-lg font-semibold text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-chevron-left"></i> Previous
+                    </button>
+                    <div id="page-numbers" class="flex items-center gap-1.5 text-xs font-bold"></div>
+                    <button id="btn-next-page" onclick="changePage(1)" class="px-3 py-1.5 bg-brand-charcoal border border-slate-700 hover:border-brand-emerald text-xs rounded-lg font-semibold text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed">
+                        Next <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- DESKTOP RIGHT SIDEBAR (Daily Rates & Ads) -->
             <div class="hidden lg:block space-y-5">
-                
                 <div class="bg-brand-card border border-brand-border rounded-2xl p-5 sticky top-20 shadow-xl">
                     <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
                         <i class="fa-solid fa-chart-line text-brand-yellow"></i> දෛනික දත්ත (Daily Rates)
@@ -138,19 +144,18 @@
                     <div class="space-y-3.5 text-xs">
                         <div class="flex justify-between items-center bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800">
                             <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-dollar-sign text-emerald-400"></i> USD Exchange</span>
-                            <span class="font-bold text-white">LKR 302.50</span>
+                            <span id="sidebar-usd" class="font-bold text-white">LKR 302.50</span>
                         </div>
                         <div class="flex justify-between items-center bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800">
                             <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-coins text-amber-400"></i> රත්තරන් 22K (පවුම)</span>
-                            <span class="font-bold text-white">LKR 188,500</span>
+                            <span id="sidebar-gold" class="font-bold text-white">LKR 188,500</span>
                         </div>
                         <div class="flex justify-between items-center bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800">
                             <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-clock text-amber-400"></i> රාහු කාලය</span>
-                            <span class="font-bold text-white">1:32 PM - 3:04 PM</span>
+                            <span id="sidebar-rahu" class="font-bold text-white">1:32 PM - 3:04 PM</span>
                         </div>
                     </div>
 
-                    <!-- AD BANNER -->
                     <div class="mt-5 bg-slate-900 border border-dashed border-slate-700 rounded-xl p-4 text-center">
                         <span class="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Advertisement</span>
                         <div class="h-32 bg-slate-800/50 rounded-lg flex items-center justify-center text-xs text-slate-500">
@@ -158,28 +163,24 @@
                         </div>
                     </div>
                 </div>
-
             </div>
 
         </div>
     </main>
 
-    <!-- 6. POST FULL DETAILS MODAL (POPUP PAGE) -->
+    <!-- 6. POST FULL DETAILS MODAL -->
     <div id="post-detail-modal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-brand-card border border-brand-border rounded-2xl p-6 w-full max-w-xl shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto relative">
             
-            <!-- Close Button -->
             <button onclick="closeDetailModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center transition">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
-            <!-- 1. Post Title -->
             <div>
                 <span id="modal-category-badge" class="bg-emerald-500/10 text-brand-emerald border border-emerald-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider inline-block mb-2">JOB</span>
                 <h2 id="modal-title" class="text-lg font-bold text-white leading-snug">Post Title Here</h2>
             </div>
 
-            <!-- 2. Organization -->
             <div class="flex items-center gap-2 text-xs text-slate-300 bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800">
                 <i class="fa-solid fa-building text-brand-yellow"></i>
                 <div>
@@ -188,7 +189,6 @@
                 </div>
             </div>
 
-            <!-- 3. Qualifications -->
             <div class="space-y-1">
                 <span class="text-xs font-semibold text-brand-emerald flex items-center gap-1.5">
                     <i class="fa-solid fa-graduation-cap"></i> සුදුසුකම් (Qualifications)
@@ -198,7 +198,6 @@
                 </div>
             </div>
 
-            <!-- 4. Salary Code & Amount -->
             <div class="grid grid-cols-2 gap-3">
                 <div class="bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800 text-xs">
                     <span class="text-slate-400 text-[10px] block mb-0.5"><i class="fa-solid fa-barcode text-slate-500"></i> වැටුප් කේතය (Salary Code)</span>
@@ -210,7 +209,6 @@
                 </div>
             </div>
 
-            <!-- 5. Closing Date -->
             <div class="bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl text-xs flex items-center justify-between">
                 <span class="text-amber-300 font-medium flex items-center gap-1.5">
                     <i class="fa-regular fa-calendar-check"></i> අවසන් දිනය (Closing Date):
@@ -218,17 +216,15 @@
                 <strong id="modal-closing-date" class="text-amber-400 font-bold">YYYY-MM-DD</strong>
             </div>
 
-            <!-- 6. Description (Paragraph) -->
             <div class="space-y-1">
                 <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                    <i class="fa-solid fa-align-left text-brand-yellow"></i> අමතර විස්තර (Description)
+                    <i class="fa-solid fa-align-left text-brand-yellow"></i> කෙටි විස්තරය (Description)
                 </span>
                 <p id="modal-description" class="bg-brand-dark p-3 rounded-xl border border-slate-800 text-xs text-slate-300 leading-relaxed">
                     -
                 </p>
             </div>
 
-            <!-- 7. Download PDF Button -->
             <div class="pt-2">
                 <a id="modal-download-btn" href="#" target="_blank" class="w-full bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-black py-3 rounded-xl transition text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20">
                     <i class="fa-solid fa-file-arrow-down text-sm"></i> අදාළ ගැසට්/ලිපිය Download කරගන්න (Official Notice)
@@ -243,21 +239,6 @@
         <p>© 2026 StepLK (steplk.com) — Powered by Official Government Gazette & Public Sources.</p>
     </footer>
 
-    <!-- PWA INSTALL BANNER -->
-    <div id="pwa-install-banner" class="fixed bottom-4 left-4 right-4 z-50 bg-slate-900 border border-emerald-500/40 p-4 rounded-2xl shadow-2xl flex items-center justify-between hidden max-w-md mx-auto">
-        <div class="flex items-center gap-3">
-            <img src="./icons/icon-192.png" alt="StepLK" class="w-10 h-10 rounded-xl">
-            <div>
-                <h4 class="text-sm font-bold text-white">StepLK App එක Install කරගන්න</h4>
-                <p class="text-xs text-slate-400">Home Screen එකට එකතු කරගන්න</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-2">
-            <button id="btn-pwa-install" class="bg-emerald-500 text-slate-950 font-bold text-xs px-3 py-2 rounded-xl">INSTALL</button>
-            <button onclick="document.getElementById('pwa-install-banner').classList.add('hidden')" class="text-slate-400 hover:text-white px-2">✕</button>
-        </div>
-    </div>
-
     <!-- SUPABASE & APPLICATION SCRIPT MODULE -->
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -269,7 +250,12 @@
         let selectedType = 'ALL'; 
         let selectedMeq = 'ALL';  
         let searchQuery = '';
-        let loadedPostsMap = {}; // Posts Cache for Modal View
+        
+        // Pagination state
+        let allFetchedPosts = [];
+        let currentPage = 1;
+        const postsPerPage = 10;
+        let loadedPostsMap = {};
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchDailyUtilities();
@@ -277,7 +263,6 @@
             setupSearchListener();
         });
 
-        // Fetch Daily Utilities
         async function fetchDailyUtilities() {
             try {
                 const { data, error } = await supabase.from('daily_utilities').select('*');
@@ -286,17 +271,16 @@
                 data.forEach(item => {
                     const val = item.data_value?.value || item.value || '-';
                     if (item.key_name === 'USD_LKR') {
-                        const el = document.getElementById('ticker-usd');
-                        if (el) el.innerText = val;
+                        if(document.getElementById('ticker-usd')) document.getElementById('ticker-usd').innerText = val;
+                        if(document.getElementById('sidebar-usd')) document.getElementById('sidebar-usd').innerText = val;
                     } else if (item.key_name === 'GOLD_22K') {
-                        const el = document.getElementById('ticker-gold');
-                        if (el) el.innerText = val;
+                        if(document.getElementById('ticker-gold')) document.getElementById('ticker-gold').innerText = val;
+                        if(document.getElementById('sidebar-gold')) document.getElementById('sidebar-gold').innerText = val;
                     } else if (item.key_name === 'RAHU_TIME') {
-                        const el = document.getElementById('ticker-rahu');
-                        if (el) el.innerText = val;
+                        if(document.getElementById('ticker-rahu')) document.getElementById('ticker-rahu').innerText = val;
+                        if(document.getElementById('sidebar-rahu')) document.getElementById('sidebar-rahu').innerText = val;
                     } else if (item.key_name === 'SUBHA_DISAWA') {
-                        const el = document.getElementById('ticker-disawa');
-                        if (el) el.innerText = val;
+                        if(document.getElementById('ticker-disawa')) document.getElementById('ticker-disawa').innerText = val;
                     }
                 });
             } catch (err) {
@@ -304,7 +288,6 @@
             }
         }
 
-        // Fetch Published Posts
         async function fetchPublishedPosts() {
             const listContainer = document.getElementById('posts-container');
             const spinner = document.getElementById('loading-spinner');
@@ -318,17 +301,18 @@
                     .eq('status', 'PUBLISHED')
                     .order('created_at', { ascending: false });
 
-                // Filter by Type / Category
                 if (selectedType !== 'ALL') {
-                    query = query.or(`category.ilike.%${selectedType}%,type.ilike.%${selectedType}%`);
+                    if (selectedType === 'EB_EXAM') {
+                        query = query.or('category.ilike.%කඩඉම්%,category.ilike.%EB_EXAM%,title.ilike.%කඩඉම්%');
+                    } else {
+                        query = query.or(`category.ilike.%${selectedType}%,type.ilike.%${selectedType}%`);
+                    }
                 }
 
-                // Filter by MEQ Level
                 if (selectedMeq !== 'ALL') {
                     query = query.eq('meq_level', selectedMeq);
                 }
 
-                // Search Filter
                 if (searchQuery.trim() !== '') {
                     query = query.or(`title.ilike.%${searchQuery}%,organization.ilike.%${searchQuery}%`);
                 }
@@ -346,13 +330,12 @@
                     return;
                 }
 
-                // Save posts to map for detail modal
+                allFetchedPosts = posts || [];
                 loadedPostsMap = {};
-                if (posts) {
-                    posts.forEach(p => loadedPostsMap[p.id] = p);
-                }
+                allFetchedPosts.forEach(p => loadedPostsMap[p.id] = p);
 
-                renderPosts(posts, listContainer);
+                currentPage = 1;
+                renderPage();
 
             } catch (err) {
                 if (spinner) spinner.classList.add('hidden');
@@ -360,17 +343,45 @@
             }
         }
 
-        // Render Cards inside Feed
-        function renderPosts(posts, container) {
-            if (!posts || posts.length === 0) {
-                container.innerHTML = `
+        function renderPage() {
+            const listContainer = document.getElementById('posts-container');
+            const pagContainer = document.getElementById('pagination-container');
+
+            if (!allFetchedPosts || allFetchedPosts.length === 0) {
+                listContainer.innerHTML = `
                     <div class="text-center text-slate-400 py-10 bg-brand-card rounded-2xl border border-brand-border">
                         <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-600"></i>
                         <p class="text-xs">ඔබ සොයන නිර්ණායකවලට අදාළ සටහන් කිසිවක් හමු නොවුණි.</p>
                     </div>`;
+                pagContainer.classList.add('hidden');
                 return;
             }
 
+            const totalPages = Math.ceil(allFetchedPosts.length / postsPerPage);
+            const startIndex = (currentPage - 1) * postsPerPage;
+            const currentPosts = allFetchedPosts.slice(startIndex, startIndex + postsPerPage);
+
+            renderPosts(currentPosts, listContainer);
+
+            if (totalPages > 1) {
+                pagContainer.classList.remove('hidden');
+                document.getElementById('btn-prev-page').disabled = (currentPage === 1);
+                document.getElementById('btn-next-page').disabled = (currentPage === totalPages);
+
+                let pageBtnsHtml = '';
+                for (let i = 1; i <= totalPages; i++) {
+                    const activeStyle = i === currentPage 
+                        ? 'bg-brand-emerald text-brand-dark border-brand-emerald' 
+                        : 'bg-brand-charcoal text-slate-300 border-slate-700 hover:border-slate-500';
+                    pageBtnsHtml += `<button onclick="goToPage(${i})" class="w-8 h-8 rounded-lg border text-xs font-bold transition ${activeStyle}">${i}</button>`;
+                }
+                document.getElementById('page-numbers').innerHTML = pageBtnsHtml;
+            } else {
+                pagContainer.classList.add('hidden');
+            }
+        }
+
+        function renderPosts(posts, container) {
             container.innerHTML = posts.map(post => {
                 const isCourse = (post.category && post.category.toLowerCase().includes('course')) || 
                                  (post.type && post.type.toLowerCase().includes('course'));
@@ -387,7 +398,6 @@
 
                 return `
                 <div class="bg-brand-card border border-brand-border hover:border-brand-emerald/50 transition rounded-2xl p-5 shadow-lg relative overflow-hidden group space-y-3">
-                    <!-- Header Badges -->
                     <div class="flex items-center justify-between text-[11px]">
                         <span class="${badgeColor} border px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1">
                             <i class="fa-solid ${isCourse ? 'fa-graduation-cap' : 'fa-briefcase'}"></i> ${categoryLabel}
@@ -397,7 +407,6 @@
                         </span>
                     </div>
 
-                    <!-- Title & Organization -->
                     <div>
                         <h2 class="text-base font-bold text-white group-hover:text-brand-emerald transition leading-snug">
                             ${post.title || 'No Title'}
@@ -407,14 +416,12 @@
                         </p>
                     </div>
 
-                    <!-- Qualifications Section -->
                     <div class="bg-brand-dark/60 p-3 rounded-xl border border-slate-800 text-xs space-y-1 text-slate-300">
                         <p class="line-clamp-2">
                             <strong class="text-brand-emerald"><i class="fa-solid fa-graduation-cap"></i> සුදුසුකම්:</strong> ${qualificationsText}
                         </p>
                     </div>
 
-                    <!-- Salary Code & Amount Badges -->
                     <div class="grid grid-cols-2 gap-2 text-xs bg-brand-dark/40 p-2 rounded-xl border border-slate-800/80">
                         <div>
                             <span class="text-[10px] text-slate-400 block"><i class="fa-solid fa-barcode text-slate-500"></i> වැටුප් කේතය:</span>
@@ -426,7 +433,6 @@
                         </div>
                     </div>
 
-                    <!-- Footer Info & Open Modal Action -->
                     <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
                         <div class="text-slate-400">
                             <span class="block text-[10px] text-slate-500">අවසන් දිනය</span>
@@ -441,7 +447,6 @@
             }).join('');
         }
 
-        // Open Full Post Detail Modal Page
         window.openDetailModal = function(postId) {
             const post = loadedPostsMap[postId];
             if (!post) return;
@@ -467,40 +472,41 @@
             document.getElementById('post-detail-modal').classList.remove('hidden');
         };
 
-        // Close Detail Modal
         window.closeDetailModal = function() {
             document.getElementById('post-detail-modal').classList.add('hidden');
         };
 
-        // Tab Switcher
+        window.changePage = function(delta) {
+            currentPage += delta;
+            renderPage();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.goToPage = function(pageNum) {
+            currentPage = pageNum;
+            renderPage();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
         window.switchTab = function(type) {
             selectedType = type;
             
             const btnAll = document.getElementById('tab-all');
             const btnJobs = document.getElementById('tab-jobs');
+            const btnEb = document.getElementById('tab-eb');
             const btnCourses = document.getElementById('tab-courses');
 
             const activeClass = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition bg-brand-emerald text-brand-dark shadow-md flex items-center justify-center gap-1.5";
             const inactiveClass = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
 
-            if (type === 'ALL') {
-                btnAll.className = activeClass;
-                btnJobs.className = inactiveClass;
-                btnCourses.className = inactiveClass;
-            } else if (type === 'JOB') {
-                btnJobs.className = activeClass;
-                btnAll.className = inactiveClass;
-                btnCourses.className = inactiveClass;
-            } else if (type === 'COURSE') {
-                btnCourses.className = activeClass;
-                btnAll.className = inactiveClass;
-                btnJobs.className = inactiveClass;
-            }
+            btnAll.className = (type === 'ALL') ? activeClass : inactiveClass;
+            btnJobs.className = (type === 'JOB') ? activeClass : inactiveClass;
+            btnEb.className = (type === 'EB_EXAM') ? activeClass : inactiveClass;
+            btnCourses.className = (type === 'COURSE') ? activeClass : inactiveClass;
 
             fetchPublishedPosts();
         };
 
-        // Qualification Filter
         window.filterMEQ = function(level) {
             selectedMeq = level;
 
@@ -515,7 +521,6 @@
             fetchPublishedPosts();
         };
 
-        // Search Input Listener
         function setupSearchListener() {
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
@@ -529,40 +534,6 @@
                 });
             }
         }
-    </script>
-
-    <!-- PWA SERVICE WORKER -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('✅ Service Worker Registered:', reg.scope))
-            .catch(err => console.error('❌ Service Worker Failed:', err));
-        });
-      }
-
-      let deferredPrompt;
-      const installBanner = document.getElementById('pwa-install-banner');
-      const btnInstall = document.getElementById('btn-pwa-install');
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-          e.preventDefault();
-          deferredPrompt = e;
-          if (installBanner && !localStorage.getItem('pwa_banner_dismissed')) {
-              installBanner.classList.remove('hidden');
-          }
-      });
-
-      if (btnInstall) {
-          btnInstall.addEventListener('click', async () => {
-              if (deferredPrompt) {
-                  deferredPrompt.prompt();
-                  const { outcome } = await deferredPrompt.userChoice;
-                  deferredPrompt = null;
-                  if (installBanner) installBanner.classList.add('hidden');
-              }
-          });
-      }
     </script>
 </body>
 </html>
