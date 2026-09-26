@@ -4,18 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Favicon & PWA Icons -->
     <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-    <link rel="apple-touch-icon" href="./icons/icon-192.png">
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#061626">
-
-    <!-- iOS (Apple) Support -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="StepLK">
     
-    <title>StepLK Admin - Mobile Review Panel</title>
+    <title>StepLK Admin - Review Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -42,16 +35,13 @@
 </head>
 <body class="bg-brand-dark text-slate-100 font-sans antialiased min-h-screen">
 
-    <!-- ========================================== -->
-    <!-- 1. AUTH LOGIN SCREEN (AUTHENTICATION GUARD) -->
-    <!-- ========================================== -->
+    <!-- LOGIN MODAL -->
     <div id="login-modal" class="fixed inset-0 z-[100] bg-brand-dark flex items-center justify-center p-4">
         <div class="bg-brand-card border border-brand-border rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 text-center">
             <div class="inline-flex bg-gradient-to-r from-brand-emerald to-brand-yellow px-3 py-1.5 rounded-xl text-brand-dark font-black text-xl mb-1">
-                STEP<span class="text-white">.LK</span>
+                StepLK<span class="text-white">🚀</span>
             </div>
             <h2 class="text-base font-bold text-white">Admin Login</h2>
-            <p class="text-xs text-slate-400">Dashboard එකට පිවිසීමට Admin Credentials ඇතුළත් කරන්න.</p>
 
             <form id="login-form" class="space-y-3 text-left">
                 <div>
@@ -72,16 +62,13 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 2. MAIN ADMIN DASHBOARD (HIDDEN UNTIL AUTH) -->
-    <!-- ========================================== -->
+    <!-- MAIN ADMIN DASHBOARD -->
     <div id="admin-app" class="hidden pb-20">
         
-        <!-- TOP HEADER -->
         <header class="bg-brand-charcoal border-b border-brand-border sticky top-0 z-50 px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="bg-gradient-to-r from-brand-emerald to-brand-yellow px-2.5 py-1 rounded-lg text-brand-dark font-black text-sm">
-                    STEP<span class="text-white">.LK</span>
+                    StepLK 🚀
                 </span>
                 <span class="text-xs bg-amber-500/10 text-brand-yellow border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">Admin Panel</span>
             </div>
@@ -98,13 +85,11 @@
 
         <main class="max-w-2xl mx-auto px-4 py-4 space-y-4">
 
-            <!-- TOAST ALERT -->
             <div id="toast" class="hidden bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
                 <i class="fa-solid fa-circle-check text-base"></i>
                 <span id="toast-msg">Action successful!</span>
             </div>
 
-            <!-- Navigation Filter Tabs -->
             <div class="flex border-b border-slate-800 mb-4 gap-6">
                 <button id="tab-pending" onclick="switchTab('PENDING')" class="pb-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-400 transition-all flex items-center gap-2">
                     Pending Verification
@@ -115,7 +100,7 @@
                 </button>
             </div>
             
-            <!-- Pending Verification Section (Review Form Card) -->
+            <!-- Pending Verification Section -->
             <div id="pending-posts-section">
                 <div id="review-card" class="bg-brand-card border border-brand-border rounded-2xl p-4 shadow-xl space-y-4">
                     
@@ -127,22 +112,6 @@
                         <span id="item-id-display" class="bg-slate-800 text-slate-300 text-[11px] px-2.5 py-1 rounded-md border border-slate-700 font-mono">No Items</span>
                     </div>
 
-                    <!-- GAZETTE IMAGE PREVIEW -->
-                    <div class="bg-brand-dark border border-brand-border rounded-xl p-3">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                                <i class="fa-solid fa-file-image text-brand-emerald"></i> මුල් ගැසට්/දැන්වීම් පත්‍රය (Preview)
-                            </span>
-                            <button id="btn-toggle-img" class="text-xs text-brand-yellow hover:underline flex items-center gap-1">
-                                <i id="zoom-icon" class="fa-solid fa-magnifying-glass-plus"></i> <span id="zoom-txt">විශාල කරන්න</span>
-                            </button>
-                        </div>
-                        <div id="img-container" class="overflow-hidden rounded-lg max-h-48 transition-all duration-300 border border-slate-800 bg-black/40 flex justify-center">
-                            <img id="gazette-img" src="https://placehold.co/600x800/0f172a/10b981?text=No+Preview+Available" alt="Gazette Snippet" class="object-contain w-full cursor-pointer">
-                        </div>
-                    </div>
-
-                    <!-- EDITABLE FORM -->
                     <form id="review-form" class="space-y-3 text-xs">
                         <input type="hidden" id="current-post-id">
 
@@ -159,7 +128,12 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block font-semibold text-slate-300 mb-1">වර්ගය (Category):</label>
-                                <input type="text" id="field-category" placeholder="Government Job / Course" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                                <select id="field-category" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                                    <option value="Government Job">Government Job</option>
+                                    <option value="කඩඉම් විභාග">කඩඉම් විභාග (EB Exam)</option>
+                                    <option value="Course">Course</option>
+                                    <option value="Semi-Govt Job">Semi-Govt Job</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="block font-semibold text-slate-300 mb-1">MEQ Filter Tag:</label>
@@ -174,13 +148,24 @@
                             </div>
                         </div>
 
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-semibold text-slate-300 mb-1">වැටුප් කේතය (Salary Code):</label>
+                                <input type="text" id="field-salary-code" placeholder="e.g. MN-1" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-300 mb-1">වැටුප / ගාස්තුව (Salary):</label>
+                                <input type="text" id="field-salary-amount" placeholder="e.g. LKR 38,500" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                            </div>
+                        </div>
+
                         <div>
                             <label class="block font-semibold text-brand-emerald mb-1"><i class="fa-solid fa-graduation-cap"></i> සුදුසුකම් (Qualifications):</label>
                             <textarea id="field-qualifications" rows="3" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none leading-relaxed"></textarea>
                         </div>
 
                         <div>
-                            <label class="block font-semibold text-brand-yellow mb-1"><i class="fa-solid fa-align-left"></i> විස්තරය (Description / Details):</label>
+                            <label class="block font-semibold text-brand-yellow mb-1"><i class="fa-solid fa-align-left"></i> විස්තරය (Description):</label>
                             <textarea id="field-description" rows="3" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none leading-relaxed"></textarea>
                         </div>
 
@@ -196,7 +181,6 @@
                         </div>
                     </form>
 
-                    <!-- ACTION BUTTONS -->
                     <div class="pt-2 grid grid-cols-2 gap-3 border-t border-slate-800">
                         <button type="button" id="btn-reject" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
                             <i class="fa-solid fa-trash-can"></i> Reject Post
@@ -217,9 +201,7 @@
         </main>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 3. SUPABASE AUTH & REVIEW CONTROLLER SCRIPT -->
-    <!-- ========================================== -->
+    <!-- SUPABASE SCRIPT -->
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
@@ -227,15 +209,11 @@
         const SUPABASE_ANON_KEY = 'sb_publishable_j4dFy0AhNEmQOIEUpsS7mg_83NOxeFj';
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let isZoomed = false;
-
-        // UI Elements
         const loginModal = document.getElementById('login-modal');
         const adminApp = document.getElementById('admin-app');
         const loginForm = document.getElementById('login-form');
         const loginError = document.getElementById('login-error');
 
-        // Check Session on Load
         document.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
@@ -246,7 +224,6 @@
             }
         });
 
-        // Login Action
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
@@ -263,13 +240,11 @@
             }
         });
 
-        // Logout Action
         document.getElementById('btn-logout').addEventListener('click', async () => {
             await supabase.auth.signOut();
             showLoginModal();
         });
 
-        // Tab Switcher Logic
         window.switchTab = function(tabName) {
             const pubSec = document.getElementById('published-posts-section');
             const pendSec = document.getElementById('pending-posts-section');
@@ -279,23 +254,18 @@
             if (tabName === 'PUBLISHED') {
                 pubSec.classList.remove('hidden');
                 pendSec.classList.add('hidden');
-
                 tabPub.className = "pb-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-400 transition-all";
                 tabPend.className = "pb-3 text-sm font-bold text-slate-400 hover:text-white transition-all flex items-center gap-2";
-                
                 loadPublishedPosts();
             } else {
                 pubSec.classList.add('hidden');
                 pendSec.classList.remove('hidden');
-
                 tabPend.className = "pb-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-400 transition-all flex items-center gap-2";
                 tabPub.className = "pb-3 text-sm font-bold text-slate-400 hover:text-white transition-all";
-                
                 loadPendingPosts();
             }
         };
 
-        // Fetch Pending Posts from Supabase
         async function loadPendingPosts() {
             const { data, error } = await supabase
                 .from('posts')
@@ -306,7 +276,7 @@
             if (data && data.length > 0) {
                 document.getElementById('count-val').innerText = data.length;
                 document.getElementById('pending-badge').innerText = data.length;
-                populateForm(data[0]); // Load first pending item
+                populateForm(data[0]);
             } else {
                 document.getElementById('count-val').innerText = '0';
                 document.getElementById('pending-badge').innerText = '0';
@@ -314,10 +284,9 @@
             }
         }
 
-        // Fetch Published Posts from Supabase
         async function loadPublishedPosts() {
             const listContainer = document.getElementById('published-posts-list');
-            listContainer.innerHTML = '<div class="text-xs text-slate-400 py-4 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Published Posts ලෝඩ් වෙනවා...</div>';
+            listContainer.innerHTML = '<div class="text-xs text-slate-400 py-4 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>';
 
             const { data, error } = await supabase
                 .from('posts')
@@ -326,7 +295,7 @@
                 .order('created_at', { ascending: false });
 
             if (error || !data || data.length === 0) {
-                listContainer.innerHTML = '<div class="text-xs text-slate-400 bg-brand-card p-4 rounded-xl border border-brand-border text-center">ප්‍රකාශිත (Published) පෝස්ට් කිසිවක් නොමැත.</div>';
+                listContainer.innerHTML = '<div class="text-xs text-slate-400 bg-brand-card p-4 rounded-xl border border-brand-border text-center">ප්‍රකාශිත පෝස්ට් නොමැත.</div>';
                 return;
             }
 
@@ -334,33 +303,26 @@
                 <div class="bg-brand-card border border-brand-border p-4 rounded-xl flex items-center justify-between gap-3">
                     <div>
                         <h4 class="font-bold text-sm text-white">${post.title || 'No Title'}</h4>
-                        <p class="text-xs text-slate-400">${post.organization || ''} • <span class="text-brand-emerald font-semibold">${post.category || post.type || 'Job'}</span></p>
-                        <p class="text-[10px] text-slate-500 mt-1">Closing: ${post.closing_date || 'N/A'}</p>
+                        <p class="text-xs text-slate-400">${post.organization || ''} • <span class="text-brand-emerald font-semibold">${post.category || 'Job'}</span></p>
                     </div>
                     <span class="bg-emerald-500/10 text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-500/20">LIVE</span>
                 </div>
             `).join('');
         }
 
-        // Populate Form Fields with Fallbacks
         function populateForm(item) {
             document.getElementById('current-post-id').value = item.id;
             document.getElementById('item-id-display').innerText = `ID: #${item.id.substring(0, 8)}`;
             document.getElementById('field-title').value = item.title || '';
             document.getElementById('field-org').value = item.organization || '';
-            document.getElementById('field-category').value = item.category || item.type || 'Government Job';
+            document.getElementById('field-category').value = item.category || 'Government Job';
             document.getElementById('field-meq').value = item.meq_level || 'NONE';
+            document.getElementById('field-salary-code').value = item.salary_code || '';
+            document.getElementById('field-salary-amount').value = item.salary_amount || item.salary_or_fee || '';
             document.getElementById('field-qualifications').value = item.qualifications || item.educational_qualifications || '';
             document.getElementById('field-description').value = item.description || item.experience_qualifications || '';
             document.getElementById('field-date').value = item.closing_date || '';
             document.getElementById('field-source').value = item.source || 'GDRIVE_AUTOMATION';
-
-            const imgUrl = item.pdf_url || item.image_url || item.pdf_page_url;
-            if (imgUrl && imgUrl.startsWith('http')) {
-                document.getElementById('gazette-img').src = imgUrl;
-            } else {
-                document.getElementById('gazette-img').src = "https://placehold.co/600x800/0f172a/10b981?text=PDF+Document+Extracted";
-            }
         }
 
         function clearForm() {
@@ -368,15 +330,13 @@
             document.getElementById('item-id-display').innerText = 'No Items Left';
             document.getElementById('field-title').value = '';
             document.getElementById('field-org').value = '';
-            document.getElementById('field-category').value = '';
+            document.getElementById('field-salary-code').value = '';
+            document.getElementById('field-salary-amount').value = '';
             document.getElementById('field-qualifications').value = '';
             document.getElementById('field-description').value = '';
             document.getElementById('field-date').value = '';
-            document.getElementById('field-source').value = '';
-            document.getElementById('gazette-img').src = "https://placehold.co/600x800/0f172a/10b981?text=All+Pending+Items+Processed!";
         }
 
-        // Publish Post
         document.getElementById('btn-publish').addEventListener('click', async () => {
             const postId = document.getElementById('current-post-id').value;
             if (!postId) return;
@@ -386,6 +346,8 @@
                 organization: document.getElementById('field-org').value,
                 category: document.getElementById('field-category').value,
                 meq_level: document.getElementById('field-meq').value,
+                salary_code: document.getElementById('field-salary-code').value,
+                salary_amount: document.getElementById('field-salary-amount').value,
                 qualifications: document.getElementById('field-qualifications').value,
                 description: document.getElementById('field-description').value,
                 closing_date: document.getElementById('field-date').value || null,
@@ -402,12 +364,11 @@
             }
         });
 
-        // Reject Post
         document.getElementById('btn-reject').addEventListener('click', async () => {
             const postId = document.getElementById('current-post-id').value;
             if (!postId) return;
 
-            if (confirm("මෙම පෝස්ටුව ප්‍රතික්ෂේප (Reject) කිරීමට අවශ්‍යද?")) {
+            if (confirm("මෙම පෝස්ටුව ප්‍රතික්ෂේප කිරීමට අවශ්‍යද?")) {
                 const { error } = await supabase.from('posts').update({ status: 'REJECTED' }).eq('id', postId);
                 if (!error) {
                     showToast("❌ පෝස්ටුව ප්‍රතික්ෂේප කරන ලදී.");
@@ -416,28 +377,6 @@
             }
         });
 
-        // Image Zoom Toggle
-        document.getElementById('btn-toggle-img').addEventListener('click', () => {
-            const container = document.getElementById('img-container');
-            const txt = document.getElementById('zoom-txt');
-            const icon = document.getElementById('zoom-icon');
-
-            if (!isZoomed) {
-                container.classList.remove('max-h-48');
-                container.classList.add('max-h-[600px]');
-                txt.innerText = "කුඩා කරන්න";
-                icon.className = "fa-solid fa-magnifying-glass-minus";
-                isZoomed = true;
-            } else {
-                container.classList.add('max-h-48');
-                container.classList.remove('max-h-[600px]');
-                txt.innerText = "විශාල කරන්න";
-                icon.className = "fa-solid fa-magnifying-glass-plus";
-                isZoomed = false;
-            }
-        });
-
-        // UI Helpers
         function showDashboard() {
             loginModal.classList.add('hidden');
             adminApp.classList.remove('hidden');
@@ -454,15 +393,6 @@
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
-    </script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('✅ Service Worker Registered:', reg.scope))
-            .catch(err => console.error('❌ Service Worker Registration Failed:', err));
-        });
-      }
     </script>
 </body>
 </html>
