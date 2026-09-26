@@ -88,11 +88,21 @@
     <main class="max-w-7xl mx-auto px-4 py-5 flex-1 w-full">
 
         <!-- Hero Intro Badge -->
-        <div class="mb-5 bg-brand-card/60 p-3.5 rounded-2xl border border-brand-border/80">
+        <div class="mb-4 bg-brand-card/60 p-3.5 rounded-2xl border border-brand-border/80">
             <h1 class="text-sm md:text-base font-bold text-white mb-0.5 flex items-center gap-2">
                 <i class="fa-solid fa-bullhorn text-brand-yellow text-xs"></i> රාජ්‍ය හා පෞද්ගලික අංශයේ රැකියා, විභාග හා පාඨමාලා සියල්ල
             </h1>
             <p class="text-xs text-slate-400">දිවයිනේ සියලුම නවතම ඇබෑර්තු සහ පාඨමාලා තොරතුරු එසැණින් එකම තැනින් දැනගන්න.</p>
+        </div>
+
+        <!-- 📍 AD SPOT 1: MOBILE TOP BANNER AD (Visible on Mobile Screens Only) -->
+        <div class="block lg:hidden mb-4 bg-brand-card border border-dashed border-slate-700/80 rounded-2xl p-3 text-center">
+            <span class="text-[9px] text-slate-500 uppercase tracking-widest block mb-1">Advertisement</span>
+            <div id="mobile-top-ad" class="h-24 bg-brand-dark/80 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+                <a href="https://google.com" target="_blank" class="w-full h-full block">
+                    <img src="https://i.ibb.co/XZqLGbwj/image-a78c354e.jpg" alt="Ad" class="w-full h-full object-cover rounded-xl">
+                </a>
+            </div>
         </div>
 
         <!-- 4. TAB NAVIGATION & QUALIFICATION FILTER -->
@@ -149,7 +159,7 @@
                 </div>
             </div>
 
-            <!-- DESKTOP RIGHT SIDEBAR (Daily Rates) -->
+            <!-- DESKTOP RIGHT SIDEBAR (Daily Rates & Desktop Ad) -->
             <div class="hidden lg:block space-y-5">
                 <div class="bg-brand-card border border-brand-border rounded-2xl p-5 sticky top-20 shadow-xl">
                     <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
@@ -170,13 +180,24 @@
                             <span id="sidebar-rahu" class="font-bold text-white">1:32 PM - 3:04 PM</span>
                         </div>
                     </div>
+
+                    <!-- 📍 AD SPOT 2: DESKTOP SIDEBAR AD BANNER -->
+                    <div class="mt-5 bg-slate-900 border border-dashed border-slate-700 rounded-xl p-4 text-center">
+                        <span class="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Advertisement</span>
+                        <div id="desktop-sidebar-ad" class="h-32 bg-slate-800/50 rounded-lg overflow-hidden flex items-center justify-center">
+                            <a href="https://google.com" target="_blank" class="w-full h-full block">
+                                <img src="https://i.ibb.co/XZqLGbwj/image-a78c354e.jpg" alt="Ad" class="w-full h-full object-cover rounded-lg">
+                            </a>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
         </div>
     </main>
 
-    <!-- 6. POST FULL DETAILS MODAL (With In-Modal Ad Placement) -->
+    <!-- 6. POST FULL DETAILS MODAL -->
     <div id="post-detail-modal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-brand-card border border-brand-border rounded-2xl p-6 w-full max-w-xl shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto relative">
             
@@ -233,12 +254,12 @@
                 </p>
             </div>
 
-            <!-- OPTION 2: DETAIL MODAL AD BANNER -->
+            <!-- 📍 AD SPOT 3: DETAIL MODAL AD BANNER -->
             <div class="bg-brand-dark/80 border border-slate-800 rounded-xl p-2.5 text-center my-2">
                 <span class="text-[9px] text-slate-500 uppercase tracking-widest block mb-1">Sponsored Notice</span>
                 <div id="modal-ad-container" class="h-24 bg-slate-900/60 rounded-lg overflow-hidden flex items-center justify-center">
                     <a href="https://google.com" target="_blank" class="w-full h-full block">
-                        <img src="https://i.ibb.co/XZqLGbwj/image-a78c354e.jpg"" alt="Ad" class="w-full h-full object-cover rounded-lg">
+                        <img src="https://i.ibb.co/XZqLGbwj/image-a78c354e.jpg" alt="Ad" class="w-full h-full object-cover rounded-lg">
                     </a>
                 </div>
             </div>
@@ -466,7 +487,7 @@
                     </div>
                 </div>`;
 
-                // OPTION 1: IN-FEED NATIVE AD (Appears after every 5th post)
+                // 📍 AD SPOT 4: IN-FEED NATIVE AD (Appears after every 5th post)
                 if ((index + 1) % 5 === 0 && (index + 1) < posts.length) {
                     htmlContent += `
                     <div class="bg-brand-card border border-dashed border-slate-700/80 rounded-2xl p-4 shadow-lg text-center space-y-2">
@@ -476,7 +497,7 @@
                         </div>
                         <div class="h-28 bg-brand-dark/80 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
                             <a href="https://google.com" target="_blank" class="w-full h-full block">
-                                <img src="https://placehold.co/600x200/0b1e36/10b981?text=In-Feed+Native+Ad+Space" alt="Ad" class="w-full h-full object-cover rounded-xl">
+                                <img src="https://i.ibb.co/XZqLGbwj/image-a78c354e.jpg" alt="Ad" class="w-full h-full object-cover rounded-xl">
                             </a>
                         </div>
                     </div>`;
