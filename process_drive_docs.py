@@ -85,24 +85,42 @@ def extract_data_with_gemini(file_bytes, mime_type):
     """
 
     config = types.GenerateContentConfig(
-        temperature=0.0, # Deterministic Output
+        temperature=0.0,
         response_mime_type="application/json"
     )
 
-    response = ai_client.models.generate_content(
-        model='gemini-3.8-flash',
-        contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), prompt],
-        config=config
-    )
+    max_retries = 5
+    delay = 5  # තත්පර 5 කින් ආරම්භ වේ
 
-    clean_text = response.text.strip()
-    data = json.loads(clean_text)
-    
-    if isinstance(data, list):
-        return data
-    elif isinstance(data, dict) and "posts" in data:
-        return data["posts"]
-    return []
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"🤖 Requesting Gemini Extraction (Attempt {attempt}/{max_retries})...")
+            response = ai_client.models.generate_content(
+                model='gemini-3.8-flash',
+                contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), prompt],
+                config=config
+            )
+
+            clean_text = response.text.strip()
+            data = json.loads(clean_text)
+            
+            if isinstance(data, list):
+                return data
+            elif isinstance(data, dict) and "posts" in data:
+                return data["posts"]
+            return []
+
+        except Exception as e:
+            err_str = str(e)
+            print(f"⚠️ Gemini Extraction Error (Attempt {attempt}/{max_retries}): {err_str}")
+            
+            # 503 UNAVAILABLE හෝ High Demand Error එකක් ආවොත් පමණක් Wait කර Retries කරයි
+            if ("503" in err_str or "UNAVAILABLE" in err_str or "high demand" in err_str) and attempt < max_retries:
+                print(f"⏳ Gemini Server Busy (503). Retrying in {delay} seconds...")
+                time.sleep(delay)
+                delay *= 2  # Exponential backoff (5s -> 10s -> 20s -> 40s)
+            else:
+                raise e
 
 # -------------------------------------------------------------
 # PASS 2: QUALITY CHECK & RE-AUDIT PASS
@@ -254,12 +272,17 @@ def process_drive_files():
         except Exception as e:
             err_msg = str(e)
             print(f"❌ Error processing {file_name}: {err_msg}")
-            log_document_status(file_name, file_id, "FAILED", 0, "", "QC Failed", err_msg)
+            log_document_status(file_name, file_id, "FAILED", 0, "", "Server Busy / API Failure", err_msg)
 
-            try:
-                move_file(file_id, GDRIVE_FOLDER_ID, unsuccessful_folder_id)
-            except Exception as move_err:
-                print(f"🚨 Move failed: {str(move_err)}")
+            # 503 Temporary Error එකක් නම් File එක Unsuccessful එකට නොදා ඊළඟ Run එකට තබයි
+            if "503" in err_msg or "UNAVAILABLE" in err_msg:
+                print(f"⏳ 503 Server Overload detected. Keeping {file_name} in main folder for next run retry.")
+            else:
+                try:
+                    move_file(file_id, GDRIVE_FOLDER_ID, unsuccessful_folder_id)
+                    print(f"⚠️ Processing failed. Moved {file_name} to 'Unsuccessful' folder.")
+                except Exception as move_err:
+                    print(f"🚨 Could not move failed file {file_name}: {str(move_err)}")
 
 if __name__ == "__main__":
     process_drive_files()
