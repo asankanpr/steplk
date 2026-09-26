@@ -60,7 +60,6 @@ def move_file(file_id, current_folder_id, target_folder_id):
 import time
 
 def extract_data_with_gemini(file_bytes, mime_type):
-    """Gemini AI හරහා Image/PDF Document එකෙන් Structured Data ලබාගැනීම (Retry & Fallback සහිතව)"""
     prompt = """
     You are an expert OCR and data extraction assistant for Sri Lankan Gazettes, Job Openings, and Educational Courses.
     Analyze the attached document/image carefully and extract the following information in strict JSON format:
@@ -77,30 +76,17 @@ def extract_data_with_gemini(file_bytes, mime_type):
     Respond ONLY with valid JSON. Do not add markdown codeblocks like ```json or any commentary.
     """
 
-    # 503 Overload Errors මගහැරීමට Candidate Models සහ Retry Attempts යෙදීම
-    candidate_models = ['gemini-2.0-flash', 'gemini-1.5-flash']
-    
-    for model_name in candidate_models:
-        for attempt in range(3): # එක Model එකකට තෙවරක් Retry කරයි
-            try:
-                print(f"🤖 Requesting Gemini ({model_name} - Attempt {attempt + 1})...")
-                response = ai_client.models.generate_content(
-                    model=model_name,
-                    contents=[
-                        genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
-                        prompt
-                    ]
-                )
-                clean_text = response.text.strip().replace("```json", "").replace("```", "").strip()
-                return json.loads(clean_text)
-            except Exception as e:
-                print(f"⚠️ Warning ({model_name} attempt {attempt + 1}): {str(e)}")
-                if "503" in str(e) or "UNAVAILABLE" in str(e):
-                    time.sleep(4) # Server Overload නම් තත්පර 4ක් ඉඳලා ආයේ Attempt කරයි
-                else:
-                    break # වෙනත් Error එකක් නම් ඊළඟ Model එකට යයි
-                    
-    raise Exception("Gemini API is currently overloaded. Please try again in a few minutes.")
+    # 2026 වසරේ සක්‍රීය gemini-3.8-flash Model එක භාවිතය
+    response = ai_client.models.generate_content(
+        model='gemini-3.8-flash',
+        contents=[
+            genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
+            prompt
+        ]
+    )
+
+    clean_text = response.text.strip().replace("```json", "").replace("```", "").strip()
+    return json.loads(clean_text)
 
 
 def process_drive_files():
