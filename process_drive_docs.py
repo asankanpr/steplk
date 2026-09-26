@@ -8,7 +8,7 @@ from googleapiclient.http import MediaIoBaseDownload
 from google import genai
 from supabase import create_client, Client
 
-# 1. Environment Variables පරීක්ෂා කිරීම
+# Environment Variables
 GDRIVE_JSON_STR = os.getenv("GDRIVE_SERVICE_ACCOUNT_JSON")
 GDRIVE_FOLDER_ID = os.getenv("GDRIVE_FOLDER_ID")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -18,20 +18,14 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY
 if not all([GDRIVE_JSON_STR, GDRIVE_FOLDER_ID, GEMINI_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
     raise ValueError("Missing required environment variables.")
 
-# 2. Setup Google Drive API
 info = json.loads(GDRIVE_JSON_STR)
 creds = Credentials.from_service_account_info(info, scopes=['https://www.googleapis.com/auth/drive'])
 drive_service = build('drive', 'v3', credentials=creds)
 
-# 3. Setup Gemini AI Client
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
-
-# 4. Setup Supabase Client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-
 def get_or_create_processed_folder(parent_folder_id):
-    """Processed කියන subfolder එක සොයාගැනීම හෝ සෑදීම"""
     query = f"'{parent_folder_id}' in parents and name = 'Processed' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
     results = drive_service.files().list(q=query, fields="files(id, name)").execute()
     folders = results.get('files', [])
@@ -47,9 +41,7 @@ def get_or_create_processed_folder(parent_folder_id):
         folder = drive_service.files().create(body=file_metadata, fields='id').execute()
         return folder.get('id')
 
-
 def move_file(file_id, current_folder_id, target_folder_id):
-    """Scan කළ File එක Processed folder එකට Move කිරීම"""
     drive_service.files().update(
         fileId=file_id,
         addParents=target_folder_id,
@@ -57,15 +49,10 @@ def move_file(file_id, current_folder_id, target_folder_id):
         fields='id, parents'
     ).execute()
 
-
 def extract_data_with_gemini(file_bytes, mime_type):
-    """
-    Gemini AI (gemini-3.8-flash) හරහා PDF/Image එකෙන් Data Extract කිරීම.
-    එකම Ad එකේ තනතුරු කීපයක් (Multiple Job Positions) තිබුණද සියල්ල JSON List එකක් ලෙස ලබා ගනී.
-    """
     prompt = """
-    You are an expert OCR and data extraction assistant for Sri Lankan Gazettes, Job Openings, and Educational Courses.
-    The document may contain ONE or MULTIPLE job advertisements/positions (e.g., Assistant Director, Management Assistant, Technical Officer, etc.).
+    You are an expert OCR and data extraction assistant for Sri Lankan Gazettes, Job Openings, Courses, and Efficiency Bar (EB) Exams.
+    The document may contain ONE or MULTIPLE job advertisements/positions (e.g., Assistant Director, Management Assistant, Technical Officer, EB Exam Notice, etc.).
     Analyze the document carefully in Sinhala, English, or Tamil and extract ALL listed positions into a JSON array of objects.
 
     Return JSON format like this:
@@ -74,22 +61,22 @@ def extract_data_with_gemini(file_bytes, mime_type):
         {
           "title": "Exact post title in Sinhala/English (e.g., කළමනාකාර සහකාර - Management Assistant)",
           "organization": "Department/Ministry/Institute Name (e.g., දුම්රිය දෙපාර්තමේන්තුව)",
-          "category": "One of: 'Government Job', 'Gazette', 'Course', 'Semi-Govt Job'",
+          "category": "One of: 'Government Job', 'කඩඉම් විභාග', 'Course', 'Semi-Govt Job'",
           "meq_level": "One of: 'OL', 'AL', 'NVQ', 'DEGREE', 'POST_GRAD', 'NONE'",
           "closing_date": "Closing Date in YYYY-MM-DD format if present, else null",
           "salary_code": "Salary code if present (e.g., MN-1, SL-1), else null",
           "salary_amount": "Salary scale or amount in LKR (e.g., LKR 38,500 - 62,000), else null",
-          "description": "Brief summary/overview of duties, application method, or additional notes in Sinhala.",
-          "qualifications": "Key educational/professional requirements listed in clear bullet points in Sinhala."
+          "description": "Brief summary/overview of duties or additional notes in Sinhala.",
+          "qualifications": "Key requirements listed in clear bullet points in Sinhala."
         }
       ]
     }
 
-    Respond ONLY with valid JSON. Do not add markdown codeblocks like ```json or any commentary.
+    Respond ONLY with valid JSON. Do not add markdown codeblocks.
     """
 
     max_retries = 3
-    delay = 5 # 503 error ආවොත් තත්පර 5ක් Pause වේ
+    delay = 5
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -104,7 +91,6 @@ def extract_data_with_gemini(file_bytes, mime_type):
             clean_text = response.text.strip().replace("```json", "").replace("```", "").strip()
             data = json.loads(clean_text)
             
-            # Formats handeling (List / Dict with 'posts' key)
             if isinstance(data, list):
                 return data
             elif isinstance(data, dict) and "posts" in data:
@@ -116,17 +102,15 @@ def extract_data_with_gemini(file_bytes, mime_type):
         except Exception as e:
             print(f"⚠️ Warning (Attempt {attempt} failed): {str(e)}")
             if ("503" in str(e) or "UNAVAILABLE" in str(e) or "high demand" in str(e)) and attempt < max_retries:
-                print(f"⏳ Google Server Overloaded. Retrying in {delay} seconds...")
+                print(f"⏳ Retrying in {delay} seconds...")
                 time.sleep(delay)
                 delay *= 2
             else:
                 raise e
 
-
 def process_drive_files():
     processed_folder_id = get_or_create_processed_folder(GDRIVE_FOLDER_ID)
     
-    # Upload Folder එකේ ඇති Files සොයාගැනීම
     query = f"'{GDRIVE_FOLDER_ID}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
     results = drive_service.files().list(q=query, fields="files(id, name, mimeType)").execute()
     files = results.get('files', [])
@@ -144,7 +128,6 @@ def process_drive_files():
         
         print(f"📄 Processing: {file_name} ({mime_type})...")
 
-        # File එක Memory එකට Download කිරීම
         request = drive_service.files().get_media(fileId=file_id)
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
@@ -155,13 +138,8 @@ def process_drive_files():
         file_bytes = fh.getvalue()
 
         try:
-            # 1. Gemini AI OCR & Multi-job Parsing
             extracted_posts = extract_data_with_gemini(file_bytes, mime_type)
             
-            if not extracted_posts:
-                print(f"⚠️ No posts extracted from {file_name}")
-
-            # 2. Extract වුණු සෑම Job Position එකක්ම වෙන වෙනම Supabase එකට Insert කිරීම
             for idx, post in enumerate(extracted_posts, start=1):
                 post_payload = {
                     "title": post.get("title", f"{file_name} - Position {idx}"),
@@ -173,20 +151,18 @@ def process_drive_files():
                     "salary_amount": post.get("salary_amount"),
                     "description": post.get("description", ""),
                     "qualifications": post.get("qualifications", ""),
-                    "status": "PENDING",  # Admin Approve කරන තෙක් PENDING පවතී
+                    "status": "PENDING",
                     "source": "GDRIVE_AUTOMATION"
                 }
 
                 res = supabase.table("posts").insert(post_payload).execute()
                 print(f"✅ Successfully created PENDING post ({idx}/{len(extracted_posts)}): {post_payload['title']}")
 
-            # 3. Processed Folder එකට File එක Move කිරීම
             move_file(file_id, GDRIVE_FOLDER_ID, processed_folder_id)
             print(f"📦 Moved {file_name} to Processed folder.")
 
         except Exception as e:
             print(f"❌ Error processing {file_name}: {str(e)}")
-
 
 if __name__ == "__main__":
     process_drive_files()
