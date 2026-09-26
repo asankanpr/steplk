@@ -3,3 +3,9 @@ pymupdf>=1.23.0
 pydantic>=2.0.0
 pillow>=10.0.0
 python-dotenv>=1.0.0
+google-api-python-client
+google-auth
+google-genai
+supabase
+Pillow
+pypdf
