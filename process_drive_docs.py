@@ -76,7 +76,7 @@ def extract_data_with_gemini(file_bytes, mime_type):
     """
 
     response = ai_client.models.generate_content(
-        model='gemini-2.5-flash',
+        model='gemini-2.0-flash',
         contents=[
             genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
             prompt
