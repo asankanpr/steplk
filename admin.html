@@ -10,15 +10,10 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#061626">
 
-    <!-- PWA Manifest Link -->
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#061626">
-    
     <!-- iOS (Apple) Support -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="StepLK">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png">
     
     <title>StepLK Admin - Mobile Review Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -109,123 +104,116 @@
                 <span id="toast-msg">Action successful!</span>
             </div>
 
-
             <!-- Navigation Filter Tabs -->
-            <div class="flex border-b border-slate-800 mb-6 gap-6">
-                <button id="tab-published" onclick="switchTab('PUBLISHED')" class="pb-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-400 transition-all">
-                    Published Posts
-                </button>
-                <button id="tab-pending" onclick="switchTab('PENDING')" class="pb-3 text-sm font-bold text-slate-400 hover:text-white transition-all flex items-center gap-2">
+            <div class="flex border-b border-slate-800 mb-4 gap-6">
+                <button id="tab-pending" onclick="switchTab('PENDING')" class="pb-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-400 transition-all flex items-center gap-2">
                     Pending Verification
                     <span id="pending-badge" class="bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded-full font-mono">0</span>
                 </button>
+                <button id="tab-published" onclick="switchTab('PUBLISHED')" class="pb-3 text-sm font-bold text-slate-400 hover:text-white transition-all">
+                    Published Posts
+                </button>
             </div>
             
-            <!-- Published Posts Section -->
-            <div id="published-posts-section">
-                <div id="published-posts-list" class="grid gap-4"></div>
-            </div>
-            
-            <!-- Pending Verification Section -->
-            <div id="pending-posts-section" class="hidden">
-                <div id="pending-posts-list" class="grid gap-4"></div>
-            </div>
-            
-
-            <!-- REVIEW ITEM CONTAINER -->
-            <div id="review-card" class="bg-brand-card border border-brand-border rounded-2xl p-4 shadow-xl space-y-4">
-                
-                <div class="flex items-center justify-between border-b border-brand-border pb-3">
-                    <div>
-                        <span class="text-[10px] text-slate-400 block uppercase tracking-wider">Source: Gazette Document</span>
-                        <span class="text-xs text-brand-yellow font-bold"><i class="fa-solid fa-robot"></i> AI Auto-Extracted</span>
+            <!-- Pending Verification Section (Review Form Card) -->
+            <div id="pending-posts-section">
+                <div id="review-card" class="bg-brand-card border border-brand-border rounded-2xl p-4 shadow-xl space-y-4">
+                    
+                    <div class="flex items-center justify-between border-b border-brand-border pb-3">
+                        <div>
+                            <span class="text-[10px] text-slate-400 block uppercase tracking-wider">Source: Drive Document</span>
+                            <span class="text-xs text-brand-yellow font-bold"><i class="fa-solid fa-robot"></i> AI Auto-Extracted</span>
+                        </div>
+                        <span id="item-id-display" class="bg-slate-800 text-slate-300 text-[11px] px-2.5 py-1 rounded-md border border-slate-700 font-mono">No Items</span>
                     </div>
-                    <span id="item-id-display" class="bg-slate-800 text-slate-300 text-[11px] px-2.5 py-1 rounded-md border border-slate-700 font-mono">No Items</span>
-                </div>
 
-                <!-- GAZETTE IMAGE SNIPPET -->
-                <div class="bg-brand-dark border border-brand-border rounded-xl p-3">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                            <i class="fa-solid fa-file-image text-brand-emerald"></i> මුල් ගැසට් පත්‍රය (Original Image)
-                        </span>
-                        <button id="btn-toggle-img" class="text-xs text-brand-yellow hover:underline flex items-center gap-1">
-                            <i id="zoom-icon" class="fa-solid fa-magnifying-glass-plus"></i> <span id="zoom-txt">විශාල කරන්න</span>
+                    <!-- GAZETTE IMAGE PREVIEW -->
+                    <div class="bg-brand-dark border border-brand-border rounded-xl p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-file-image text-brand-emerald"></i> මුල් ගැසට්/දැන්වීම් පත්‍රය (Preview)
+                            </span>
+                            <button id="btn-toggle-img" class="text-xs text-brand-yellow hover:underline flex items-center gap-1">
+                                <i id="zoom-icon" class="fa-solid fa-magnifying-glass-plus"></i> <span id="zoom-txt">විශාල කරන්න</span>
+                            </button>
+                        </div>
+                        <div id="img-container" class="overflow-hidden rounded-lg max-h-48 transition-all duration-300 border border-slate-800 bg-black/40 flex justify-center">
+                            <img id="gazette-img" src="https://placehold.co/600x800/0f172a/10b981?text=No+Preview+Available" alt="Gazette Snippet" class="object-contain w-full cursor-pointer">
+                        </div>
+                    </div>
+
+                    <!-- EDITABLE FORM -->
+                    <form id="review-form" class="space-y-3 text-xs">
+                        <input type="hidden" id="current-post-id">
+
+                        <div>
+                            <label class="block font-semibold text-slate-300 mb-1">තැන්න / පාඨමාලාවේ නම (Title):</label>
+                            <input type="text" id="field-title" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-300 mb-1">ආයතනය (Organization):</label>
+                            <input type="text" id="field-org" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-semibold text-slate-300 mb-1">වර්ගය (Category):</label>
+                                <input type="text" id="field-category" placeholder="Government Job / Course" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-300 mb-1">MEQ Filter Tag:</label>
+                                <select id="field-meq" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                                    <option value="NONE">වැදගත් නොවේ</option>
+                                    <option value="OL">O/L</option>
+                                    <option value="AL">A/L</option>
+                                    <option value="NVQ">NVQ / Diploma</option>
+                                    <option value="DEGREE">Degree</option>
+                                    <option value="POST_GRAD">Post Graduate</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-brand-emerald mb-1"><i class="fa-solid fa-graduation-cap"></i> සුදුසුකම් (Qualifications):</label>
+                            <textarea id="field-qualifications" rows="3" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none leading-relaxed"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-brand-yellow mb-1"><i class="fa-solid fa-align-left"></i> විස්තරය (Description / Details):</label>
+                            <textarea id="field-description" rows="3" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none leading-relaxed"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-semibold text-slate-300 mb-1">අවසන් දිනය (Closing):</label>
+                                <input type="date" id="field-date" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-300 mb-1">මුලාශ්‍රය (Source):</label>
+                                <input type="text" id="field-source" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none" readonly>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- ACTION BUTTONS -->
+                    <div class="pt-2 grid grid-cols-2 gap-3 border-t border-slate-800">
+                        <button type="button" id="btn-reject" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-trash-can"></i> Reject Post
+                        </button>
+                        <button type="button" id="btn-publish" class="bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark py-3 rounded-xl font-black transition flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20">
+                            <i class="fa-solid fa-paper-plane"></i> PUBLISH NOW
                         </button>
                     </div>
-                    <div id="img-container" class="overflow-hidden rounded-lg max-h-48 transition-all duration-300 border border-slate-800 bg-black/40 flex justify-center">
-                        <img id="gazette-img" src="https://placehold.co/600x800/0f172a/10b981?text=Gazette+Notice+Preview" alt="Gazette Snippet" class="object-contain w-full cursor-pointer">
-                    </div>
+
                 </div>
-
-                <!-- EDITABLE FORM -->
-                <form id="review-form" class="space-y-3 text-xs">
-                    <input type="hidden" id="current-post-id">
-
-                    <div>
-                        <label class="block font-semibold text-slate-300 mb-1">තැන්න / පාඨමාලාවේ නම (Title):</label>
-                        <input type="text" id="field-title" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
-                    </div>
-
-                    <div>
-                        <label class="block font-semibold text-slate-300 mb-1">ආයතනය (Organization):</label>
-                        <input type="text" id="field-org" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block font-semibold text-slate-300 mb-1">වර්ගය (Type):</label>
-                            <select id="field-type" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
-                                <option value="JOB">රැකියාව (JOB)</option>
-                                <option value="COURSE">පාඨමාලාව (COURSE)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block font-semibold text-slate-300 mb-1">MEQ Filter Tag:</label>
-                            <select id="field-meq" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
-                                <option value="NONE">වදගත් නොවේ</option>
-                                <option value="OL">O/L</option>
-                                <option value="AL">A/L</option>
-                                <option value="NVQ">NVQ / Diploma</option>
-                                <option value="DEGREE">Degree</option>
-                                <option value="POST_GRAD">Post Graduate</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block font-semibold text-brand-emerald mb-1"><i class="fa-solid fa-graduation-cap"></i> අධ්‍යාපනික සුදුසුකම් (Education):</label>
-                        <textarea id="field-edu" rows="2" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none leading-relaxed"></textarea>
-                    </div>
-
-                    <div>
-                        <label class="block font-semibold text-brand-yellow mb-1"><i class="fa-solid fa-briefcase"></i> වෘත්තීය පළපුරුද්ද (Experience):</label>
-                        <textarea id="field-exp" rows="2" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none leading-relaxed"></textarea>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block font-semibold text-slate-300 mb-1">අවසන් දිනය (Closing):</label>
-                            <input type="date" id="field-date" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
-                        </div>
-                        <div>
-                            <label class="block font-semibold text-slate-300 mb-1">වැටුප / ගාස්තුව:</label>
-                            <input type="text" id="field-salary" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-2.5 text-white outline-none">
-                        </div>
-                    </div>
-                </form>
-
-                <!-- ACTION BUTTONS -->
-                <div class="pt-2 grid grid-cols-2 gap-3 border-t border-slate-800">
-                    <button type="button" id="btn-reject" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-trash-can"></i> Reject Post
-                    </button>
-                    <button type="button" id="btn-publish" class="bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark py-3 rounded-xl font-black transition flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20">
-                        <i class="fa-solid fa-paper-plane"></i> PUBLISH NOW
-                    </button>
-                </div>
-
             </div>
+
+            <!-- Published Posts Section -->
+            <div id="published-posts-section" class="hidden">
+                <div id="published-posts-list" class="grid gap-3"></div>
+            </div>
+
         </main>
     </div>
 
@@ -235,7 +223,6 @@
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
-        // Supabase Credentials (ඔබේ Credentials මෙතැනට යොදන්න)
         const SUPABASE_URL = 'https://wlgnfprghzczwjjpoqym.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_j4dFy0AhNEmQOIEUpsS7mg_83NOxeFj';
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -282,38 +269,111 @@
             showLoginModal();
         });
 
+        // Tab Switcher Logic
+        window.switchTab = function(tabName) {
+            const pubSec = document.getElementById('published-posts-section');
+            const pendSec = document.getElementById('pending-posts-section');
+            const tabPub = document.getElementById('tab-published');
+            const tabPend = document.getElementById('tab-pending');
+
+            if (tabName === 'PUBLISHED') {
+                pubSec.classList.remove('hidden');
+                pendSec.classList.add('hidden');
+
+                tabPub.className = "pb-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-400 transition-all";
+                tabPend.className = "pb-3 text-sm font-bold text-slate-400 hover:text-white transition-all flex items-center gap-2";
+                
+                loadPublishedPosts();
+            } else {
+                pubSec.classList.add('hidden');
+                pendSec.classList.remove('hidden');
+
+                tabPend.className = "pb-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-400 transition-all flex items-center gap-2";
+                tabPub.className = "pb-3 text-sm font-bold text-slate-400 hover:text-white transition-all";
+                
+                loadPendingPosts();
+            }
+        };
+
         // Fetch Pending Posts from Supabase
         async function loadPendingPosts() {
-            const { data, error, count } = await supabase
+            const { data, error } = await supabase
                 .from('posts')
-                .select('*', { count: 'exact' })
+                .select('*')
                 .eq('status', 'PENDING')
                 .order('created_at', { ascending: true });
 
             if (data && data.length > 0) {
                 document.getElementById('count-val').innerText = data.length;
+                document.getElementById('pending-badge').innerText = data.length;
                 populateForm(data[0]); // Load first pending item
             } else {
                 document.getElementById('count-val').innerText = '0';
-                document.getElementById('item-id-display').innerText = 'No Pending Items';
+                document.getElementById('pending-badge').innerText = '0';
+                clearForm();
             }
         }
 
-        // Populate Form Fields
+        // Fetch Published Posts from Supabase
+        async function loadPublishedPosts() {
+            const listContainer = document.getElementById('published-posts-list');
+            listContainer.innerHTML = '<div class="text-xs text-slate-400 py-4 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Published Posts ලෝඩ් වෙනවා...</div>';
+
+            const { data, error } = await supabase
+                .from('posts')
+                .select('*')
+                .eq('status', 'PUBLISHED')
+                .order('created_at', { ascending: false });
+
+            if (error || !data || data.length === 0) {
+                listContainer.innerHTML = '<div class="text-xs text-slate-400 bg-brand-card p-4 rounded-xl border border-brand-border text-center">ප්‍රකාශිත (Published) පෝස්ට් කිසිවක් නොමැත.</div>';
+                return;
+            }
+
+            listContainer.innerHTML = data.map(post => `
+                <div class="bg-brand-card border border-brand-border p-4 rounded-xl flex items-center justify-between gap-3">
+                    <div>
+                        <h4 class="font-bold text-sm text-white">${post.title || 'No Title'}</h4>
+                        <p class="text-xs text-slate-400">${post.organization || ''} • <span class="text-brand-emerald font-semibold">${post.category || post.type || 'Job'}</span></p>
+                        <p class="text-[10px] text-slate-500 mt-1">Closing: ${post.closing_date || 'N/A'}</p>
+                    </div>
+                    <span class="bg-emerald-500/10 text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-500/20">LIVE</span>
+                </div>
+            `).join('');
+        }
+
+        // Populate Form Fields with Fallbacks
         function populateForm(item) {
             document.getElementById('current-post-id').value = item.id;
             document.getElementById('item-id-display').innerText = `ID: #${item.id.substring(0, 8)}`;
             document.getElementById('field-title').value = item.title || '';
             document.getElementById('field-org').value = item.organization || '';
-            document.getElementById('field-type').value = item.type || 'JOB';
+            document.getElementById('field-category').value = item.category || item.type || 'Government Job';
             document.getElementById('field-meq').value = item.meq_level || 'NONE';
-            document.getElementById('field-edu').value = item.educational_qualifications || '';
-            document.getElementById('field-exp').value = item.experience_qualifications || '';
+            document.getElementById('field-qualifications').value = item.qualifications || item.educational_qualifications || '';
+            document.getElementById('field-description').value = item.description || item.experience_qualifications || '';
             document.getElementById('field-date').value = item.closing_date || '';
-            document.getElementById('field-salary').value = item.salary_or_fee || '';
-            if (item.pdf_page_url) {
-                document.getElementById('gazette-img').src = item.pdf_page_url;
+            document.getElementById('field-source').value = item.source || 'GDRIVE_AUTOMATION';
+
+            const imgUrl = item.pdf_url || item.image_url || item.pdf_page_url;
+            if (imgUrl && imgUrl.startsWith('http')) {
+                document.getElementById('gazette-img').src = imgUrl;
+            } else {
+                document.getElementById('gazette-img').src = "https://placehold.co/600x800/0f172a/10b981?text=PDF+Document+Extracted";
             }
+        }
+
+        function clearForm() {
+            document.getElementById('current-post-id').value = '';
+            document.getElementById('item-id-display').innerText = 'No Items Left';
+            document.getElementById('field-title').value = '';
+            document.getElementById('field-org').value = '';
+            document.getElementById('field-category').value = '';
+            document.getElementById('field-qualifications').value = '';
+            document.getElementById('field-description').value = '';
+            document.getElementById('field-date').value = '';
+            document.getElementById('field-source').value = '';
+            document.getElementById('gazette-img').src = "https://placehold.co/600x800/0f172a/10b981?text=All+Pending+Items+Processed!";
         }
 
         // Publish Post
@@ -324,12 +384,11 @@
             const updatedData = {
                 title: document.getElementById('field-title').value,
                 organization: document.getElementById('field-org').value,
-                type: document.getElementById('field-type').value,
+                category: document.getElementById('field-category').value,
                 meq_level: document.getElementById('field-meq').value,
-                educational_qualifications: document.getElementById('field-edu').value,
-                experience_qualifications: document.getElementById('field-exp').value,
-                closing_date: document.getElementById('field-date').value,
-                salary_or_fee: document.getElementById('field-salary').value,
+                qualifications: document.getElementById('field-qualifications').value,
+                description: document.getElementById('field-description').value,
+                closing_date: document.getElementById('field-date').value || null,
                 status: 'PUBLISHED'
             };
 
@@ -338,6 +397,8 @@
             if (!error) {
                 showToast("✅ පෝස්ටුව සාර්ථකව Live Publish කරන ලදී!");
                 loadPendingPosts();
+            } else {
+                showToast("❌ Error: " + error.message);
             }
         });
 
@@ -403,17 +464,5 @@
         });
       }
     </script>
-    
-    <script>
-        // Functions Global Scope එකට Attach කිරීම (HTML onclick වැඩ කිරීමට)
-        window.switchTab = switchTab;
-        window.publishPost = publishPost;
-        window.deletePost = deletePost;
-        window.openEditModal = openEditModal;
-        window.closeEditModal = closeEditModal;
-        window.savePostChanges = savePostChanges;
-        window.saveAndPublishPost = saveAndPublishPost;
-    </script>
-    
 </body>
 </html>
