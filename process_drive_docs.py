@@ -1,6 +1,7 @@
 import os
 import json
 import io
+import time
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -57,29 +58,38 @@ def move_file(file_id, current_folder_id, target_folder_id):
     ).execute()
 
 
-import time
-import json
-
 def extract_data_with_gemini(file_bytes, mime_type):
-    """Gemini AI හරහා Data Extract කිරීම (503 Server Overload ආවොත් Auto Retry වන ලෙස)"""
+    """
+    Gemini AI (gemini-3.8-flash) හරහා PDF/Image එකෙන් Data Extract කිරීම.
+    එකම Ad එකේ තනතුරු කීපයක් (Multiple Job Positions) තිබුණද සියල්ල JSON List එකක් ලෙස ලබා ගනී.
+    """
     prompt = """
     You are an expert OCR and data extraction assistant for Sri Lankan Gazettes, Job Openings, and Educational Courses.
-    Analyze the attached document/image carefully and extract the following information in strict JSON format:
-    
+    The document may contain ONE or MULTIPLE job advertisements/positions (e.g., Assistant Director, Management Assistant, Technical Officer, etc.).
+    Analyze the document carefully in Sinhala, English, or Tamil and extract ALL listed positions into a JSON array of objects.
+
+    Return JSON format like this:
     {
-      "title": "Exact post title in Sinhala/English (e.g., කළමනාකාර සහකාර - Management Assistant)",
-      "organization": "Department/Ministry/Institute Name (e.g., දුම්රිය දෙපාර්තමේන්තුව)",
-      "category": "One of: 'Government Job', 'Gazette', 'Course', 'Semi-Govt Job'",
-      "closing_date": "Closing Date in YYYY-MM-DD format if present, else null",
-      "description": "Brief summary of duties, qualifications, and how to apply in Sinhala.",
-      "qualifications": "Key requirements/qualifications listed in points."
+      "posts": [
+        {
+          "title": "Exact post title in Sinhala/English (e.g., කළමනාකාර සහකාර - Management Assistant)",
+          "organization": "Department/Ministry/Institute Name (e.g., දුම්රිය දෙපාර්තමේන්තුව)",
+          "category": "One of: 'Government Job', 'Gazette', 'Course', 'Semi-Govt Job'",
+          "meq_level": "One of: 'OL', 'AL', 'NVQ', 'DEGREE', 'POST_GRAD', 'NONE'",
+          "closing_date": "Closing Date in YYYY-MM-DD format if present, else null",
+          "salary_code": "Salary code if present (e.g., MN-1, SL-1), else null",
+          "salary_amount": "Salary scale or amount in LKR (e.g., LKR 38,500 - 62,000), else null",
+          "description": "Brief summary/overview of duties, application method, or additional notes in Sinhala.",
+          "qualifications": "Key educational/professional requirements listed in clear bullet points in Sinhala."
+        }
+      ]
     }
 
     Respond ONLY with valid JSON. Do not add markdown codeblocks like ```json or any commentary.
     """
 
     max_retries = 3
-    delay = 5 # තත්පර 5ක් Pause වී Retry කරයි
+    delay = 5 # 503 error ආවොත් තත්පර 5ක් Pause වේ
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -92,21 +102,31 @@ def extract_data_with_gemini(file_bytes, mime_type):
                 ]
             )
             clean_text = response.text.strip().replace("```json", "").replace("```", "").strip()
-            return json.loads(clean_text)
+            data = json.loads(clean_text)
+            
+            # Formats handeling (List / Dict with 'posts' key)
+            if isinstance(data, list):
+                return data
+            elif isinstance(data, dict) and "posts" in data:
+                return data["posts"]
+            elif isinstance(data, dict):
+                return [data]
+            return []
+
         except Exception as e:
             print(f"⚠️ Warning (Attempt {attempt} failed): {str(e)}")
             if ("503" in str(e) or "UNAVAILABLE" in str(e) or "high demand" in str(e)) and attempt < max_retries:
                 print(f"⏳ Google Server Overloaded. Retrying in {delay} seconds...")
                 time.sleep(delay)
-                delay *= 2 # ඊළඟ පාර තත්පර 10ක් බලයි
+                delay *= 2
             else:
                 raise e
-                
+
 
 def process_drive_files():
     processed_folder_id = get_or_create_processed_folder(GDRIVE_FOLDER_ID)
     
-    # Upload Folder එකේ ඇති Files ඩවුන්ලෝඩ් කරගැනීම
+    # Upload Folder එකේ ඇති Files සොයාගැනීම
     query = f"'{GDRIVE_FOLDER_ID}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
     results = drive_service.files().list(q=query, fields="files(id, name, mimeType)").execute()
     files = results.get('files', [])
@@ -135,23 +155,30 @@ def process_drive_files():
         file_bytes = fh.getvalue()
 
         try:
-            # 1. Gemini AI OCR & Parsing
-            extracted_data = extract_data_with_gemini(file_bytes, mime_type)
+            # 1. Gemini AI OCR & Multi-job Parsing
+            extracted_posts = extract_data_with_gemini(file_bytes, mime_type)
             
-            # 2. Supabase DB එකට Pending Status එකෙන් එකතු කිරීම
-            post_payload = {
-                "title": extracted_data.get("title", file_name),
-                "organization": extracted_data.get("organization", "N/A"),
-                "category": extracted_data.get("category", "Government Job"),
-                "closing_date": extracted_data.get("closing_date"),
-                "description": extracted_data.get("description", ""),
-                "qualifications": extracted_data.get("qualifications", ""),
-                "status": "PENDING",  # Admin Approve කරන තෙක් Pending පවතී
-                "source": "GDRIVE_AUTOMATION"
-            }
+            if not extracted_posts:
+                print(f"⚠️ No posts extracted from {file_name}")
 
-            res = supabase.table("posts").insert(post_payload).execute()
-            print(f"✅ Successfully created PENDING post: {extracted_data.get('title')}")
+            # 2. Extract වුණු සෑම Job Position එකක්ම වෙන වෙනම Supabase එකට Insert කිරීම
+            for idx, post in enumerate(extracted_posts, start=1):
+                post_payload = {
+                    "title": post.get("title", f"{file_name} - Position {idx}"),
+                    "organization": post.get("organization", "N/A"),
+                    "category": post.get("category", "Government Job"),
+                    "meq_level": post.get("meq_level", "NONE"),
+                    "closing_date": post.get("closing_date"),
+                    "salary_code": post.get("salary_code"),
+                    "salary_amount": post.get("salary_amount"),
+                    "description": post.get("description", ""),
+                    "qualifications": post.get("qualifications", ""),
+                    "status": "PENDING",  # Admin Approve කරන තෙක් PENDING පවතී
+                    "source": "GDRIVE_AUTOMATION"
+                }
+
+                res = supabase.table("posts").insert(post_payload).execute()
+                print(f"✅ Successfully created PENDING post ({idx}/{len(extracted_posts)}): {post_payload['title']}")
 
             # 3. Processed Folder එකට File එක Move කිරීම
             move_file(file_id, GDRIVE_FOLDER_ID, processed_folder_id)
