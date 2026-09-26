@@ -109,6 +109,29 @@
                 <span id="toast-msg">Action successful!</span>
             </div>
 
+
+            <!-- Navigation Filter Tabs -->
+            <div class="flex border-b border-slate-800 mb-6 gap-6">
+                <button id="tab-published" onclick="switchTab('PUBLISHED')" class="pb-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-400 transition-all">
+                    Published Posts
+                </button>
+                <button id="tab-pending" onclick="switchTab('PENDING')" class="pb-3 text-sm font-bold text-slate-400 hover:text-white transition-all flex items-center gap-2">
+                    Pending Verification
+                    <span id="pending-badge" class="bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded-full font-mono">0</span>
+                </button>
+            </div>
+            
+            <!-- Published Posts Section -->
+            <div id="published-posts-section">
+                <div id="published-posts-list" class="grid gap-4"></div>
+            </div>
+            
+            <!-- Pending Verification Section -->
+            <div id="pending-posts-section" class="hidden">
+                <div id="pending-posts-list" class="grid gap-4"></div>
+            </div>
+            
+
             <!-- REVIEW ITEM CONTAINER -->
             <div id="review-card" class="bg-brand-card border border-brand-border rounded-2xl p-4 shadow-xl space-y-4">
                 
