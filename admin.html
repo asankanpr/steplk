@@ -467,7 +467,8 @@
                 qualifications: document.getElementById('field-qualifications').value,
                 description: document.getElementById('field-description').value,
                 closing_date: document.getElementById('field-date').value || null,
-                status: 'PUBLISHED'
+                status: 'PUBLISHED',
+                updated_at: new Date().toISOString() // 💡 Publish කළ මොහොතේ වේලාව එකතු වේ.
             };
 
             const { error } = await supabase.from('posts').update(updatedData).eq('id', postId);
