@@ -919,12 +919,46 @@ window.closePvtModal = function() {
 };
 
 // AUTO SCAN FILE USING GEMINI FLASH DIRECTLY FROM BROWSER
+// 1. MODERN CUSTOM POPUP CONTROLLER
+window.showCustomAlert = function(title, message, isSuccess = true) {
+    document.getElementById('alert-title').innerText = title;
+    document.getElementById('alert-message').innerText = message;
+    
+    const iconBox = document.getElementById('alert-icon-box');
+    const icon = document.getElementById('alert-icon');
+
+    if (isSuccess) {
+        iconBox.className = "w-14 h-14 mx-auto rounded-2xl bg-brand-emerald/10 border border-brand-emerald/30 flex items-center justify-center text-brand-emerald text-2xl shadow-inner";
+        icon.className = "fa-solid fa-circle-check";
+    } else {
+        iconBox.className = "w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-2xl shadow-inner";
+        icon.className = "fa-solid fa-triangle-exclamation";
+    }
+
+    document.getElementById('custom-alert-modal').classList.remove('hidden');
+};
+
+window.closeCustomAlert = function() {
+    document.getElementById('custom-alert-modal').classList.add('hidden');
+};
+
+// Helper: Convert File to Base64
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = error => reject(error);
+    });
+}
+
+// 2. AUTO SCAN FILE VIA GEMINI FLASH & FILL FORM
 window.autoScanPvtFile = async function(event) {
     const file = event.target.files[0];
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-        alert("File පරිමාව 2MB ට වඩා වැඩි විය නොහැක!");
+        showCustomAlert("File ප්‍රමාණය වැඩියි", "File පරිමාව 2MB ට වඩා වැඩි විය නොහැක!", false);
         return;
     }
 
@@ -932,31 +966,80 @@ window.autoScanPvtFile = async function(event) {
     loader.classList.remove('hidden');
 
     try {
-        // Form එකට File එක Upload කර Auto Pre-fill කිරීමේ Logic එක
-        // Gemini Browser API Call හෝ lightweight client OCR
-        setTimeout(() => {
-            loader.classList.add('hidden');
-            alert("Document එක කියවීම සාර්ථකයි! කරුණාකර තොරතුරු පරීක්ෂා කර තහවුරු කරන්න.");
-        }, 1500);
+        const base64Data = await fileToBase64(file);
+        const mimeType = file.type || 'image/jpeg';
+
+        // Gemini Flash API Request Payload
+        const promptText = `
+        You are an OCR parser for Sri Lankan Job Flyers. Extract these fields into valid JSON:
+        {
+          "title": "Job Title in Sinhala or English",
+          "org": "Company or Employer Name",
+          "meq": "One of: 'OL', 'AL', 'NVQ', 'DEGREE', 'NONE'",
+          "salary": "Salary or LKR scale if present else null",
+          "closing": "Closing date YYYY-MM-DD if present else null",
+          "qualifications": "Key requirements in Sinhala bullet points",
+          "contact": "Phone or WhatsApp number if present"
+        }
+        Return ONLY raw JSON without markdown backticks.
+        `;
+
+        // Direct call to Gemini 2.5 Flash API
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: promptText },
+                        { inline_data: { mime_type: mimeType, data: base64Data } }
+                    ]
+                }]
+            })
+        });
+
+        const result = await response.json();
+        loader.classList.add('hidden');
+
+        if (result.candidates && result.candidates[0].content.parts[0].text) {
+            let rawText = result.candidates[0].content.parts[0].text.trim();
+            // Clean markdown formatting if any
+            rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            
+            const extracted = JSON.parse(rawText);
+
+            // AUTO PRE-FILL FORM INPUTS
+            if (extracted.title) document.getElementById('pvt-title').value = extracted.title;
+            if (extracted.org) document.getElementById('pvt-org').value = extracted.org;
+            if (extracted.meq) document.getElementById('pvt-meq').value = extracted.meq;
+            if (extracted.salary) document.getElementById('pvt-salary').value = extracted.salary;
+            if (extracted.closing) document.getElementById('pvt-closing').value = extracted.closing;
+            if (extracted.qualifications) document.getElementById('pvt-qualifications').value = extracted.qualifications;
+            if (extracted.contact) document.getElementById('pvt-contact').value = extracted.contact;
+
+            showCustomAlert("කියවීම සාර්ථකයි!", "Flyer එකේ විස්තර Form එකට ඇතුළත් කරන ලදී. කරුණාකර පරීක්ෂා කර තහවුරු කරන්න.", true);
+        } else {
+            showCustomAlert("කියවීමට නොහැකි විය", "Document එක පැහැදිලි නැත. කරුණාකර Form එකේ විස්තර ඇතුළත් කරන්න.", false);
+        }
 
     } catch (err) {
         loader.classList.add('hidden');
-        alert("Document එක කියවීමට නොහැකි විය. කරුණාකර Form එක manually පුරවන්න.");
+        console.error("Scan Error:", err);
+        showCustomAlert("ස්වයංක්‍රීය කියවීම අසාර්ථකයි", "කරුණාකර Form එකේ විස්තර manually ඇතුළත් කරන්න.", false);
     }
 };
 
-// SUBMIT FORM TO SUPABASE
+// 3. SUBMIT FORM TO SUPABASE WITH CUSTOM ALERT
 window.submitPvtVacancy = async function(e) {
     e.preventDefault();
     const btn = document.getElementById('pvt-submit-btn');
     btn.disabled = true;
-    btn.innerText = 'සැකසෙමින් පවතී...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> සැකසෙමින් පවතී...';
 
     const fileInput = document.getElementById('pvt-file-input');
     let imageUrl = null;
 
     try {
-        // 1. Upload Flyer to Supabase Storage if file selected
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const fileExt = file.name.split('.').pop();
@@ -976,7 +1059,6 @@ window.submitPvtVacancy = async function(e) {
             }
         }
 
-        // 2. Save Post Data to Supabase Posts Table
         const payload = {
             title: document.getElementById('pvt-title').value,
             organization: document.getElementById('pvt-org').value,
@@ -987,27 +1069,27 @@ window.submitPvtVacancy = async function(e) {
             qualifications: document.getElementById('pvt-qualifications').value,
             description: `Contact: ${document.getElementById('pvt-contact').value}`,
             image_url: imageUrl,
-            status: 'PENDING', // Admin panel එකෙන් approve කළ යුතුයි
+            status: 'PENDING',
             created_at: new Date().toISOString()
         };
 
         const { error } = await supabase.from('posts').insert([payload]);
 
         btn.disabled = false;
-        btn.innerText = 'Vacancy එක පළකිරීමට යොමුකරන්න';
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>Vacancy එක පළකිරීමට යොමුකරන්න</span>';
 
         if (error) {
-            alert('දත්ත ඇතුළත් කිරීමේ දෝෂයක් සිදුවිය: ' + error.message);
+            showCustomAlert("දෝෂයක් සිදුවිය", error.message, false);
         } else {
-            alert('ඔබගේ Vacancy එක සාර්ථකව යොමු කරන ලදී! Admin පරීක්ෂාවෙන් පසු සක්‍රීය වනු ඇත.');
             closePvtModal();
             document.getElementById('pvt-job-form').reset();
+            showCustomAlert("යොමු කිරීම සාර්ථකයි!", "ඔබගේ Vacancy එක Admin පරීක්ෂාවෙන් පසුව සක්‍රීය වනු ඇත.", true);
         }
 
     } catch (err) {
         btn.disabled = false;
-        btn.innerText = 'Vacancy එක පළකිරීමට යොමුකරන්න';
-        alert('දෝෂයක් සිදුවිය: ' + err.message);
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>Vacancy එක පළකිරීමට යොමුකරන්න</span>';
+        showCustomAlert("දෝෂයක් සිදුවිය", err.message, false);
     }
 };
 
