@@ -970,22 +970,30 @@ window.autoScanPvtFile = async function(event) {
         const base64Data = await fileToBase64(file);
         const mimeType = file.type || 'image/jpeg';
 
-        // Supabase JS Client හරහා Edge Function එක Call කිරීම
-        const { data, error } = await supabase.functions.invoke('scan-flyer', {
+        // Supabase Edge Function Call
+        const { data, error } = await supabase.functions.invoke('bright-worker', {
             body: { base64Data, mimeType }
         });
 
         loader.classList.add('hidden');
 
         if (error) {
-            console.error("Edge Function Error:", error);
-            showCustomAlert("ස්කෑන් දෝෂයක්", "Edge Function එක සම්බන්ධ කරගත නොහැකි විය: " + error.message, false);
+            console.error("Edge Function Invoke Error:", error);
+            showCustomAlert("Edge Function දෝෂයක්", error.message, false);
             return;
         }
 
+        // Edge Function එක ඇතුළෙන් Gemini API Error එකක් ආවා නම්
+        if (data && data.error) {
+            console.error("Gemini API Inner Error:", data.error);
+            const errDetails = typeof data.error === 'object' ? (data.error.message || JSON.stringify(data.error)) : data.error;
+            showCustomAlert("Gemini API Error", errDetails, false);
+            return;
+        }
+
+        // Successful Extract
         if (data && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
             let rawText = data.candidates[0].content.parts[0].text.trim();
-            // Clean markdown formatting if present
             rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
             
             const extracted = JSON.parse(rawText);
