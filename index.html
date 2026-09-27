@@ -53,6 +53,14 @@
         .animate-marquee:hover, .animate-marquee:active {
             animation-play-state: paused;
         }
+        /* Hide scrollbar for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 
 </head>
@@ -75,7 +83,7 @@
                 <span class="flex items-center gap-1.5 text-slate-400"><i class="fa-solid fa-shield-halved text-brand-emerald"></i> Verified Govt Sources</span>
             </div>
 
-            <!-- Items Block 2 (Seamless Infinite Loop එක සඳහා Duplicate එකක්) -->
+            <!-- Items Block 2 (Seamless Infinite Loop) -->
             <div class="flex items-center gap-6 px-3">
                 <span class="flex items-center gap-1.5"><i class="fa-solid fa-dollar-sign text-brand-emerald"></i> USD: <strong class="val-usd text-white">LKR 302.50</strong></span>
                 <span class="border-r border-slate-700 h-3"></span>
@@ -91,37 +99,32 @@
         </div>
     </div>
 
-    <!-- 2. MAIN HEADER (Modern Professional Logo Branding) -->
+    <!-- 2. MAIN HEADER (Mobile Optimized & Touch Friendly) -->
     <header class="bg-brand-dark/90 backdrop-blur-md border-b border-brand-border sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+        <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             
             <!-- Clickable Logo Unit -->
-            <a href="#" onclick="window.location.reload(); return false;" class="flex items-center gap-3.5 group">
-                <img src="./icons/logo-512.png" alt="StepLK Logo" class="w-14 h-14 md:w-16 md:h-16 object-contain group-hover:scale-105 transition-transform">
+            <a href="#" onclick="window.location.reload(); return false;" class="flex items-center gap-3 group">
+                <img src="./icons/logo-512.png" alt="StepLK Logo" class="w-12 h-12 md:w-16 md:h-16 object-contain group-hover:scale-105 transition-transform">
                 <div class="flex flex-col">
                     <div class="flex items-center leading-none">
-                        <span class="text-3xl md:text-4xl font-black tracking-tight text-white">Step<span class="text-brand-emerald">LK</span></span>
+                        <span class="text-2xl md:text-4xl font-black tracking-tight text-white">Step<span class="text-brand-emerald">LK</span></span>
                     </div>
-                    <span class="text-[11px] md:text-xs text-brand-yellow font-bold tracking-wider uppercase mt-1 group-hover:text-white transition">ඔබ වෙනුවෙන්මයි</span>
+                    <span class="text-[10px] md:text-xs text-brand-yellow font-bold tracking-wider uppercase mt-0.5 group-hover:text-white transition">ඔබ වෙනුවෙන්මයි</span>
                 </div>
             </a>
             
-            <!-- SEARCH BAR (Mobile Responsive & High Touch Target) -->
-            <div class="my-4 w-full">
-                <div class="relative w-full">
-                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                    <input type="text" id="search-input" oninput="handleSearch()" placeholder="තනතුර හෝ ආයතනය අනුව සොයන්න..." 
-                        class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl py-3 pl-11 pr-4 text-xs md:text-sm text-white placeholder-slate-500 outline-none shadow-lg transition-all">
-                </div>
+            <!-- Search Input (Mobile Separated Height Adjustment) -->
+            <div class="relative w-full sm:w-64 md:w-80">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input type="text" id="search-input" placeholder="සොයන්න (Search)..." class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-9 pr-3 py-2.5 sm:py-2 text-xs text-white outline-none shadow-sm transition-all">
             </div>
-            
         </div>
     </header>
 
-
-    <!-- SUB-NAVIGATION BAR (Multi-page Support) -->
+    <!-- 2.1 SUB-NAVIGATION BAR (Multi-page Navigation Support) -->
     <nav class="bg-brand-charcoal border-b border-brand-border px-4 py-2 text-xs font-bold shadow-md">
-        <div class="max-w-6xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <div class="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
             <a href="index.html" class="px-3.5 py-1.5 rounded-lg bg-brand-emerald text-brand-dark flex items-center gap-1.5 whitespace-nowrap shadow-sm">
                 <i class="fa-solid fa-house"></i> Home
             </a>
@@ -134,7 +137,6 @@
         </div>
     </nav>
 
-    
     <!-- 3. MAIN SECTION -->
     <main class="max-w-7xl mx-auto px-4 py-5 flex-1 w-full">
 
@@ -159,8 +161,8 @@
         <!-- 4. MOBILE-OPTIMIZED TAB NAVIGATION & QUALIFICATION FILTER -->
         <div class="space-y-2.5 mb-5">
             
-            <!-- 5-COLUMN CATEGORY NAVIGATION GRID -->
-            <div class="grid grid-cols-5 gap-1 bg-brand-charcoal p-1.5 rounded-2xl border border-brand-border w-full mb-3">
+            <!-- Category Tabs (Grid 5 Columns - Split into Govt & Private Jobs) -->
+            <div class="grid grid-cols-5 gap-1 sm:gap-1.5 bg-brand-charcoal p-1.5 rounded-2xl border border-brand-border w-full">
                 <button id="tab-all" onclick="switchTab('ALL')" class="px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition bg-brand-emerald text-brand-dark shadow-md flex flex-col items-center justify-center gap-1 text-center">
                     <i class="fa-solid fa-border-all text-xs sm:text-sm"></i>
                     <span>සියල්ල</span>
@@ -197,8 +199,7 @@
         <!-- 5. CONTENT GRID & DESKTOP SIDEBAR -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <!-- AD SPOT 4: ADVERTISEMENT BANNER: find link below -->
-            <!-- DYNAMIC POSTS FEED CONTAINER (Includes In-Feed Native Ads) -->
+            <!-- DYNAMIC POSTS FEED CONTAINER -->
             <div class="lg:col-span-2 space-y-4">
                 <div id="loading-spinner" class="text-center py-12 bg-brand-card rounded-2xl border border-brand-border">
                     <i class="fa-solid fa-spinner fa-spin text-2xl text-brand-emerald mb-2"></i>
@@ -207,72 +208,16 @@
                 
                 <div id="posts-container" class="space-y-4"></div>
 
-                <!-- PAGINATION CONTROLS -->
-                function renderPagination(totalItems) {
-                    const container = document.getElementById('pagination-container');
-                    if (!container) return;
-                
-                    const totalPages = Math.ceil(totalItems / itemsPerPage);
-                    if (totalPages <= 1) {
-                        container.innerHTML = '';
-                        return;
-                    }
-                
-                    let html = `<div class="flex items-center justify-center gap-1.5 sm:gap-2 my-6 select-none flex-wrap">`;
-                
-                    // Previous Button
-                    const prevDisabled = currentPage === 1;
-                    html += `
-                        <button onclick="changePage(${currentPage - 1})" ${prevDisabled ? 'disabled' : ''} 
-                            class="px-3 py-2 rounded-xl text-xs font-bold border ${prevDisabled ? 'border-slate-800 text-slate-600 bg-brand-charcoal/50 cursor-not-allowed' : 'border-slate-700 text-slate-300 hover:bg-slate-800 bg-brand-charcoal'} transition flex items-center gap-1">
-                            <i class="fa-solid fa-chevron-left text-[10px]"></i> <span class="hidden sm:inline">Prev</span>
-                        </button>
-                    `;
-                
-                    // Smart Windowing (Max 5 Visible Buttons)
-                    let startPage = Math.max(1, currentPage - 1);
-                    let endPage = Math.min(totalPages, startPage + 2);
-                
-                    if (endPage - startPage < 2) {
-                        startPage = Math.max(1, endPage - 2);
-                    }
-                
-                    if (startPage > 1) {
-                        html += `<button onclick="changePage(1)" class="w-8 h-8 rounded-xl text-xs font-bold border border-slate-700 bg-brand-charcoal text-slate-300">1</button>`;
-                        if (startPage > 2) {
-                            html += `<span class="text-slate-500 text-xs px-1">...</span>`;
-                        }
-                    }
-                
-                    for (let i = startPage; i <= endPage; i++) {
-                        const isActive = i === currentPage;
-                        html += `
-                            <button onclick="changePage(${i})" 
-                                class="w-8 h-8 rounded-xl text-xs font-bold border transition ${isActive ? 'border-brand-emerald bg-brand-emerald text-brand-dark shadow-md shadow-brand-emerald/20' : 'border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500'}">
-                                ${i}
-                            </button>
-                        `;
-                    }
-                
-                    if (endPage < totalPages) {
-                        if (endPage < totalPages - 1) {
-                            html += `<span class="text-slate-500 text-xs px-1">...</span>`;
-                        }
-                        html += `<button onclick="changePage(${totalPages})" class="w-8 h-8 rounded-xl text-xs font-bold border border-slate-700 bg-brand-charcoal text-slate-300">${totalPages}</button>`;
-                    }
-                
-                    // Next Button
-                    const nextDisabled = currentPage === totalPages;
-                    html += `
-                        <button onclick="changePage(${currentPage + 1})" ${nextDisabled ? 'disabled' : ''} 
-                            class="px-3 py-2 rounded-xl text-xs font-bold border ${nextDisabled ? 'border-slate-800 text-slate-600 bg-brand-charcoal/50 cursor-not-allowed' : 'border-slate-700 text-slate-300 hover:bg-slate-800 bg-brand-charcoal'} transition flex items-center gap-1">
-                            <span class="hidden sm:inline">Next</span> <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                        </button>
-                    `;
-                
-                    html += `</div>`;
-                    container.innerHTML = html;
-                }
+                <!-- SMART MOBILE PAGINATION CONTROLS -->
+                <div id="pagination-container" class="flex items-center justify-center gap-1.5 sm:gap-2 pt-6 pb-2 hidden select-none">
+                    <button id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1.5 bg-brand-charcoal border border-slate-700 hover:border-brand-emerald text-xs rounded-lg font-semibold text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-chevron-left text-[10px]"></i> <span class="hidden sm:inline">Prev</span>
+                    </button>
+                    <div id="page-numbers" class="flex items-center gap-1 text-xs font-bold"></div>
+                    <button id="btn-next-page" onclick="changePage(1)" class="px-3 py-1.5 bg-brand-charcoal border border-slate-700 hover:border-brand-emerald text-xs rounded-lg font-semibold text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <span class="hidden sm:inline">Next</span> <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                </div>
 
                 <!-- AD SPOT 5: BOTTOM ADVERTISEMENT BANNER -->
                 <div class="mt-6 bg-brand-card border border-dashed border-slate-700/80 rounded-2xl p-4 shadow-lg text-center space-y-2">
@@ -471,14 +416,18 @@
                 .from('posts')
                 .select('*')
                 .eq('status', 'PUBLISHED')
-                .order('updated_at', { ascending: false }) // 💡 අලුතෙන්ම Publish කළ ඒවා උඩින්ම පෙන්වයි.
+                .order('updated_at', { ascending: false })
                 .order('created_at', { ascending: false });
 
             if (selectedType !== 'ALL') {
-                if (selectedType === 'EB_EXAM') {
+                if (selectedType === 'GOVT_JOB') {
+                    query = query.or('category.ilike.%Government Job%,category.ilike.%GOVT_JOB%,type.ilike.%Government Job%');
+                } else if (selectedType === 'PVT_JOB') {
+                    query = query.or('category.ilike.%Private Job%,category.ilike.%PVT_JOB%,type.ilike.%Private Job%');
+                } else if (selectedType === 'EB_EXAM') {
                     query = query.or('category.ilike.%කඩඉම්%,category.ilike.%EB_EXAM%,title.ilike.%කඩඉම්%');
-                } else {
-                    query = query.or(`category.ilike.%${selectedType}%,type.ilike.%${selectedType}%`);
+                } else if (selectedType === 'COURSE') {
+                    query = query.or('category.ilike.%Course%,category.ilike.%COURSE%,type.ilike.%Course%');
                 }
             }
 
@@ -499,7 +448,7 @@
                 return;
             }
 
-            // 💡 EXPIRED POSTS DOWN-SORTING LOGIC
+            // EXPIRED POSTS DOWN-SORTING LOGIC
             const now = new Date();
             now.setHours(0,0,0,0);
 
@@ -534,7 +483,7 @@
         }
     }
 
-    // 💡 INSTANT KEYWORD SEARCH FILTERING LOGIC
+    // INSTANT KEYWORD SEARCH FILTERING LOGIC
     function applyFilterAndRender() {
         const query = searchQuery.trim().toLowerCase();
 
@@ -581,18 +530,43 @@
 
         renderPosts(currentPosts, listContainer);
 
+        // SMART WINDOWED PAGINATION RENDERER (MAX 5 BUTTONS + DOTS)
         if (totalPages > 1) {
             pagContainer.classList.remove('hidden');
             document.getElementById('btn-prev-page').disabled = (currentPage === 1);
             document.getElementById('btn-next-page').disabled = (currentPage === totalPages);
 
             let pageBtnsHtml = '';
-            for (let i = 1; i <= totalPages; i++) {
-                const activeStyle = i === currentPage 
-                    ? 'bg-brand-emerald text-brand-dark border-brand-emerald' 
-                    : 'bg-brand-charcoal text-slate-300 border-slate-700 hover:border-slate-500';
-                pageBtnsHtml += `<button onclick="goToPage(${i})" class="w-8 h-8 rounded-lg border text-xs font-bold transition ${activeStyle}">${i}</button>`;
+            let startPage = Math.max(1, currentPage - 1);
+            let endPage = Math.min(totalPages, startPage + 2);
+
+            if (endPage - startPage < 2) {
+                startPage = Math.max(1, endPage - 2);
             }
+
+            if (startPage > 1) {
+                pageBtnsHtml += `<button onclick="goToPage(1)" class="w-8 h-8 rounded-lg border text-xs font-bold transition bg-brand-charcoal text-slate-300 border-slate-700 hover:border-slate-500">1</button>`;
+                if (startPage > 2) {
+                    pageBtnsHtml += `<span class="text-slate-500 text-xs px-0.5">...</span>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (i >= 1 && i <= totalPages) {
+                    const activeStyle = i === currentPage 
+                        ? 'bg-brand-emerald text-brand-dark border-brand-emerald shadow-md shadow-brand-emerald/20' 
+                        : 'bg-brand-charcoal text-slate-300 border-slate-700 hover:border-slate-500';
+                    pageBtnsHtml += `<button onclick="goToPage(${i})" class="w-8 h-8 rounded-lg border text-xs font-bold transition ${activeStyle}">${i}</button>`;
+                }
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    pageBtnsHtml += `<span class="text-slate-500 text-xs px-0.5">...</span>`;
+                }
+                pageBtnsHtml += `<button onclick="goToPage(${totalPages})" class="w-8 h-8 rounded-lg border text-xs font-bold transition bg-brand-charcoal text-slate-300 border-slate-700 hover:border-slate-500">${totalPages}</button>`;
+            }
+
             document.getElementById('page-numbers').innerHTML = pageBtnsHtml;
         } else {
             pagContainer.classList.add('hidden');
@@ -654,7 +628,7 @@
                         ${post.title || 'No Title'}
                     </h2>
                     <p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
-                        <i class="fa-solid fa-building text-slate-500"></i> ${post.organization || 'රාජ්‍ය ආයතනය'}
+                        <i class="fa-solid fa-building text-slate-500"></i> ${post.organization || 'රාජ්‍ය/පෞද්ගලික ආයතනය'}
                     </p>
                 </div>
 
@@ -711,7 +685,7 @@
         if (!post) return;
 
         document.getElementById('modal-title').innerText = post.title || 'No Title';
-        document.getElementById('modal-org').innerText = post.organization || 'රාජ්‍ය ආයතනය';
+        document.getElementById('modal-org').innerText = post.organization || 'රාජ්‍ය/පෞද්ගලික ආයතනය';
         document.getElementById('modal-qualifications').innerText = post.qualifications || post.educational_qualifications || 'සඳහන් නැත';
         document.getElementById('modal-salary-code').innerText = post.salary_code || 'සඳහන් නැත';
         document.getElementById('modal-salary-amount').innerText = post.salary_amount || post.salary_or_fee || 'සඳහන් නැත';
@@ -747,67 +721,39 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-window.switchTab = function(type) {
-    selectedType = type;
-    
-    const activeClass = "px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition bg-brand-emerald text-brand-dark shadow-md flex flex-col items-center justify-center gap-1 text-center";
-    const inactiveClass = "px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center";
+    window.switchTab = function(type) {
+        selectedType = type;
+        
+        const activeClass = "px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition bg-brand-emerald text-brand-dark shadow-md flex flex-col items-center justify-center gap-1 text-center";
+        const inactiveClass = "px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center";
 
-    ['all', 'govt', 'pvt', 'eb', 'courses'].forEach(t => {
-        const btn = document.getElementById(`tab-${t}`);
-        if(btn) btn.className = inactiveClass;
-    });
+        const tabsMap = {
+            'ALL': 'tab-all',
+            'GOVT_JOB': 'tab-govt',
+            'PVT_JOB': 'tab-pvt',
+            'EB_EXAM': 'tab-eb',
+            'COURSE': 'tab-courses'
+        };
 
-    if(type === 'ALL') document.getElementById('tab-all').className = activeClass;
-    if(type === 'GOVT_JOB') document.getElementById('tab-govt').className = activeClass;
-    if(type === 'PVT_JOB') document.getElementById('tab-pvt').className = activeClass;
-    if(type === 'EB_EXAM') document.getElementById('tab-eb').className = activeClass;
-    if(type === 'COURSE') document.getElementById('tab-courses').className = activeClass;
+        Object.keys(tabsMap).forEach(key => {
+            const btn = document.getElementById(tabsMap[key]);
+            if (btn) {
+                btn.className = (type === key) ? activeClass : inactiveClass;
+            }
+        });
 
-    applyFilters();
-};
-
-function applyFilters() {
-    filteredPosts = allPosts.filter(post => {
-        // Category Filter
-        let matchesType = true;
-        if (selectedType === 'GOVT_JOB') {
-            matchesType = post.category === 'Government Job' || post.category === 'GOVT_JOB';
-        } else if (selectedType === 'PVT_JOB') {
-            matchesType = post.category === 'Private Job' || post.category === 'PVT_JOB';
-        } else if (selectedType === 'EB_EXAM') {
-            matchesType = post.category === 'කඩඉම් විභාග' || post.category === 'EB_EXAM';
-        } else if (selectedType === 'COURSE') {
-            matchesType = post.category === 'Course' || post.category === 'COURSE';
-        }
-
-        // MEQ Filter
-        let matchesMEQ = (selectedMEQ === 'ALL') || (post.meq_level === selectedMEQ);
-
-        // Search Filter
-        let matchesSearch = true;
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            matchesSearch = (post.title && post.title.toLowerCase().includes(q)) ||
-                            (post.organization && post.organization.toLowerCase().includes(q));
-        }
-
-        return matchesType && matchesMEQ && matchesSearch;
-    });
-
-    currentPage = 1;
-    renderPosts();
-}
+        fetchPublishedPosts();
+    };
 
     window.filterMEQ = function(level) {
         selectedMeq = level;
 
         document.querySelectorAll('.meq-btn').forEach(btn => {
-            btn.className = "meq-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 whitespace-nowrap";
+            btn.className = "meq-btn py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 text-center transition";
         });
 
         if (window.event && window.event.target) {
-            window.event.target.className = "meq-btn active px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-emerald bg-brand-emerald/20 text-brand-emerald whitespace-nowrap";
+            window.event.target.className = "meq-btn active py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-brand-emerald bg-brand-emerald/20 text-brand-emerald text-center transition";
         }
 
         fetchPublishedPosts();
