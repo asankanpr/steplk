@@ -3,14 +3,13 @@ import json
 import os
 import re
 from bs4 import BeautifulSoup
+import pytz
 import requests
 from supabase import Client, create_client
 
 # Supabase Credentials
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv(
-    "SUPABASE_SERVICE_ROLE_KEY"
-)  # Service Role Key for writing
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  # Service Role Key for writing
 supabase: Client = (
     create_client(SUPABASE_URL, SUPABASE_KEY)
     if SUPABASE_URL and SUPABASE_KEY
@@ -28,10 +27,8 @@ HEADERS = {
 # ==========================================
 # 1. Fetch Exchange Rates (USD & EUR to LKR)
 # ==========================================
-
-
 def fetch_exchange_rates():
-    """Exchange Rates API භාවිතයෙන් USD සහ EUR වල LKR අගයන් ලබා ගනී."""
+    """Exchange Rates API se USD aur EUR ke LKR rates fetch karta hai."""
     try:
         url = "https://open.er-api.com/v6/latest/USD"
         res = requests.get(url, timeout=10)
@@ -55,19 +52,14 @@ def fetch_exchange_rates():
 # ==========================================
 # 2. Fetch Gold Prices (22K & 24K Sovereign)
 # ==========================================
-
-
 def fetch_gold_prices():
-    """ලංකාවේ රත්තරන් පවුමක (22K & 24K) මිල Web Scrape කරයි."""
+    """Sri Lanka me gold sovereign prices web scrape karta hai."""
     try:
         url = "https://goldprice.lk/"
         res = requests.get(url, headers=HEADERS, timeout=10)
         soup = BeautifulSoup(res.text, "html.parser")
-
-        # Scrape price elements
         text_content = soup.get_text()
 
-        # Regex search for 22K and 24K sovereign prices in LKR
         gold_22k_match = re.search(
             r"22\s*K[^\d]*([\d,]{6,7})", text_content, re.IGNORECASE
         )
@@ -97,25 +89,25 @@ def fetch_gold_prices():
 
 
 # ==========================================
-# 3. Calculate Astrological Data (Rahu Kalaya & Subha Disawa)
+# 3. Calculate Astrological Data (Correct Weekday + SL Timezone)
 # ==========================================
-
-
 def get_astrological_data():
-    """දිනපතා රාහු කාලය සහ සුබ දිශාව ගණනය කරයි."""
-    # Standard Astrological Rahu Kalaya Rules for Sri Lanka
+    """Sri Lanka Timezone aur sahi Python weekday index (0=Monday, 6=Sunday) ke saath calculation"""
     rahu_schedule = {
-        0: {"time": "4:30 PM - 6:00 PM", "disawa": "දකුණ"},  # Sunday
-        1: {"time": "7:30 AM - 9:00 AM", "disawa": "වයඹ"},  # Monday
-        2: {"time": "3:00 PM - 4:30 PM", "disawa": "නැගෙනහිර"},  # Tuesday
-        3: {"time": "12:00 PM - 1:30 PM", "disawa": "නිරිත"},  # Wednesday
-        4: {"time": "1:30 PM - 3:00 PM", "disawa": "උතුර"},  # Thursday
-        5: {"time": "10:30 AM - 12:00 PM", "disawa": "ගිනිකොන"},  # Friday
-        6: {"time": "9:00 AM - 10:30 AM", "disawa": "බස්නාහිර"},  # Saturday
+        0: {"time": "7:30 AM - 9:00 AM", "disawa": "වයඹ"},       # Monday (0)
+        1: {"time": "3:00 PM - 4:30 PM", "disawa": "ගිනිකොන"},    # Tuesday (1)
+        2: {"time": "12:00 PM - 1:30 PM", "disawa": "නිරිත"},     # Wednesday (2)
+        3: {"time": "1:30 PM - 3:00 PM", "disawa": "නැගෙනහිර"},   # Thursday (3)
+        4: {"time": "10:30 AM - 12:00 PM", "disawa": "ඊශාන"},     # Friday (4)
+        5: {"time": "9:00 AM - 10:30 AM", "disawa": "දකුණ"},      # Saturday (5)
+        6: {"time": "4:30 PM - 6:00 PM", "disawa": "උතුර"}        # Sunday (6)
     }
 
-    # Sri Lanka Day of Week
-    today_weekday = datetime.datetime.now().weekday()
+    # Sri Lanka Timezone (Asia/Colombo)
+    sl_tz = pytz.timezone('Asia/Colombo')
+    now_sl = datetime.datetime.now(sl_tz)
+    today_weekday = now_sl.weekday()  # 0 = Monday, 6 = Sunday
+
     astro = rahu_schedule.get(
         today_weekday, {"time": "1:30 PM - 3:04 PM", "disawa": "දකුණ"}
     )
@@ -126,10 +118,8 @@ def get_astrological_data():
 # ==========================================
 # 4. Supabase Upsert Execution
 # ==========================================
-
-
 def sync_daily_utilities_to_supabase():
-    print("🔄 Daily Utilities Scraper ආරම්භ විය...")
+    print("🔄 Daily Utilities Scraper aarambh hua...")
 
     rates = fetch_exchange_rates()
     gold = fetch_gold_prices()
@@ -162,7 +152,7 @@ def sync_daily_utilities_to_supabase():
         except Exception as e:
             print(f"❌ Upsert Error on {item['key_name']}: {e}")
 
-    print("🎉 සියලු දෛනික දත්ත Supabase වෙත යාවත්කාලීන විය!")
+    print("🎉 Sabhi daily utilities Supabase me safaltapurvak update ho gaye!")
 
 
 if __name__ == "__main__":
