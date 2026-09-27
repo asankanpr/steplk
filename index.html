@@ -952,7 +952,8 @@ function fileToBase64(file) {
     });
 }
 
-// 2. AUTO SCAN FILE VIA GEMINI FLASH & FILL FORM
+
+// 2. AUTO SCAN FILE VIA SUPABASE EDGE FUNCTION & FILL FORM
 window.autoScanPvtFile = async function(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -969,41 +970,22 @@ window.autoScanPvtFile = async function(event) {
         const base64Data = await fileToBase64(file);
         const mimeType = file.type || 'image/jpeg';
 
-        // Gemini Flash API Request Payload
-        const promptText = `
-        You are an OCR parser for Sri Lankan Job Flyers. Extract these fields into valid JSON:
-        {
-          "title": "Job Title in Sinhala or English",
-          "org": "Company or Employer Name",
-          "meq": "One of: 'OL', 'AL', 'NVQ', 'DEGREE', 'NONE'",
-          "salary": "Salary or LKR scale if present else null",
-          "closing": "Closing date YYYY-MM-DD if present else null",
-          "qualifications": "Key requirements in Sinhala bullet points",
-          "contact": "Phone or WhatsApp number if present"
-        }
-        Return ONLY raw JSON without markdown backticks.
-        `;
-
-        // Direct call to Gemini 2.5 Flash API
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: promptText },
-                        { inline_data: { mime_type: mimeType, data: base64Data } }
-                    ]
-                }]
-            })
+        // Supabase JS Client හරහා Edge Function එක Call කිරීම
+        const { data, error } = await supabase.functions.invoke('scan-flyer', {
+            body: { base64Data, mimeType }
         });
 
-        const result = await response.json();
         loader.classList.add('hidden');
 
-        if (result.candidates && result.candidates[0].content.parts[0].text) {
-            let rawText = result.candidates[0].content.parts[0].text.trim();
-            // Clean markdown formatting if any
+        if (error) {
+            console.error("Edge Function Error:", error);
+            showCustomAlert("ස්කෑන් දෝෂයක්", "Edge Function එක සම්බන්ධ කරගත නොහැකි විය: " + error.message, false);
+            return;
+        }
+
+        if (data && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+            let rawText = data.candidates[0].content.parts[0].text.trim();
+            // Clean markdown formatting if present
             rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
             
             const extracted = JSON.parse(rawText);
@@ -1024,10 +1006,11 @@ window.autoScanPvtFile = async function(event) {
 
     } catch (err) {
         loader.classList.add('hidden');
-        console.error("Scan Error:", err);
-        showCustomAlert("ස්වයංක්‍රීය කියවීම අසාර්ථකයි", "කරුණාකර Form එකේ විස්තර manually ඇතුළත් කරන්න.", false);
+        console.error("Scan Error Details:", err);
+        showCustomAlert("ස්වයංක්‍රීය කියවීම අසාර්ථකයි", "දෝෂයක් සිදුවිය: " + err.message, false);
     }
 };
+        
 
 // 3. SUBMIT FORM TO SUPABASE WITH CUSTOM ALERT
 window.submitPvtVacancy = async function(e) {
