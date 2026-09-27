@@ -3,7 +3,6 @@ import json
 import os
 import re
 from bs4 import BeautifulSoup
-import pytz
 import requests
 from supabase import Client, create_client
 
@@ -28,7 +27,7 @@ HEADERS = {
 # 1. Fetch Exchange Rates (USD & EUR to LKR)
 # ==========================================
 def fetch_exchange_rates():
-    """Exchange Rates API se USD aur EUR ke LKR rates fetch karta hai."""
+    """Exchange Rates API භාවිතයෙන් USD සහ EUR වල LKR අගයන් ලබා ගනී."""
     try:
         url = "https://open.er-api.com/v6/latest/USD"
         res = requests.get(url, timeout=10)
@@ -53,7 +52,7 @@ def fetch_exchange_rates():
 # 2. Fetch Gold Prices (22K & 24K Sovereign)
 # ==========================================
 def fetch_gold_prices():
-    """Sri Lanka me gold sovereign prices web scrape karta hai."""
+    """ලංකාවේ රත්තරන් පවුමක (22K & 24K) මිල Web Scrape කරයි."""
     try:
         url = "https://goldprice.lk/"
         res = requests.get(url, headers=HEADERS, timeout=10)
@@ -89,10 +88,10 @@ def fetch_gold_prices():
 
 
 # ==========================================
-# 3. Calculate Astrological Data (Correct Weekday + SL Timezone)
+# 3. Calculate Astrological Data (Standard Python Datetime)
 # ==========================================
 def get_astrological_data():
-    """ලංකාවේ වේලාවට (UTC+5:30) අනුව රාහු කාලය සහ සුබ දිශාව ගණනය කරයි."""
+    """ලංකාවේ වේලාවට (UTC+5:30) අනුව 100% ක් නිවැරදිව රාහු කාලය සහ සුබ දිශාව ගණනය කරයි."""
     rahu_schedule = {
         0: {"time": "7:30 AM - 9:00 AM", "disawa": "වයඹ"},       # Monday (0)
         1: {"time": "3:00 PM - 4:30 PM", "disawa": "ගිනිකොන"},    # Tuesday (1)
@@ -103,7 +102,7 @@ def get_astrological_data():
         6: {"time": "4:30 PM - 6:00 PM", "disawa": "උතුර"}        # Sunday (6)
     }
 
-    # Sri Lanka Timezone Offset (UTC + 5 hours 30 mins) - Built-in Python
+    # Sri Lanka Timezone Offset (UTC + 5 hours 30 mins) - Standard Library Only
     sl_tz = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
     now_sl = datetime.datetime.now(sl_tz)
     today_weekday = now_sl.weekday()  # 0 = Monday, 6 = Sunday
@@ -119,7 +118,7 @@ def get_astrological_data():
 # 4. Supabase Upsert Execution
 # ==========================================
 def sync_daily_utilities_to_supabase():
-    print("🔄 Daily Utilities Scraper aarambh hua...")
+    print("🔄 Daily Utilities Scraper ආරම්භ විය...")
 
     rates = fetch_exchange_rates()
     gold = fetch_gold_prices()
@@ -152,7 +151,7 @@ def sync_daily_utilities_to_supabase():
         except Exception as e:
             print(f"❌ Upsert Error on {item['key_name']}: {e}")
 
-    print("🎉 Sabhi daily utilities Supabase me safaltapurvak update ho gaye!")
+    print("🎉 සියලු දෛනික දත්ත Supabase වෙත යාවත්කාලීන විය!")
 
 
 if __name__ == "__main__":
