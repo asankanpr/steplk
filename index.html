@@ -1083,7 +1083,7 @@ window.submitPvtVacancy = async function(e) {
             const prev = existingPosts[0];
             const prevDate = new Date(prev.created_at);
             const now = new Date();
-            const diffHours = Math.abs(now - prevDate) / 36`00000;
+            const diffHours = Math.abs(now - prevDate) / 3600000;
 
             if (diffHours < 48) {
                 dupStatus = "EXACT_DUPLICATE";
