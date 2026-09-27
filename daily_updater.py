@@ -92,7 +92,7 @@ def fetch_gold_prices():
 # 3. Calculate Astrological Data (Correct Weekday + SL Timezone)
 # ==========================================
 def get_astrological_data():
-    """ලංකාවේ වේලාවට (UTC+5:30) අනුව 100% ක් නිවැරදිව රාහු කාලය සහ සුබ දිශාව ගණනය කරයි."""
+    """ලංකාවේ වේලාවට (UTC+5:30) අනුව රාහු කාලය සහ සුබ දිශාව ගණනය කරයි."""
     rahu_schedule = {
         0: {"time": "7:30 AM - 9:00 AM", "disawa": "වයඹ"},       # Monday (0)
         1: {"time": "3:00 PM - 4:30 PM", "disawa": "ගිනිකොන"},    # Tuesday (1)
@@ -103,9 +103,9 @@ def get_astrological_data():
         6: {"time": "4:30 PM - 6:00 PM", "disawa": "උතුර"}        # Sunday (6)
     }
 
-    # Sri Lanka Timezone Offset (UTC + 5 hours 30 mins) - No external library required
-    sl_timezone = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
-    now_sl = datetime.datetime.now(sl_timezone)
+    # Sri Lanka Timezone Offset (UTC + 5 hours 30 mins) - Built-in Python
+    sl_tz = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+    now_sl = datetime.datetime.now(sl_tz)
     today_weekday = now_sl.weekday()  # 0 = Monday, 6 = Sunday
 
     astro = rahu_schedule.get(
