@@ -101,23 +101,24 @@
 
     <!-- 2. MAIN HEADER (Mobile Optimized & Touch Friendly) -->
     <header class="bg-brand-dark/90 backdrop-blur-md border-b border-brand-border sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-3.5 py-2 flex items-center justify-between gap-2">
+        <div class="max-w-7xl mx-auto px-3.5 py-2.5 flex items-center justify-between gap-2">
             
-            <!-- Clickable Logo Unit -->
-            <a href="#" onclick="window.location.reload(); return false;" class="flex items-center gap-2 sm:gap-3 group flex-shrink-0">
-                <img src="./icons/logo-512.png" alt="StepLK Logo" class="w-10 h-10 sm:w-14 sm:h-14 object-contain group-hover:scale-105 transition-transform">
+            <!-- Clickable Logo Unit (Size Restored) -->
+            <a href="#" onclick="window.location.reload(); return false;" class="flex items-center gap-2.5 sm:gap-3.5 group flex-shrink-0">
+                <img src="./icons/logo-512.png" alt="StepLK Logo" class="w-12 h-12 sm:w-16 sm:h-16 object-contain group-hover:scale-105 transition-transform">
                 <div class="flex flex-col">
                     <div class="flex items-center leading-none">
-                        <span class="text-xl sm:text-3xl font-black tracking-tight text-white">Step<span class="text-brand-emerald">LK</span></span>
+                        <span class="text-2xl sm:text-4xl font-black tracking-tight text-white">Step<span class="text-brand-emerald">LK</span></span>
                     </div>
-                    <span class="text-[9px] sm:text-xs text-brand-yellow font-bold tracking-wider uppercase mt-0.5 group-hover:text-white transition">ඔබ වෙනුවෙන්මයි</span>
+                    <span class="text-[10px] sm:text-xs text-brand-yellow font-bold tracking-wider uppercase mt-1 group-hover:text-white transition">ඔබ වෙනුවෙන්මයි</span>
                 </div>
             </a>
             
-            <!-- Search Input (Header එක ඇතුළෙන්ම දකුණු පස - Compact & Taller) -->
+            <!-- Search Box (Height Increased & 2-Lines Text Inside) -->
             <div class="relative w-36 sm:w-60 md:w-72 flex-shrink-0">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                <input type="text" id="search-input" placeholder="සොයන්න (Search)..." class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-8 pr-2 py-2 text-[11px] leading-tight text-white outline-none shadow-sm transition-all">
+                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs z-10"></i>
+                <textarea id="search-input" rows="2" placeholder="සොයන්න&#10;(Search)..." 
+                    class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-7 pr-2 py-1 text-[10px] leading-tight text-white outline-none resize-none overflow-hidden h-11 shadow-sm transition-all"></textarea>
             </div>
 
         </div>
@@ -150,22 +151,38 @@
         </div>
 
         <!-- PRIVATE VACANCY SUBMISSION CTA BANNER -->
-        <div class="mb-4 bg-gradient-to-r from-slate-900 via-brand-card to-slate-900 border border-brand-emerald/40 rounded-2xl p-3.5 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-3 text-center sm:text-left">
-                <div class="w-10 h-10 rounded-xl bg-brand-emerald/10 border border-brand-emerald/30 flex items-center justify-center text-brand-emerald text-lg flex-shrink-0">
-                    <i class="fa-solid fa-building-circle-check"></i>
+        <div class="mb-4 bg-gradient-to-r from-slate-900 via-brand-card to-slate-900 border border-brand-emerald/40 rounded-2xl p-3.5 shadow-xl">
+            <div class="flex items-start justify-between gap-2">
+                
+                <!-- Left Icon & Left-Aligned Text -->
+                <div class="flex items-start gap-3 text-left">
+                    <div class="w-10 h-10 rounded-xl bg-brand-emerald/10 border border-brand-emerald/30 flex items-center justify-center text-brand-emerald text-xl flex-shrink-0 mt-0.5">
+                        <i class="fa-solid fa-building-circle-check"></i>
+                    </div>
+                    
+                    <div class="text-left">
+                        <h3 class="text-xs sm:text-sm font-bold text-white leading-snug">
+                            ඔබේ ආයතනයේ ඇබෑර්තු පහසුවෙන් පළ කරන්න
+                        </h3>
+                        <p class="text-[11px] text-slate-400 mt-1 text-left leading-relaxed">
+                            පෞද්ගලික අංශයේ ඇබෑර්තු අතරට ඔබේ නිවේදනයත් නොමිලේම එක් කරන්න.
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="text-xs sm:text-sm font-bold text-white flex items-center justify-center sm:justify-start gap-1.5">
-                        ඔබේ ආයතනයේ ඇබෑර්තු පහසුවෙන් පළ කරන්න
-                        <span class="bg-amber-500/20 text-amber-400 text-[9px] px-2 py-0.5 rounded-full border border-amber-500/30 font-mono">Employer</span>
-                    </h3>
-                    <p class="text-[11px] text-slate-400 mt-0.5">පෞද්ගලික අංශයේ ඇබෑර්තු දහස් ගණනක් අතරට ඔබේ නිවේදනයත් නොමිලේම එක් කරන්න.</p>
-                </div>
+
+                <!-- Employer Badge (Corner) -->
+                <span class="bg-amber-500/20 text-amber-400 text-[9px] px-2 py-0.5 rounded-full border border-amber-500/30 font-mono font-bold flex-shrink-0">
+                    Employer
+                </span>
             </div>
-            <button onclick="alert('Private Vacancy Form එක ඉදිරි පියවරේදී සම්බන්ධ කෙරේ.')" class="w-full sm:w-auto px-4 py-2.5 bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20 flex-shrink-0">
-                <i class="fa-solid fa-plus-circle"></i> Vacancy එකක් එක් කරන්න
-            </button>
+
+            <!-- Action Button -->
+            <div class="mt-3">
+                <button onclick="alert('Private Vacancy Form එක ඉදිරි පියවරේදී සම්බන්ධ කෙරේ.')" class="w-full sm:w-auto px-4 py-2.5 bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20">
+                    <i class="fa-solid fa-circle-plus text-base"></i>
+                    <span>Vacancy ඇතුළත් කරන්න</span>
+                </button>
+            </div>
         </div>
 
         <!-- 📍 AD SPOT 1: MOBILE TOP BANNER AD -->
