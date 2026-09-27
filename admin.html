@@ -86,7 +86,7 @@
     <!-- MAIN ADMIN DASHBOARD -->
     <div id="admin-app" class="hidden pb-20">
         
-        <!-- 1. UPDATED HEADER (Mobile Responsive & No Overlap) -->
+        <!-- 1. HEADER -->
         <header class="bg-brand-charcoal border-b border-brand-border sticky top-0 z-50 px-4 py-3">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 
@@ -118,7 +118,7 @@
 
         <main class="max-w-3xl mx-auto px-4 py-4 space-y-4">
 
-            <!-- 2. SHORTENED TABS -->
+            <!-- TABS -->
             <div class="flex border-b border-slate-800 mb-4 gap-3 overflow-x-auto text-xs font-bold">
                 <button id="tab-pending" onclick="switchTab('PENDING')" class="pb-2.5 text-emerald-400 border-b-2 border-emerald-400 transition-all flex items-center gap-1 whitespace-nowrap">
                     Pending
@@ -136,12 +136,28 @@
             <div id="pending-posts-section">
                 <div id="review-card" class="bg-brand-card border border-brand-border rounded-2xl p-4 shadow-xl space-y-4">
                     
+                    <!-- DYNAMIC SOURCE & METHOD HEADER -->
                     <div class="flex items-center justify-between border-b border-brand-border pb-3">
                         <div>
-                            <span class="text-[10px] text-slate-400 block uppercase tracking-wider">Source: Drive Document</span>
-                            <span class="text-xs text-brand-yellow font-bold"><i class="fa-solid fa-robot"></i> AI Auto-Extracted</span>
+                            <span id="display-source-tag" class="text-[10px] text-slate-400 block uppercase tracking-wider font-semibold">
+                                Source: Drive Document
+                            </span>
+                            <span id="display-method-tag" class="text-xs text-brand-yellow font-bold flex items-center gap-1">
+                                <i class="fa-solid fa-robot"></i> AI Auto-Extracted
+                            </span>
                         </div>
-                        <span id="item-id-display" class="bg-slate-800 text-slate-300 text-[11px] px-2.5 py-1 rounded-md border border-slate-700 font-mono">No Items</span>
+                        <span id="item-id-display" class="bg-slate-800 text-slate-300 text-[11px] px-2.5 py-1 rounded-md border border-slate-700 font-mono">
+                            No Items
+                        </span>
+                    </div>
+
+                    <!-- DUPLICATE & EXTENSION WARNING BANNER -->
+                    <div id="duplicate-warning-box" class="hidden rounded-xl p-3 border text-xs flex items-start gap-2.5 transition-all">
+                        <i id="duplicate-icon" class="fa-solid fa-triangle-exclamation text-base flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <span id="duplicate-title" class="font-bold block">Duplicate Detected</span>
+                            <span id="duplicate-note" class="text-[11px] leading-relaxed block mt-0.5">Note details...</span>
+                        </div>
                     </div>
 
                     <form id="review-form" class="space-y-3 text-xs">
@@ -192,7 +208,6 @@
                             </div>
                         </div>
 
-                        <!-- 3. DOUBLE SIZE TEXTAREAS -->
                         <div>
                             <label class="block font-semibold text-brand-emerald mb-1"><i class="fa-solid fa-graduation-cap"></i> සුදුසුකම් (Qualifications):</label>
                             <textarea id="field-qualifications" rows="6" class="w-full bg-brand-dark border border-slate-700 focus:border-brand-emerald rounded-xl p-3 text-xs text-white outline-none leading-relaxed min-h-[130px]"></textarea>
@@ -215,16 +230,26 @@
                         </div>
                     </form>
 
-                    <div class="pt-2 grid grid-cols-2 gap-3 border-t border-slate-800">
-                        <button type="button" id="btn-reject" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
+                    <!-- REORGANIZED & TIDIED ACTION BUTTONS -->
+                    <div class="pt-3 grid grid-cols-1 sm:grid-cols-3 gap-2.5 border-t border-slate-800">
+                        
+                        <!-- Reject Button -->
+                        <button type="button" id="btn-reject" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 text-xs">
                             <i class="fa-solid fa-trash-can"></i> Reject Post
                         </button>
-                        <button type="button" id="btn-publish" class="bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark py-3 rounded-xl font-black transition flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20">
+
+                        <!-- View Flyer Image Button (Dynamic) -->
+                        <a id="btn-view-flyer" href="#" target="_blank" rel="noopener noreferrer" class="hidden bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 text-xs">
+                            <i class="fa-solid fa-image"></i> View Flyer Ad
+                        </a>
+
+                        <!-- Publish Button -->
+                        <button type="button" id="btn-publish" class="bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark py-3 rounded-xl font-black transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-brand-emerald/20 sm:col-span-1">
                             <i class="fa-solid fa-paper-plane"></i> PUBLISH NOW
                         </button>
                     </div>
 
-                    <!-- 📍 TOAST NOTIFICATION POSITIONED DIRECTLY BELOW PUBLISH BUTTON -->
+                    <!-- TOAST NOTIFICATION -->
                     <div id="toast" class="hidden bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 p-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 text-center transition-all">
                         <i class="fa-solid fa-circle-check text-base"></i>
                         <span id="toast-msg">Action successful!</span>
@@ -262,6 +287,17 @@
         const loginForm = document.getElementById('login-form');
         const loginError = document.getElementById('login-error');
         const rejectModal = document.getElementById('reject-modal');
+
+        // Security Utility: Escape HTML to prevent DOM XSS Injection
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabase.auth.getSession();
@@ -372,8 +408,8 @@
             listContainer.innerHTML = data.map(post => `
                 <div class="bg-brand-card border border-brand-border p-4 rounded-xl flex items-center justify-between gap-3">
                     <div>
-                        <h4 class="font-bold text-sm text-white">${post.title || 'No Title'}</h4>
-                        <p class="text-xs text-slate-400">${post.organization || ''} • <span class="text-brand-emerald font-semibold">${post.category || 'Job'}</span></p>
+                        <h4 class="font-bold text-sm text-white">${escapeHtml(post.title || 'No Title')}</h4>
+                        <p class="text-xs text-slate-400">${escapeHtml(post.organization || '')} • <span class="text-brand-emerald font-semibold">${escapeHtml(post.category || 'Job')}</span></p>
                     </div>
                     <span class="bg-emerald-500/10 text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-500/20">LIVE</span>
                 </div>
@@ -407,17 +443,17 @@
                 <div class="bg-brand-card border border-brand-border p-3.5 rounded-xl space-y-1.5">
                     <div class="flex items-center justify-between">
                         <span class="font-bold text-white text-xs flex items-center gap-1.5">
-                            <i class="fa-solid fa-file-pdf text-brand-yellow"></i> ${log.file_name}
+                            <i class="fa-solid fa-file-pdf text-brand-yellow"></i> ${escapeHtml(log.file_name)}
                         </span>
                         ${statusBadge}
                     </div>
                     
                     ${isSuccess ? `
                     <div class="text-[11px] text-slate-300 bg-brand-dark/50 p-2 rounded-lg border border-slate-800">
-                        <span class="text-brand-emerald font-bold">Extract වූ තනතුරු (${log.extracted_count}):</span>${log.extracted_titles || 'None'}
+                        <span class="text-brand-emerald font-bold">Extract වූ තනතුරු (${log.extracted_count}):</span>${escapeHtml(log.extracted_titles || 'None')}
                     </div>` : `
                     <div class="text-[11px] text-red-300 bg-red-500/10 p-2 rounded-lg border border-red-500/20 font-mono">
-                        ❌ Error: ${log.error_message || 'Unknown error'}
+                        ❌ Error: ${escapeHtml(log.error_message || 'Unknown error')}
                     </div>`}
 
                     <div class="text-[10px] text-slate-500 text-right">
@@ -439,7 +475,61 @@
             document.getElementById('field-qualifications').value = item.qualifications || item.educational_qualifications || '';
             document.getElementById('field-description').value = item.description || item.experience_qualifications || '';
             document.getElementById('field-date').value = item.closing_date || '';
-            document.getElementById('field-source').value = item.source || 'GDRIVE_AUTOMATION';
+
+            // 1. DYNAMIC SOURCE DISPLAY
+            const isPrivate = item.category === 'Private Job' || item.source === 'PRIVATE_FORM';
+            const sourceDisplay = item.source || (isPrivate ? 'PRIVATE_FORM' : 'GDRIVE_AUTOMATION');
+            document.getElementById('field-source').value = sourceDisplay;
+
+            const srcTag = document.getElementById('display-source-tag');
+            const methodTag = document.getElementById('display-method-tag');
+
+            if (isPrivate) {
+                srcTag.innerText = "Source: Private User Submission (පෞද්ගලික යොමුකිරීමක්)";
+                srcTag.className = "text-[10px] text-emerald-400 block uppercase tracking-wider font-bold";
+                methodTag.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-brand-emerald"></i> User Uploaded Flyer / Form';
+            } else {
+                srcTag.innerText = "Source: Government Gazette / Drive Automation";
+                srcTag.className = "text-[10px] text-slate-400 block uppercase tracking-wider font-semibold";
+                methodTag.innerHTML = '<i class="fa-solid fa-robot text-brand-yellow"></i> AI Auto-Extracted';
+            }
+
+            // 2. DUPLICATE & EXTENSION WARNING BANNER
+            const dupBox = document.getElementById('duplicate-warning-box');
+            const dupTitle = document.getElementById('duplicate-title');
+            const dupNote = document.getElementById('duplicate-note');
+            const dupIcon = document.getElementById('duplicate-icon');
+
+            if (item.duplicate_status && item.duplicate_status !== 'NONE') {
+                dupBox.classList.remove('hidden');
+                dupNote.innerText = item.admin_note || "මෙම පෝස්ටුව සම්බන්ධයෙන් පෙර යොමුකිරීමක් හමුවී ඇත.";
+
+                if (item.duplicate_status === 'EXACT_DUPLICATE') {
+                    dupBox.className = "rounded-xl p-3 border text-xs flex items-start gap-2.5 bg-red-500/10 border-red-500/30 text-red-300";
+                    dupIcon.className = "fa-solid fa-triangle-exclamation text-base flex-shrink-0 mt-0.5 text-red-400";
+                    dupTitle.innerText = "⚠️ EXACT DUPLICATE DETECTED (පිටපත් කිරීමක්)";
+                } else if (item.duplicate_status === 'DATE_EXTENDED') {
+                    dupBox.className = "rounded-xl p-3 border text-xs flex items-start gap-2.5 bg-amber-500/10 border-amber-500/30 text-amber-300";
+                    dupIcon.className = "fa-solid fa-calendar-plus text-base flex-shrink-0 mt-0.5 text-amber-400";
+                    dupTitle.innerText = "ℹ️ CLOSING DATE EXTENSION (අවසන් දිනය දීර්ඝ කිරීමක්)";
+                } else {
+                    dupBox.className = "rounded-xl p-3 border text-xs flex items-start gap-2.5 bg-blue-500/10 border-blue-500/30 text-blue-300";
+                    dupIcon.className = "fa-solid fa-rotate text-base flex-shrink-0 mt-0.5 text-blue-400";
+                    dupTitle.innerText = "ℹ️ REPEAT SUBMISSION (නැවත යොමුකිරීමක්)";
+                }
+            } else {
+                dupBox.classList.add('hidden');
+            }
+
+            // 3. DYNAMIC VIEW FLYER BUTTON
+            const viewFlyerBtn = document.getElementById('btn-view-flyer');
+            const flyerUrl = item.image_url || item.pdf_url;
+            if (flyerUrl && flyerUrl.startsWith('http')) {
+                viewFlyerBtn.href = flyerUrl;
+                viewFlyerBtn.classList.remove('hidden');
+            } else {
+                viewFlyerBtn.classList.add('hidden');
+            }
         }
 
         function clearForm() {
@@ -452,11 +542,18 @@
             document.getElementById('field-qualifications').value = '';
             document.getElementById('field-description').value = '';
             document.getElementById('field-date').value = '';
+            document.getElementById('field-source').value = '';
+            document.getElementById('duplicate-warning-box').classList.add('hidden');
+            document.getElementById('btn-view-flyer').classList.add('hidden');
         }
 
         document.getElementById('btn-publish').addEventListener('click', async () => {
             const postId = document.getElementById('current-post-id').value;
             if (!postId) return;
+
+            const btn = document.getElementById('btn-publish');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> PUBLISHING...';
 
             const updatedData = {
                 title: document.getElementById('field-title').value,
@@ -469,10 +566,13 @@
                 description: document.getElementById('field-description').value,
                 closing_date: document.getElementById('field-date').value || null,
                 status: 'PUBLISHED',
-                updated_at: new Date().toISOString() // 💡 Publish කළ මොහොතේ වේලාව එකතු වේ.
+                updated_at: new Date().toISOString()
             };
 
             const { error } = await supabase.from('posts').update(updatedData).eq('id', postId);
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> PUBLISH NOW';
 
             if (!error) {
                 showToast("✅ පෝස්ටුව සාර්ථකව Live Publish කරන ලදී!");
