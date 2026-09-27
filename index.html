@@ -106,14 +106,35 @@
                 </div>
             </a>
             
-            <!-- Search Input -->
-            <div class="relative w-40 sm:w-60 md:w-72">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                <input type="text" id="search-input" placeholder="සොයන්න (Search)..." class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-8 pr-3 py-1.5 text-xs text-white outline-none">
+            <!-- SEARCH BAR (Mobile Responsive & High Touch Target) -->
+            <div class="my-4 w-full">
+                <div class="relative w-full">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="search-input" oninput="handleSearch()" placeholder="තනතුර හෝ ආයතනය අනුව සොයන්න..." 
+                        class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl py-3 pl-11 pr-4 text-xs md:text-sm text-white placeholder-slate-500 outline-none shadow-lg transition-all">
+                </div>
             </div>
+            
         </div>
     </header>
 
+
+    <!-- SUB-NAVIGATION BAR (Multi-page Support) -->
+    <nav class="bg-brand-charcoal border-b border-brand-border px-4 py-2 text-xs font-bold shadow-md">
+        <div class="max-w-6xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <a href="index.html" class="px-3.5 py-1.5 rounded-lg bg-brand-emerald text-brand-dark flex items-center gap-1.5 whitespace-nowrap shadow-sm">
+                <i class="fa-solid fa-house"></i> Home
+            </a>
+            <a href="#" class="px-3.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-graduation-cap text-amber-400"></i> Education
+            </a>
+            <a href="#" class="px-3.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-icons text-sky-400"></i> LifeStyle
+            </a>
+        </div>
+    </nav>
+
+    
     <!-- 3. MAIN SECTION -->
     <main class="max-w-7xl mx-auto px-4 py-5 flex-1 w-full">
 
@@ -138,22 +159,26 @@
         <!-- 4. MOBILE-OPTIMIZED TAB NAVIGATION & QUALIFICATION FILTER -->
         <div class="space-y-2.5 mb-5">
             
-            <!-- Category Tabs (Icon centered on top, Grid 4 Columns) -->
-            <div class="grid grid-cols-4 gap-1.5 bg-brand-charcoal p-1.5 rounded-2xl border border-brand-border w-full">
-                <button id="tab-all" onclick="switchTab('ALL')" class="px-2 py-2 rounded-xl text-[11px] md:text-xs font-bold transition bg-brand-emerald text-brand-dark shadow-md flex flex-col items-center justify-center gap-1 text-center">
-                    <i class="fa-solid fa-border-all text-xs md:text-sm"></i>
+            <!-- 5-COLUMN CATEGORY NAVIGATION GRID -->
+            <div class="grid grid-cols-5 gap-1 bg-brand-charcoal p-1.5 rounded-2xl border border-brand-border w-full mb-3">
+                <button id="tab-all" onclick="switchTab('ALL')" class="px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition bg-brand-emerald text-brand-dark shadow-md flex flex-col items-center justify-center gap-1 text-center">
+                    <i class="fa-solid fa-border-all text-xs sm:text-sm"></i>
                     <span>සියල්ල</span>
                 </button>
-                <button id="tab-jobs" onclick="switchTab('JOB')" class="px-2 py-2 rounded-xl text-[11px] md:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center">
-                    <i class="fa-solid fa-briefcase text-xs md:text-sm"></i>
-                    <span>රැකියා</span>
+                <button id="tab-govt" onclick="switchTab('GOVT_JOB')" class="px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center">
+                    <i class="fa-solid fa-building-columns text-xs sm:text-sm text-amber-400"></i>
+                    <span>රැකියා (රජයේ)</span>
                 </button>
-                <button id="tab-eb" onclick="switchTab('EB_EXAM')" class="px-2 py-2 rounded-xl text-[11px] md:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center">
-                    <i class="fa-solid fa-file-signature text-xs md:text-sm"></i>
+                <button id="tab-pvt" onclick="switchTab('PVT_JOB')" class="px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center">
+                    <i class="fa-solid fa-briefcase text-xs sm:text-sm text-sky-400"></i>
+                    <span>රැකියා (පෞද්ගලික)</span>
+                </button>
+                <button id="tab-eb" onclick="switchTab('EB_EXAM')" class="px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center">
+                    <i class="fa-solid fa-file-signature text-xs sm:text-sm text-emerald-400"></i>
                     <span>කඩඉම්</span>
                 </button>
-                <button id="tab-courses" onclick="switchTab('COURSE')" class="px-2 py-2 rounded-xl text-[11px] md:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center">
-                    <i class="fa-solid fa-graduation-cap text-xs md:text-sm"></i>
+                <button id="tab-courses" onclick="switchTab('COURSE')" class="px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center">
+                    <i class="fa-solid fa-graduation-cap text-xs sm:text-sm text-purple-400"></i>
                     <span>පාඨමාලා</span>
                 </button>
             </div>
@@ -183,15 +208,71 @@
                 <div id="posts-container" class="space-y-4"></div>
 
                 <!-- PAGINATION CONTROLS -->
-                <div id="pagination-container" class="flex items-center justify-center gap-2 pt-6 pb-2 hidden">
-                    <button id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1.5 bg-brand-charcoal border border-slate-700 hover:border-brand-emerald text-xs rounded-lg font-semibold text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed">
-                        <i class="fa-solid fa-chevron-left"></i> Previous
-                    </button>
-                    <div id="page-numbers" class="flex items-center gap-1.5 text-xs font-bold"></div>
-                    <button id="btn-next-page" onclick="changePage(1)" class="px-3 py-1.5 bg-brand-charcoal border border-slate-700 hover:border-brand-emerald text-xs rounded-lg font-semibold text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed">
-                        Next <i class="fa-solid fa-chevron-right"></i>
-                    </button>
-                </div>
+                function renderPagination(totalItems) {
+                    const container = document.getElementById('pagination-container');
+                    if (!container) return;
+                
+                    const totalPages = Math.ceil(totalItems / itemsPerPage);
+                    if (totalPages <= 1) {
+                        container.innerHTML = '';
+                        return;
+                    }
+                
+                    let html = `<div class="flex items-center justify-center gap-1.5 sm:gap-2 my-6 select-none flex-wrap">`;
+                
+                    // Previous Button
+                    const prevDisabled = currentPage === 1;
+                    html += `
+                        <button onclick="changePage(${currentPage - 1})" ${prevDisabled ? 'disabled' : ''} 
+                            class="px-3 py-2 rounded-xl text-xs font-bold border ${prevDisabled ? 'border-slate-800 text-slate-600 bg-brand-charcoal/50 cursor-not-allowed' : 'border-slate-700 text-slate-300 hover:bg-slate-800 bg-brand-charcoal'} transition flex items-center gap-1">
+                            <i class="fa-solid fa-chevron-left text-[10px]"></i> <span class="hidden sm:inline">Prev</span>
+                        </button>
+                    `;
+                
+                    // Smart Windowing (Max 5 Visible Buttons)
+                    let startPage = Math.max(1, currentPage - 1);
+                    let endPage = Math.min(totalPages, startPage + 2);
+                
+                    if (endPage - startPage < 2) {
+                        startPage = Math.max(1, endPage - 2);
+                    }
+                
+                    if (startPage > 1) {
+                        html += `<button onclick="changePage(1)" class="w-8 h-8 rounded-xl text-xs font-bold border border-slate-700 bg-brand-charcoal text-slate-300">1</button>`;
+                        if (startPage > 2) {
+                            html += `<span class="text-slate-500 text-xs px-1">...</span>`;
+                        }
+                    }
+                
+                    for (let i = startPage; i <= endPage; i++) {
+                        const isActive = i === currentPage;
+                        html += `
+                            <button onclick="changePage(${i})" 
+                                class="w-8 h-8 rounded-xl text-xs font-bold border transition ${isActive ? 'border-brand-emerald bg-brand-emerald text-brand-dark shadow-md shadow-brand-emerald/20' : 'border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500'}">
+                                ${i}
+                            </button>
+                        `;
+                    }
+                
+                    if (endPage < totalPages) {
+                        if (endPage < totalPages - 1) {
+                            html += `<span class="text-slate-500 text-xs px-1">...</span>`;
+                        }
+                        html += `<button onclick="changePage(${totalPages})" class="w-8 h-8 rounded-xl text-xs font-bold border border-slate-700 bg-brand-charcoal text-slate-300">${totalPages}</button>`;
+                    }
+                
+                    // Next Button
+                    const nextDisabled = currentPage === totalPages;
+                    html += `
+                        <button onclick="changePage(${currentPage + 1})" ${nextDisabled ? 'disabled' : ''} 
+                            class="px-3 py-2 rounded-xl text-xs font-bold border ${nextDisabled ? 'border-slate-800 text-slate-600 bg-brand-charcoal/50 cursor-not-allowed' : 'border-slate-700 text-slate-300 hover:bg-slate-800 bg-brand-charcoal'} transition flex items-center gap-1">
+                            <span class="hidden sm:inline">Next</span> <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                        </button>
+                    `;
+                
+                    html += `</div>`;
+                    container.innerHTML = html;
+                }
 
                 <!-- AD SPOT 5: BOTTOM ADVERTISEMENT BANNER -->
                 <div class="mt-6 bg-brand-card border border-dashed border-slate-700/80 rounded-2xl p-4 shadow-lg text-center space-y-2">
@@ -666,24 +747,57 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    window.switchTab = function(type) {
-            selectedType = type;
-            
-            const btnAll = document.getElementById('tab-all');
-            const btnJobs = document.getElementById('tab-jobs');
-            const btnEb = document.getElementById('tab-eb');
-            const btnCourses = document.getElementById('tab-courses');
+window.switchTab = function(type) {
+    selectedType = type;
+    
+    const activeClass = "px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition bg-brand-emerald text-brand-dark shadow-md flex flex-col items-center justify-center gap-1 text-center";
+    const inactiveClass = "px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center";
 
-            const activeClass = "px-2 py-2 rounded-xl text-[11px] md:text-xs font-bold transition bg-brand-emerald text-brand-dark shadow-md flex flex-col items-center justify-center gap-1 text-center";
-            const inactiveClass = "px-2 py-2 rounded-xl text-[11px] md:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center";
+    ['all', 'govt', 'pvt', 'eb', 'courses'].forEach(t => {
+        const btn = document.getElementById(`tab-${t}`);
+        if(btn) btn.className = inactiveClass;
+    });
 
-            btnAll.className = (type === 'ALL') ? activeClass : inactiveClass;
-            btnJobs.className = (type === 'JOB') ? activeClass : inactiveClass;
-            btnEb.className = (type === 'EB_EXAM') ? activeClass : inactiveClass;
-            btnCourses.className = (type === 'COURSE') ? activeClass : inactiveClass;
+    if(type === 'ALL') document.getElementById('tab-all').className = activeClass;
+    if(type === 'GOVT_JOB') document.getElementById('tab-govt').className = activeClass;
+    if(type === 'PVT_JOB') document.getElementById('tab-pvt').className = activeClass;
+    if(type === 'EB_EXAM') document.getElementById('tab-eb').className = activeClass;
+    if(type === 'COURSE') document.getElementById('tab-courses').className = activeClass;
 
-            fetchPublishedPosts();
-     };
+    applyFilters();
+};
+
+function applyFilters() {
+    filteredPosts = allPosts.filter(post => {
+        // Category Filter
+        let matchesType = true;
+        if (selectedType === 'GOVT_JOB') {
+            matchesType = post.category === 'Government Job' || post.category === 'GOVT_JOB';
+        } else if (selectedType === 'PVT_JOB') {
+            matchesType = post.category === 'Private Job' || post.category === 'PVT_JOB';
+        } else if (selectedType === 'EB_EXAM') {
+            matchesType = post.category === 'කඩඉම් විභාග' || post.category === 'EB_EXAM';
+        } else if (selectedType === 'COURSE') {
+            matchesType = post.category === 'Course' || post.category === 'COURSE';
+        }
+
+        // MEQ Filter
+        let matchesMEQ = (selectedMEQ === 'ALL') || (post.meq_level === selectedMEQ);
+
+        // Search Filter
+        let matchesSearch = true;
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            matchesSearch = (post.title && post.title.toLowerCase().includes(q)) ||
+                            (post.organization && post.organization.toLowerCase().includes(q));
+        }
+
+        return matchesType && matchesMEQ && matchesSearch;
+    });
+
+    currentPage = 1;
+    renderPosts();
+}
 
     window.filterMEQ = function(level) {
         selectedMeq = level;
