@@ -8,9 +8,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#061626">
-    <link rel="stylesheet" href="https://cloudflare.com">
 
-    
     <!-- Mobile App & iOS Support -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -55,7 +53,6 @@
         .animate-marquee:hover, .animate-marquee:active {
             animation-play-state: paused;
         }
-        /* Hide scrollbar for clean UI */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -101,11 +98,11 @@
         </div>
     </div>
 
-    <!-- 2. MAIN HEADER (Mobile Optimized & Touch Friendly) -->
+    <!-- 2. MAIN HEADER -->
     <header class="bg-brand-dark/90 backdrop-blur-md border-b border-brand-border sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-3.5 py-2.5 flex items-center justify-between gap-2">
             
-            <!-- Clickable Logo Unit (Size Restored) -->
+            <!-- Clickable Logo Unit -->
             <a href="#" onclick="window.location.reload(); return false;" class="flex items-center gap-2.5 sm:gap-3.5 group flex-shrink-0">
                 <img src="./icons/logo-512.png" alt="StepLK Logo" class="w-12 h-12 sm:w-16 sm:h-16 object-contain group-hover:scale-105 transition-transform">
                 <div class="flex flex-col">
@@ -116,17 +113,17 @@
                 </div>
             </a>
             
-            <!-- Search Box (Height Increased & 2-Lines Text Inside) -->
+            <!-- Search Box (Centered Text Alignment) -->
             <div class="relative w-36 sm:w-60 md:w-72 flex-shrink-0">
-                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs z-10"></i>
-                <textarea id="search-input" rows="2" placeholder="සොයන්න&#10;(Search)..." 
-                    class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-7 pr-2 py-1 text-[10px] leading-tight text-white outline-none justify-center resize-none overflow-hidden h-11 shadow-sm transition-all"></textarea>
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-slate-400 text-xs z-10 pointer-events-none"></i>
+                <textarea id="search-input" rows="2" placeholder="සොයන්න (Search)..." 
+                    class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-8 pr-3 py-1.5 text-[10px] sm:text-xs leading-tight text-white outline-none text-center resize-none overflow-hidden h-11 shadow-sm transition-all"></textarea>
             </div>
 
         </div>
     </header>
 
-    <!-- SUB-NAVIGATION BAR (Multi-page Support - Balanced Margins) -->
+    <!-- SUB-NAVIGATION BAR -->
     <nav class="bg-brand-charcoal border-b border-brand-border px-3 py-2 text-xs font-bold shadow-md">
         <div class="max-w-7xl mx-auto grid grid-cols-3 gap-2 w-full text-center">
             <a href="index.html" class="py-1.5 px-2 rounded-lg bg-brand-emerald text-brand-dark flex items-center justify-center gap-1.5 whitespace-nowrap text-xs md:text-sm font-extrabold shadow-sm">
@@ -152,7 +149,7 @@
             <p class="text-xs text-slate-400">දිවයිනේ සියලුම නවතම ඇබෑර්තු සහ පාඨමාලා තොරතුරු එසැණින් එකම තැනින් දැනගන්න.</p>
         </div>
 
-        <!-- 📍 AD SPOT 1: MOBILE TOP BANNER AD -->
+        <!-- MOBILE TOP BANNER AD -->
         <div class="block lg:hidden mb-4 bg-brand-card border border-dashed border-slate-700/80 rounded-2xl p-3 text-center">
             <span class="text-[9px] text-slate-500 uppercase tracking-widest block mb-1">Advertisement</span>
             <div id="mobile-top-ad" class="h-24 bg-brand-dark/80 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
@@ -162,10 +159,8 @@
             </div>
         </div>
 
-        <!-- 4. MOBILE-OPTIMIZED TAB NAVIGATION & QUALIFICATION FILTER -->
+        <!-- 4. TAB NAVIGATION & QUALIFICATION FILTER -->
         <div class="space-y-2.5 mb-5">
-            
-            <!-- Category Tabs (5 Columns Grid) -->
             <div class="grid grid-cols-5 gap-1 sm:gap-1.5 bg-brand-charcoal p-1.5 rounded-2xl border border-brand-border w-full">
                 <button id="tab-all" onclick="switchTab('ALL')" class="px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition bg-brand-emerald text-brand-dark shadow-md flex flex-col items-center justify-center gap-1 text-center">
                     <i class="fa-solid fa-border-all text-xs sm:text-sm"></i>
@@ -189,7 +184,7 @@
                 </button>
             </div>
 
-            <!-- Qualification Filter Chips (Grid 5 Columns - Fits 100% on Mobile) -->
+            <!-- Qualification Filter Chips -->
             <div class="grid grid-cols-5 gap-1.5 w-full">
                 <button onclick="filterMEQ('ALL')" class="meq-btn active py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-brand-emerald bg-brand-emerald/20 text-brand-emerald text-center transition">සියල්ල</button>
                 <button onclick="filterMEQ('OL')" class="meq-btn py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 text-center transition">O/L</button>
@@ -197,7 +192,6 @@
                 <button onclick="filterMEQ('NVQ')" class="meq-btn py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 text-center transition">NVQ</button>
                 <button onclick="filterMEQ('DEGREE')" class="meq-btn py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-slate-700 bg-brand-charcoal text-slate-300 hover:border-slate-500 text-center transition">Degree</button>
             </div>
-
         </div>
 
         <!-- 5. CONTENT GRID & DESKTOP SIDEBAR -->
@@ -223,7 +217,7 @@
                     </button>
                 </div>
 
-                <!-- AD SPOT 5: BOTTOM ADVERTISEMENT BANNER -->
+                <!-- BOTTOM ADVERTISEMENT BANNER -->
                 <div class="mt-6 bg-brand-card border border-dashed border-slate-700/80 rounded-2xl p-4 shadow-lg text-center space-y-2">
                     <div class="flex items-center justify-between text-[10px] text-slate-500 uppercase tracking-wider">
                         <span class="flex items-center gap-1 text-brand-yellow font-bold">
@@ -239,44 +233,41 @@
                     </div>
                 </div>
 
-                <!-- PRIVATE VACANCY SUBMISSION CTA BANNER -->
-                    <div class="mb-4 bg-gradient-to-r from-slate-900 via-brand-card to-slate-900 border border-brand-emerald/40 rounded-2xl p-3.5 shadow-xl">
-                        <div class="flex items-start justify-between gap-2">
-                            
-                            <!-- Left Icon & Left-Aligned Text -->
-                            <div class="flex items-start gap-3 text-left">
-                                <div class="w-10 h-10 rounded-xl bg-brand-emerald/10 border border-brand-emerald/30 flex items-center justify-center text-brand-emerald text-xl flex-shrink-0 mt-0.5">
-                                    <i class="fa-solid fa-building-circle-check"></i>
-                                </div>
-                                
-                                <div class="text-left">
-                                    <h3 class="text-xs sm:text-sm font-bold text-white leading-snug">
-                                        ඔබේ ආයතනයේ ඇබෑර්තු පහසුවෙන් පළ කරන්න
-                                    </h3>
-                                    <p class="text-[11px] text-slate-400 mt-1 text-left leading-relaxed">
-                                        පෞද්ගලික අංශයේ ඇබෑර්තු අතරට ඔබේ නිවේදනයත් නොමිලේම එක් කරන්න.
-                                    </p>
-                                </div>
+                <!-- PRIVATE VACANCY SUBMISSION CTA BANNER (Updated Professional Icon) -->
+                <div class="mb-4 bg-gradient-to-r from-slate-900 via-brand-card to-slate-900 border border-brand-emerald/40 rounded-2xl p-3.5 shadow-xl">
+                    <div class="flex items-start justify-between gap-2">
+                        
+                        <div class="flex items-start gap-3 text-left">
+                            <div class="w-10 h-10 rounded-xl bg-brand-emerald/10 border border-brand-emerald/30 flex items-center justify-center text-brand-emerald text-xl flex-shrink-0 mt-0.5">
+                                <i class="fa-solid fa-building-user"></i>
                             </div>
-            
-                            <!-- Employer Badge (Corner) -->
-                            <span class="bg-amber-500/20 text-amber-400 text-[9px] px-2 py-0.5 rounded-full border border-amber-500/30 font-mono font-bold flex-shrink-0">
-                                Employer
-                            </span>
+                            
+                            <div class="text-left">
+                                <h3 class="text-xs sm:text-sm font-bold text-white leading-snug">
+                                    ඔබේ ආයතනයේ ඇබෑර්තු පහසුවෙන් පළ කරන්න
+                                </h3>
+                                <p class="text-[11px] text-slate-400 mt-1 text-left leading-relaxed">
+                                    පෞද්ගලික අංශයේ ඇබෑර්තු අතරට ඔබේ නිවේදනයත් නොමිලේම එක් කරන්න.
+                                </p>
+                            </div>
                         </div>
-            
-                        <!-- Action Button -->
-                        <div class="mt-3">
-                            <button onclick="alert('Private Vacancy Form එක ඉදිරි පියවරේදී සම්බන්ධ කෙරේ.')" class="w-full sm:w-auto px-4 py-2.5 bg-blue-600 hover:bg-brand-emeraldDark font-white text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20">
-                                <i class="fa-solid fa-circle-plus text-base"></i>
-                                <span>Vacancy ඇතුළත් කරන්න</span>
-                            </button>
-                        </div>
+
+                        <span class="bg-amber-500/20 text-amber-400 text-[9px] px-2 py-0.5 rounded-full border border-amber-500/30 font-mono font-bold flex-shrink-0">
+                            Employer
+                        </span>
                     </div>
+
+                    <div class="mt-3">
+                        <button onclick="alert('Private Vacancy Form එක ඉදිරි පියවරේදී සම්බන්ධ කෙරේ.')" class="w-full sm:w-auto px-4 py-2.5 bg-blue-600 hover:bg-brand-emeraldDark text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20">
+                            <i class="fa-solid fa-circle-plus text-base"></i>
+                            <span>Vacancy ඇතුළත් කරන්න</span>
+                        </button>
+                    </div>
+                </div>
 
             </div>
 
-            <!-- DESKTOP RIGHT SIDEBAR (Daily Rates & Desktop Ad) -->
+            <!-- DESKTOP RIGHT SIDEBAR -->
             <div class="hidden lg:block space-y-5">
                 <div class="bg-brand-card border border-brand-border rounded-2xl p-5 sticky top-20 shadow-xl">
                     <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
@@ -296,9 +287,13 @@
                             <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-clock text-amber-400"></i> රාහු කාලය</span>
                             <span id="sidebar-rahu" class="font-bold text-white">1:32 PM - 3:04 PM</span>
                         </div>
+                        <div class="flex justify-between items-center bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-compass text-emerald-400"></i> සුබ දිශාව</span>
+                            <span id="sidebar-disawa" class="font-bold text-white val-disawa">දකුණ</span>
+                        </div>
                     </div>
 
-                    <!-- 📍 AD SPOT 2: DESKTOP SIDEBAR AD BANNER -->
+                    <!-- DESKTOP SIDEBAR AD BANNER -->
                     <div class="mt-5 bg-slate-900 border border-dashed border-slate-700 rounded-xl p-4 text-center">
                         <span class="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Advertisement</span>
                         <div id="desktop-sidebar-ad" class="h-32 bg-slate-800/50 rounded-lg overflow-hidden flex items-center justify-center">
@@ -307,7 +302,6 @@
                             </a>
                         </div>
                     </div>
-                    
 
                 </div>
             </div>
@@ -372,7 +366,7 @@
                 </p>
             </div>
 
-            <!-- 📍 AD SPOT 3: DETAIL MODAL AD BANNER -->
+            <!-- DETAIL MODAL AD BANNER -->
             <div class="bg-brand-dark/80 border border-slate-800 rounded-xl p-2.5 text-center my-2">
                 <span class="text-[9px] text-slate-500 uppercase tracking-widest block mb-1">Sponsored Notice</span>
                 <div id="modal-ad-container" class="h-24 bg-slate-900/60 rounded-lg overflow-hidden flex items-center justify-center">
@@ -381,7 +375,6 @@
                     </a>
                 </div>
             </div>
-            
 
             <div class="pt-2">
                 <a id="modal-download-btn" href="#" target="_blank" class="w-full bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-black py-3.5 px-4 rounded-xl transition text-xs md:text-sm flex items-center justify-center text-center gap-2.5 shadow-lg shadow-brand-emerald/20 leading-tight">
@@ -490,7 +483,6 @@
                 return;
             }
 
-            // EXPIRED POSTS DOWN-SORTING LOGIC
             const now = new Date();
             now.setHours(0,0,0,0);
 
@@ -516,7 +508,6 @@
             loadedPostsMap = {};
             allFetchedPosts.forEach(p => loadedPostsMap[p.id] = p);
 
-            // Apply Search Filtering
             applyFilterAndRender();
 
         } catch (err) {
@@ -525,7 +516,6 @@
         }
     }
 
-    // INSTANT KEYWORD SEARCH FILTERING LOGIC
     function applyFilterAndRender() {
         const query = searchQuery.trim().toLowerCase();
 
@@ -572,7 +562,6 @@
 
         renderPosts(currentPosts, listContainer);
 
-        // SMART WINDOWED PAGINATION RENDERER (MAX 5 BUTTONS + DOTS)
         if (totalPages > 1) {
             pagContainer.classList.remove('hidden');
             document.getElementById('btn-prev-page').disabled = (currentPage === 1);
