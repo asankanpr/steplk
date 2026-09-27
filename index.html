@@ -971,7 +971,7 @@ window.autoScanPvtFile = async function(event) {
         const mimeType = file.type || 'image/jpeg';
 
         // Supabase Edge Function Call
-        const { data, error } = await supabase.functions.invoke('bright-worker', {
+        const { data, error } = await supabase.functions.invoke('scan-flyer', {
             body: { base64Data, mimeType }
         });
 
