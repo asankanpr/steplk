@@ -470,6 +470,27 @@
         </div>
     </div>
 
+
+    <!-- MODERN CUSTOM POPUP ALERT MODAL -->
+    <div id="custom-alert-modal" class="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-brand-card border border-brand-emerald/50 rounded-2xl p-6 w-full max-w-xs sm:max-w-sm text-center shadow-2xl space-y-4 relative transform transition-all scale-100">
+            
+            <!-- Animated Success/Info Icon -->
+            <div id="alert-icon-box" class="w-14 h-14 mx-auto rounded-2xl bg-brand-emerald/10 border border-brand-emerald/30 flex items-center justify-center text-brand-emerald text-2xl shadow-inner">
+                <i id="alert-icon" class="fa-solid fa-circle-check"></i>
+            </div>
+    
+            <div>
+                <h3 id="alert-title" class="text-sm sm:text-base font-bold text-white mb-1">සාර්ථකයි!</h3>
+                <p id="alert-message" class="text-xs text-slate-300 leading-relaxed">තොරතුරු සාර්ථකව පද්ධතියට එක් විය.</p>
+            </div>
+    
+            <button onclick="closeCustomAlert()" class="w-full bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-black py-2.5 rounded-xl text-xs transition shadow-lg shadow-brand-emerald/20 active:scale-95">
+                OK
+            </button>
+        </div>
+    </div>
+
     
 
     <!-- FOOTER -->
