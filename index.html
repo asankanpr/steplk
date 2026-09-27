@@ -101,38 +101,39 @@
 
     <!-- 2. MAIN HEADER (Mobile Optimized & Touch Friendly) -->
     <header class="bg-brand-dark/90 backdrop-blur-md border-b border-brand-border sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div class="max-w-7xl mx-auto px-3.5 py-2 flex items-center justify-between gap-2">
             
             <!-- Clickable Logo Unit -->
-            <a href="#" onclick="window.location.reload(); return false;" class="flex items-center gap-3 group">
-                <img src="./icons/logo-512.png" alt="StepLK Logo" class="w-12 h-12 md:w-16 md:h-16 object-contain group-hover:scale-105 transition-transform">
+            <a href="#" onclick="window.location.reload(); return false;" class="flex items-center gap-2 sm:gap-3 group flex-shrink-0">
+                <img src="./icons/logo-512.png" alt="StepLK Logo" class="w-10 h-10 sm:w-14 sm:h-14 object-contain group-hover:scale-105 transition-transform">
                 <div class="flex flex-col">
                     <div class="flex items-center leading-none">
-                        <span class="text-2xl md:text-4xl font-black tracking-tight text-white">Step<span class="text-brand-emerald">LK</span></span>
+                        <span class="text-xl sm:text-3xl font-black tracking-tight text-white">Step<span class="text-brand-emerald">LK</span></span>
                     </div>
-                    <span class="text-[10px] md:text-xs text-brand-yellow font-bold tracking-wider uppercase mt-0.5 group-hover:text-white transition">ඔබ වෙනුවෙන්මයි</span>
+                    <span class="text-[9px] sm:text-xs text-brand-yellow font-bold tracking-wider uppercase mt-0.5 group-hover:text-white transition">ඔබ වෙනුවෙන්මයි</span>
                 </div>
             </a>
             
-            <!-- Search Input (Mobile Separated Height Adjustment) -->
-            <div class="relative w-full sm:w-64 md:w-80">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                <input type="text" id="search-input" placeholder="සොයන්න (Search)..." class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-9 pr-3 py-2.5 sm:py-2 text-xs text-white outline-none shadow-sm transition-all">
+            <!-- Search Input (Header එක ඇතුළෙන්ම දකුණු පස - Compact & Taller) -->
+            <div class="relative w-36 sm:w-60 md:w-72 flex-shrink-0">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input type="text" id="search-input" placeholder="සොයන්න (Search)..." class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-8 pr-2 py-2 text-[11px] leading-tight text-white outline-none shadow-sm transition-all">
             </div>
+
         </div>
     </header>
 
-    <!-- 2.1 SUB-NAVIGATION BAR (Multi-page Navigation Support) -->
-    <nav class="bg-brand-charcoal border-b border-brand-border px-4 py-2 text-xs font-bold shadow-md">
-        <div class="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <a href="index.html" class="px-3.5 py-1.5 rounded-lg bg-brand-emerald text-brand-dark flex items-center gap-1.5 whitespace-nowrap shadow-sm">
-                <i class="fa-solid fa-house"></i> Home
+    <!-- SUB-NAVIGATION BAR (Multi-page Support - Balanced Margins) -->
+    <nav class="bg-brand-charcoal border-b border-brand-border px-3 py-2 text-xs font-bold shadow-md">
+        <div class="max-w-7xl mx-auto grid grid-cols-3 gap-2 w-full text-center">
+            <a href="index.html" class="py-1.5 px-2 rounded-lg bg-brand-emerald text-brand-dark flex items-center justify-center gap-1.5 whitespace-nowrap text-xs md:text-sm font-extrabold shadow-sm">
+                <i class="fa-solid fa-house text-sm"></i> <span>Home</span>
             </a>
-            <a href="#" class="px-3.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5 whitespace-nowrap">
-                <i class="fa-solid fa-graduation-cap text-amber-400"></i> Education
+            <a href="#" class="py-1.5 px-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center justify-center gap-1.5 whitespace-nowrap text-xs md:text-sm font-extrabold">
+                <i class="fa-solid fa-graduation-cap text-amber-400 text-sm"></i> <span>Education</span>
             </a>
-            <a href="#" class="px-3.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5 whitespace-nowrap">
-                <i class="fa-solid fa-icons text-sky-400"></i> LifeStyle
+            <a href="#" class="py-1.5 px-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center justify-center gap-1.5 whitespace-nowrap text-xs md:text-sm font-extrabold">
+                <i class="fa-solid fa-icons text-sky-400 text-sm"></i> <span>LifeStyle</span>
             </a>
         </div>
     </nav>
@@ -143,9 +144,28 @@
         <!-- Hero Intro Badge -->
         <div class="mb-4 bg-brand-card/60 p-3.5 rounded-2xl border border-brand-border/80">
             <h1 class="text-sm md:text-base font-bold text-white mb-0.5 flex items-center gap-2">
-                <i class="fa-solid fa-bullhorn text-brand-yellow text-xs"></i> රාජ්‍ය හා පෞද්ගලික අංශයේ රැකියා, විභාග හා පාඨමාලා සියල්ල
+                <i class="fa-solid fa-bullhorn text-brand-yellow text-xs"></i> රාජ්‍ය හා පෞද්ගලික අංශයේ රැකියා, විභාග හා පාඨමාලා
             </h1>
             <p class="text-xs text-slate-400">දිවයිනේ සියලුම නවතම ඇබෑර්තු සහ පාඨමාලා තොරතුරු එසැණින් එකම තැනින් දැනගන්න.</p>
+        </div>
+
+        <!-- PRIVATE VACANCY SUBMISSION CTA BANNER -->
+        <div class="mb-4 bg-gradient-to-r from-slate-900 via-brand-card to-slate-900 border border-brand-emerald/40 rounded-2xl p-3.5 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3 text-center sm:text-left">
+                <div class="w-10 h-10 rounded-xl bg-brand-emerald/10 border border-brand-emerald/30 flex items-center justify-center text-brand-emerald text-lg flex-shrink-0">
+                    <i class="fa-solid fa-building-circle-check"></i>
+                </div>
+                <div>
+                    <h3 class="text-xs sm:text-sm font-bold text-white flex items-center justify-center sm:justify-start gap-1.5">
+                        ඔබේ ආයතනයේ ඇබෑර්තු පහසුවෙන් පළ කරන්න
+                        <span class="bg-amber-500/20 text-amber-400 text-[9px] px-2 py-0.5 rounded-full border border-amber-500/30 font-mono">Employer</span>
+                    </h3>
+                    <p class="text-[11px] text-slate-400 mt-0.5">පෞද්ගලික අංශයේ ඇබෑර්තු දහස් ගණනක් අතරට ඔබේ නිවේදනයත් නොමිලේම එක් කරන්න.</p>
+                </div>
+            </div>
+            <button onclick="alert('Private Vacancy Form එක ඉදිරි පියවරේදී සම්බන්ධ කෙරේ.')" class="w-full sm:w-auto px-4 py-2.5 bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20 flex-shrink-0">
+                <i class="fa-solid fa-plus-circle"></i> Vacancy එකක් එක් කරන්න
+            </button>
         </div>
 
         <!-- 📍 AD SPOT 1: MOBILE TOP BANNER AD -->
@@ -161,7 +181,7 @@
         <!-- 4. MOBILE-OPTIMIZED TAB NAVIGATION & QUALIFICATION FILTER -->
         <div class="space-y-2.5 mb-5">
             
-            <!-- Category Tabs (Grid 5 Columns - Split into Govt & Private Jobs) -->
+            <!-- Category Tabs (5 Columns Grid) -->
             <div class="grid grid-cols-5 gap-1 sm:gap-1.5 bg-brand-charcoal p-1.5 rounded-2xl border border-brand-border w-full">
                 <button id="tab-all" onclick="switchTab('ALL')" class="px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition bg-brand-emerald text-brand-dark shadow-md flex flex-col items-center justify-center gap-1 text-center">
                     <i class="fa-solid fa-border-all text-xs sm:text-sm"></i>
@@ -177,11 +197,11 @@
                 </button>
                 <button id="tab-eb" onclick="switchTab('EB_EXAM')" class="px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center">
                     <i class="fa-solid fa-file-signature text-xs sm:text-sm text-emerald-400"></i>
-                    <span>කඩඉම්</span>
+                    <span class="leading-tight">කඩඉම්<br>විභාග</span>
                 </button>
                 <button id="tab-courses" onclick="switchTab('COURSE')" class="px-1 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition text-slate-400 hover:text-white flex flex-col items-center justify-center gap-1 text-center">
                     <i class="fa-solid fa-graduation-cap text-xs sm:text-sm text-purple-400"></i>
-                    <span>පාඨමාලා</span>
+                    <span class="leading-tight">සියලුම<br>පාඨමාලා</span>
                 </button>
             </div>
 
