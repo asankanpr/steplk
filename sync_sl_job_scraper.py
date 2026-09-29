@@ -9,23 +9,23 @@ from google import genai
 from google.genai import types
 from supabase import create_client, Client
 
-# Environment Variables (Single හෝ Dual Project Support)
-SRC_SUPABASE_URL = os.getenv("SRC_SUPABASE_URL") or os.getenv("SUPABASE_URL")
-SRC_SUPABASE_KEY = os.getenv("SRC_SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
+# Environment Variables (Direct Fetching without ambiguous fallbacks)
+SRC_SUPABASE_URL = os.getenv("SRC_SUPABASE_URL")
+SRC_SUPABASE_KEY = os.getenv("SRC_SUPABASE_SERVICE_ROLE_KEY")
 
-DEST_SUPABASE_URL = os.getenv("DEST_SUPABASE_URL") or os.getenv("SUPABASE_URL")
-DEST_SUPABASE_KEY = os.getenv("DEST_SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
+DEST_SUPABASE_URL = os.getenv("DEST_SUPABASE_URL")
+DEST_SUPABASE_KEY = os.getenv("DEST_SUPABASE_SERVICE_ROLE_KEY")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not all([SRC_SUPABASE_URL, SRC_SUPABASE_KEY, DEST_SUPABASE_URL, DEST_SUPABASE_KEY, GEMINI_API_KEY]):
-    raise ValueError("Missing required environment variables for Supabase or Gemini.")
+    raise ValueError("❌ Missing required environment variables! Please check GitHub Secrets.")
 
+# Supabase Clients නිර්මාණය කිරීම
 supabase_src: Client = create_client(SRC_SUPABASE_URL, SRC_SUPABASE_KEY)
 supabase_dest: Client = create_client(DEST_SUPABASE_URL, DEST_SUPABASE_KEY)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
-# ශ්‍රී ලංකාවේ වේලාව (UTC + 5:30)
 SL_TZ = timezone(timedelta(hours=5, minutes=30))
 
 def clean_date_format(date_str):
@@ -168,7 +168,7 @@ def process_sl_job_scraper_vacancies():
             "organization": extracted_data.get("organization") or company,
             "category": extracted_data.get("category") or "Government Job",
             "meq_level": extracted_data.get("meq_level") or "NONE",
-            "closing_date": final_closing_date,  # None හෝ Valid YYYY-MM-DD
+            "closing_date": final_closing_date,
             "salary_code": extracted_data.get("salary_code"),
             "salary_amount": extracted_data.get("salary_amount"),
             "description": extracted_data.get("description") or f"වැඩිවිස්තර සඳහා: {web_link}",
