@@ -9,19 +9,18 @@ from google import genai
 from google.genai import types
 from supabase import create_client, Client
 
-# Environment Variables (Direct Fetching without ambiguous fallbacks)
+# Environment Variables
 SRC_SUPABASE_URL = os.getenv("SRC_SUPABASE_URL")
 SRC_SUPABASE_KEY = os.getenv("SRC_SUPABASE_SERVICE_ROLE_KEY")
 
-DEST_SUPABASE_URL = os.getenv("DEST_SUPABASE_URL")
-DEST_SUPABASE_KEY = os.getenv("DEST_SUPABASE_SERVICE_ROLE_KEY")
+DEST_SUPABASE_URL = os.getenv("DEST_SUPABASE_URL") or os.getenv("SUPABASE_URL")
+DEST_SUPABASE_KEY = os.getenv("DEST_SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not all([SRC_SUPABASE_URL, SRC_SUPABASE_KEY, DEST_SUPABASE_URL, DEST_SUPABASE_KEY, GEMINI_API_KEY]):
     raise ValueError("❌ Missing required environment variables! Please check GitHub Secrets.")
 
-# Supabase Clients නිර්මාණය කිරීම
 supabase_src: Client = create_client(SRC_SUPABASE_URL, SRC_SUPABASE_KEY)
 supabase_dest: Client = create_client(DEST_SUPABASE_URL, DEST_SUPABASE_KEY)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
@@ -29,7 +28,6 @@ ai_client = genai.Client(api_key=GEMINI_API_KEY)
 SL_TZ = timezone(timedelta(hours=5, minutes=30))
 
 def clean_date_format(date_str):
-    """Date String එක YYYY-MM-DD ලෙස සකසයි. 'N/A' හෝ Invalid අගයන් සඳහා None ලබා දේ."""
     if not date_str or not isinstance(date_str, str):
         return None
     
@@ -87,7 +85,7 @@ def extract_with_gemini(file_bytes, mime_type):
 
     for attempt in range(1, max_retries + 1):
         try:
-            time.sleep(3)
+            time.sleep(2)
             response = ai_client.models.generate_content(
                 model='gemini-3.8-flash',
                 contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), prompt],
@@ -105,86 +103,101 @@ def extract_with_gemini(file_bytes, mime_type):
 def process_sl_job_scraper_vacancies():
     print("🔄 `sl-job-scraper` sync process ආරම්භ විය...")
 
-    res = supabase_src.table("vacancies").select("*").eq("is_processed", False).order("id", desc=False).limit(5).execute()
-    vacancies = res.data or []
+    total_processed = 0
+    batch_num = 1
+    max_batches = 30  # Safety Limit (උපරිම Records 450ක් දක්වා එක දිගට Process කරයි)
 
-    if not vacancies:
-        print("📁 Sync කිරීමට නව Vacancies නොමැත.")
-        return
+    while batch_num <= max_batches:
+        # Unprocessed Records 15ක් බැගින් ලබා ගැනීම
+        res = supabase_src.table("vacancies").select("*").eq("is_processed", False).order("id", desc=False).limit(15).execute()
+        vacancies = res.data or []
 
-    print(f"🔄 හමුවූ නව Vacancies ගණන: {len(vacancies)}")
+        # තවත් Unprocessed Vacancies නැත්නම් Loop එක නතර වේ
+        if not vacancies:
+            print(f"✨ සියලුම Unprocessed Vacancies Process කර අවසන්! (එකතුව: {total_processed})")
+            break
 
-    for vac in vacancies:
-        vac_id = vac["id"]
-        company = vac.get("company_name", "N/A")
-        title = vac.get("post_title", "Job Vacancy")
-        raw_closing = vac.get("closing_date")
-        clean_closing = clean_date_format(raw_closing)
-        
-        web_link = vac.get("web_link", "")
-        file_link = vac.get("file_link")
-        is_file = vac.get("is_file", False)
+        print(f"\n📦 Batch {batch_num}: Vacancies {len(vacancies)}ක් Process කරමින් පවතී...")
 
-        print(f"📄 Processing ID {vac_id}: {title} ({company})...")
+        for vac in vacancies:
+            vac_id = vac["id"]
+            company = vac.get("company_name", "N/A")
+            title = vac.get("post_title", "Job Vacancy")
+            raw_closing = vac.get("closing_date")
+            clean_closing = clean_date_format(raw_closing)
+            
+            web_link = vac.get("web_link", "")
+            file_link = vac.get("file_link")
+            is_file = vac.get("is_file", False)
 
-        # Pre-Check
-        if clean_closing and is_post_expired(clean_closing):
-            print(f"⏩ [Pre-Check] ID {vac_id} - Post Expired ({clean_closing}). Skipping...")
-            supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
-            continue
+            print(f"📄 Processing ID {vac_id}: {title} ({company})...")
 
-        extracted_data = {}
-        has_gemini_error = False
+            # Pre-Check
+            if clean_closing and is_post_expired(clean_closing):
+                print(f"⏩ [Pre-Check] ID {vac_id} - Post Expired ({clean_closing}). Skipping...")
+                supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
+                total_processed += 1
+                continue
 
-        if is_file and file_link and str(file_link).startswith("http"):
+            extracted_data = {}
+            has_gemini_error = False
+
+            if is_file and file_link and str(file_link).startswith("http"):
+                try:
+                    file_res = requests.get(file_link, timeout=15)
+                    if file_res.status_code == 200:
+                        file_bytes = file_res.content
+                        mime_type = "application/pdf" if str(file_link).lower().endswith(".pdf") else "image/jpeg"
+                        extracted_data = extract_with_gemini(file_bytes, mime_type)
+                    else:
+                        print(f"⚠️ File download HTTP Status: {file_res.status_code}")
+                except Exception as e:
+                    print(f"⚠️ Gemini/File Error for ID {vac_id}: {e}")
+                    if "503" in str(e) or "UNAVAILABLE" in str(e):
+                        has_gemini_error = True
+
+            if has_gemini_error:
+                print(f"⏳ 503 Overload නිසා ID {vac_id} මඟහැර පසුවට තබන ලදී.")
+                continue
+
+            gemini_date = clean_date_format(extracted_data.get("closing_date"))
+            final_closing_date = gemini_date or clean_closing
+
+            # Post-Check
+            if final_closing_date and is_post_expired(final_closing_date):
+                print(f"⏩ [Post-Check] ID {vac_id} - Extracted Date Expired ({final_closing_date}). Skipping...")
+                supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
+                total_processed += 1
+                continue
+
+            post_payload = {
+                "title": extracted_data.get("title") or title,
+                "organization": extracted_data.get("organization") or company,
+                "category": extracted_data.get("category") or "Government Job",
+                "meq_level": extracted_data.get("meq_level") or "NONE",
+                "closing_date": final_closing_date,
+                "salary_code": extracted_data.get("salary_code"),
+                "salary_amount": extracted_data.get("salary_amount"),
+                "description": extracted_data.get("description") or f"වැඩිවිස්තර සඳහා: {web_link}",
+                "qualifications": extracted_data.get("qualifications") or "සඳහන් නැත",
+                "pdf_url": file_link if is_file else web_link,
+                "status": "PENDING",
+                "source": "SL_JOB_SCRAPER"
+            }
+
             try:
-                file_res = requests.get(file_link, timeout=15)
-                if file_res.status_code == 200:
-                    file_bytes = file_res.content
-                    mime_type = "application/pdf" if str(file_link).lower().endswith(".pdf") else "image/jpeg"
-                    extracted_data = extract_with_gemini(file_bytes, mime_type)
-                else:
-                    print(f"⚠️ File download HTTP Status: {file_res.status_code}")
-            except Exception as e:
-                print(f"⚠️ Gemini/File Error for ID {vac_id}: {e}")
-                if "503" in str(e) or "UNAVAILABLE" in str(e):
-                    has_gemini_error = True
+                supabase_dest.table("posts").insert(post_payload).execute()
+                supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
+                print(f"✅ Success: ID {vac_id} -> Admin Pending List එකට එක් විය.")
+                total_processed += 1
 
-        if has_gemini_error:
-            print(f"⏳ 503 Overload නිසා ID {vac_id} මඟහැර පසුවට තබන ලදී.")
-            continue
+            except Exception as db_err:
+                print(f"❌ DB Insert Error for ID {vac_id}: {db_err}")
 
-        gemini_date = clean_date_format(extracted_data.get("closing_date"))
-        final_closing_date = gemini_date or clean_closing
+        batch_num += 1
+        time.sleep(2)  # Batches අතර තත්පර 2ක විවේකයක්
 
-        # Post-Check
-        if final_closing_date and is_post_expired(final_closing_date):
-            print(f"⏩ [Post-Check] ID {vac_id} - Extracted Date Expired ({final_closing_date}). Skipping...")
-            supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
-            continue
-
-        post_payload = {
-            "title": extracted_data.get("title") or title,
-            "organization": extracted_data.get("organization") or company,
-            "category": extracted_data.get("category") or "Government Job",
-            "meq_level": extracted_data.get("meq_level") or "NONE",
-            "closing_date": final_closing_date,
-            "salary_code": extracted_data.get("salary_code"),
-            "salary_amount": extracted_data.get("salary_amount"),
-            "description": extracted_data.get("description") or f"වැඩිවිස්තර සඳහා: {web_link}",
-            "qualifications": extracted_data.get("qualifications") or "සඳහන් නැත",
-            "pdf_url": file_link if is_file else web_link,
-            "status": "PENDING",
-            "source": "SL_JOB_SCRAPER"
-        }
-
-        try:
-            supabase_dest.table("posts").insert(post_payload).execute()
-            supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
-            print(f"✅ Success: ID {vac_id} -> Admin Pending List එකට එක් විය.")
-
-        except Exception as db_err:
-            print(f"❌ DB Insert Error for ID {vac_id}: {db_err}")
+    print(f"\n🎉 Sync ක්‍රියාවලිය සම්පූර්ණයි! මුළු Process කළ ගණන: {total_processed}")
 
 if __name__ == "__main__":
     process_sl_job_scraper_vacancies()
