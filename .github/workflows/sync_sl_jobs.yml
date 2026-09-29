@@ -2,7 +2,7 @@ name: Sync SL Job Scraper
 
 on:
   schedule:
-    - cron: '30 1,5,9 * * *'  # පෙ.ව. 07:00, පෙ.ව. 11:00 සහ ප.ව. 03:00 (SLT)
+    - cron: '30 1,5,9 * * *'  # SLT: 7:00 AM, 11:00 AM, 3:00 PM
   workflow_dispatch:
 
 jobs:
