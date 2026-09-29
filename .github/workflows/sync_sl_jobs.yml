@@ -1,0 +1,30 @@
+name: Sync SL Job Scraper
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # පැය 6කට සැරයක් Auto-run වේ
+  workflow_dispatch:       # GitHub UI එකෙන් Manual Run කිරීමට
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install requests supabase google-genai
+
+      - name: Run Job Sync Script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python sync_sl_job_scraper.py
