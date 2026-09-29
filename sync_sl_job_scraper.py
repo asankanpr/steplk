@@ -9,41 +9,40 @@ from google import genai
 from google.genai import types
 from supabase import create_client, Client
 
-# Environment Variables
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
+# Environment Variables (Single හෝ Dual Project Support)
+# 1. Source DB (vacancies table තියෙන project එක)
+SRC_SUPABASE_URL = os.getenv("SRC_SUPABASE_URL") or os.getenv("SUPABASE_URL")
+SRC_SUPABASE_KEY = os.getenv("SRC_SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
+
+# 2. Destination DB (අපේ main 'posts' table එක තියෙන project එක)
+DEST_SUPABASE_URL = os.getenv("DEST_SUPABASE_URL") or os.getenv("SUPABASE_URL")
+DEST_SUPABASE_KEY = os.getenv("DEST_SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY]):
-    raise ValueError("Missing required environment variables.")
+if not all([SRC_SUPABASE_URL, SRC_SUPABASE_KEY, DEST_SUPABASE_URL, DEST_SUPABASE_KEY, GEMINI_API_KEY]):
+    raise ValueError("Missing required environment variables for Supabase or Gemini.")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Supabase Clients දෙක නිර්මාණය කිරීම
+supabase_src: Client = create_client(SRC_SUPABASE_URL, SRC_SUPABASE_KEY)
+supabase_dest: Client = create_client(DEST_SUPABASE_URL, DEST_SUPABASE_KEY)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
 # ශ්‍රී ලංකාවේ වේලාව (UTC + 5:30)
 SL_TZ = timezone(timedelta(hours=5, minutes=30))
 
 def is_post_expired(closing_date_str):
-    """
-    ලංකාවේ අද දවසට සාපේක්ෂව Closing Date එක Expire වෙලාදැයි පරීක්ෂා කරයි.
-    YYYY-MM-DD ආකෘතියේ දින සසඳයි.
-    """
     if not closing_date_str or not isinstance(closing_date_str, str):
-        return False  # ද දිනයක් සඳහන් නැත නම් Safe Side එකට Process කිරීමට ඉඩ දේ
+        return False
 
     cleaned = closing_date_str.strip()
-    
-    # Regex මඟින් YYYY-MM-DD දිනය ලබා ගැනීම
     date_match = re.search(r'(\d{4})-(\d{2})-(\d{2})', cleaned)
     if date_match:
         try:
             y, m, d = map(int, date_match.groups())
             closing_date = datetime.date(y, m, d)
-            
-            # ලංකාවේ අද දිනය
             today_sl = datetime.datetime.now(SL_TZ).date()
 
-            # අවසන් දිනය අදට වඩා පරණ නම් Expire වී ඇත
             if closing_date < today_sl:
                 return True
         except ValueError:
@@ -52,7 +51,6 @@ def is_post_expired(closing_date_str):
     return False
 
 def extract_with_gemini(file_bytes, mime_type):
-    """File (PDF/Image) එකකින් Gemini හරහා Data Extract කරගැනීම."""
     prompt = """
     You are a Sri Lankan Job Advertisement OCR Specialist.
     Extract accurate details into a strict JSON object:
@@ -80,7 +78,7 @@ def extract_with_gemini(file_bytes, mime_type):
 
     for attempt in range(1, max_retries + 1):
         try:
-            time.sleep(3) # Server overload වැළැක්වීමට
+            time.sleep(3)
             response = ai_client.models.generate_content(
                 model='gemini-3.8-flash',
                 contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), prompt],
@@ -98,8 +96,8 @@ def extract_with_gemini(file_bytes, mime_type):
 def process_sl_job_scraper_vacancies():
     print("🔄 `sl-job-scraper` sync process ආරම්භ විය...")
 
-    # 1. Unprocessed Vacancies 5ක් ලබා ගැනීම
-    res = supabase.table("vacancies").select("*").eq("is_processed", False).order("id", desc=False).limit(5).execute()
+    # 1. Source DB එකෙන් Unprocessed Vacancies ලබා ගැනීම
+    res = supabase_src.table("vacancies").select("*").eq("is_processed", False).order("id", desc=False).limit(5).execute()
     vacancies = res.data or []
 
     if not vacancies:
@@ -119,18 +117,15 @@ def process_sl_job_scraper_vacancies():
 
         print(f"📄 Processing ID {vac_id}: {title} ({company})...")
 
-        # -------------------------------------------------------------
-        # 🛑 PRE-CHECK 1: Table එකේ ඇති Closing Date එක Expire වී ඇත්නම් Gemini යවන්නේ නැත
-        # -------------------------------------------------------------
+        # Pre-Check
         if closing and is_post_expired(closing):
-            print(f"⏩ [Pre-Check] ID {vac_id} - Post Expired ({closing}). Skipping & Marking as processed...")
-            supabase.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
+            print(f"⏩ [Pre-Check] ID {vac_id} - Post Expired ({closing}). Skipping...")
+            supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
             continue
 
         extracted_data = {}
         has_gemini_error = False
 
-        # 2. File එකක් තියෙනවා නම් පමණක් Gemini AI එකෙන් Extract කිරීම
         if is_file and file_link and str(file_link).startswith("http"):
             try:
                 file_res = requests.get(file_link, timeout=15)
@@ -145,22 +140,18 @@ def process_sl_job_scraper_vacancies():
                 if "503" in str(e) or "UNAVAILABLE" in str(e):
                     has_gemini_error = True
 
-        # 503 Overload ආවා නම් ඊළඟ Run එකේදී කර ගැනීමට මඟහරියි
         if has_gemini_error:
             print(f"⏳ 503 Overload නිසා ID {vac_id} මඟහැර පසුවට තබන ලදී.")
             continue
 
         final_closing_date = extracted_data.get("closing_date") or closing
 
-        # -------------------------------------------------------------
-        # 🛑 POST-CHECK 2: Gemini OCR එකෙන් ලත් Closing Date එක Expire වී ඇත්නම් Skip කරයි
-        # -------------------------------------------------------------
+        # Post-Check
         if final_closing_date and is_post_expired(final_closing_date):
             print(f"⏩ [Post-Check] ID {vac_id} - Extracted Date Expired ({final_closing_date}). Skipping...")
-            supabase.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
+            supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
             continue
 
-        # 3. Main 'posts' Table එකට අදාළ Payload එක සකස් කිරීම
         post_payload = {
             "title": extracted_data.get("title") or title,
             "organization": extracted_data.get("organization") or company,
@@ -177,11 +168,11 @@ def process_sl_job_scraper_vacancies():
         }
 
         try:
-            # 4. Posts table එකට Insert කිරීම
-            supabase.table("posts").insert(post_payload).execute()
+            # 2. Destination DB එකට Insert කිරීම
+            supabase_dest.table("posts").insert(post_payload).execute()
 
-            # 5. vacancies table එකේ is_processed = true ලෙස mark කිරීම
-            supabase.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
+            # 3. Source DB එකේ is_processed = true ලෙස mark කිරීම
+            supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
             print(f"✅ Success: ID {vac_id} -> Admin Pending List එකට එක් විය.")
 
         except Exception as db_err:
