@@ -31,6 +31,24 @@ ai_client = genai.Client(api_key=GEMINI_API_KEY)
 # ශ්‍රී ලංකාවේ වේලාව (UTC + 5:30)
 SL_TZ = timezone(timedelta(hours=5, minutes=30))
 
+def clean_date_format(date_str):
+    """
+    Date String එක YYYY-MM-DD ආකෘතියට සකසයි. 
+    'N/A', 'None' හෝ Invalid ආකෘති සඳහා None (SQL NULL) ලබා දේ.
+    """
+    if not date_str or not isinstance(date_str, str):
+        return None
+    
+    cleaned = date_str.strip()
+    if cleaned.upper() in ["N/A", "NONE", "NULL", ""]:
+        return None
+
+    date_match = re.search(r'(\d{4}-\d{2}-\d{2})', cleaned)
+    if date_match:
+        return date_match.group(1)
+    
+    return None
+
 def is_post_expired(closing_date_str):
     if not closing_date_str or not isinstance(closing_date_str, str):
         return False
