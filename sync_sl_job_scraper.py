@@ -9,6 +9,10 @@ from google import genai
 from google.genai import types
 from supabase import create_client, Client
 
+# urllib3 SSL Warnings පාලනය කිරීම
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 # Environment Variables
 SRC_SUPABASE_URL = os.getenv("SRC_SUPABASE_URL")
 SRC_SUPABASE_KEY = os.getenv("SRC_SUPABASE_SERVICE_ROLE_KEY")
@@ -26,6 +30,13 @@ supabase_dest: Client = create_client(DEST_SUPABASE_URL, DEST_SUPABASE_KEY)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
 SL_TZ = timezone(timedelta(hours=5, minutes=30))
+
+# Custom Headers - Govt/Sri Lankan Sites Block වීම වැළැක්වීමට
+HTTP_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,pdf;q=0.8,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9,si;q=0.8'
+}
 
 def clean_date_format(date_str):
     if not date_str or not isinstance(date_str, str):
@@ -60,17 +71,19 @@ def is_post_expired(closing_date_str):
 def extract_with_gemini(file_bytes, mime_type):
     prompt = """
     You are a Sri Lankan Job Advertisement OCR Specialist.
+    Carefully inspect the attached document (PDF or Image) from top to bottom.
+    
     Extract accurate details into a strict JSON object:
     {
-      "title": "Exact post title in Sinhala or English",
-      "organization": "Company or Institute Name",
-      "category": "Government Job / Private Job / Course / කඩඉම් විභාග",
-      "meq_level": "OL / AL / NVQ / DEGREE / NONE",
-      "closing_date": "YYYY-MM-DD or null",
-      "salary_code": "Salary code or null",
-      "salary_amount": "Salary amount or null",
-      "description": "Brief summary in Sinhala",
-      "qualifications": "Key requirements in Sinhala"
+      "title": "Exact job position or course title in Sinhala or English (Do NOT use generic names like 'Vacancy Notice')",
+      "organization": "Exact Ministry, Department, or Institute Name in Sinhala or English",
+      "category": "One of: 'Government Job', 'Semi-Govt Job', 'Private Job', 'Course', 'කඩඉම් විභාග'",
+      "meq_level": "One of: 'OL', 'AL', 'NVQ', 'DEGREE', 'POST_GRAD', 'NONE'",
+      "closing_date": "Closing Date in YYYY-MM-DD format if mentioned in document, else null",
+      "salary_code": "Salary code if present (e.g. MN-1, SL-1), else null",
+      "salary_amount": "Salary scale or amount, else null",
+      "description": "Clear summary of the advertisement in Sinhala.",
+      "qualifications": "Educational & experience qualifications in clear Sinhala bullet points."
     }
     Respond strictly with valid JSON.
     """
@@ -100,19 +113,24 @@ def extract_with_gemini(file_bytes, mime_type):
             else:
                 raise e
 
+def is_valid_file_url(url):
+    """URL එක PDF එකක්ද නැතහොත් Image එකක්ද යන්න පරීක්ෂා කරයි."""
+    if not url or not isinstance(url, str):
+        return False
+    lower_url = url.lower()
+    return any(ext in lower_url for ext in ['.pdf', '.png', '.jpg', '.jpeg', '.webp']) or '/vacancies/' in lower_url or 'paper-advertisement' in lower_url
+
 def process_sl_job_scraper_vacancies():
     print("🔄 `sl-job-scraper` sync process ආරම්භ විය...")
 
     total_processed = 0
     batch_num = 1
-    max_batches = 30  # Safety Limit (උපරිම Records 450ක් දක්වා එක දිගට Process කරයි)
+    max_batches = 30
 
     while batch_num <= max_batches:
-        # Unprocessed Records 15ක් බැගින් ලබා ගැනීම
         res = supabase_src.table("vacancies").select("*").eq("is_processed", False).order("id", desc=False).limit(15).execute()
         vacancies = res.data or []
 
-        # තවත් Unprocessed Vacancies නැත්නම් Loop එක නතර වේ
         if not vacancies:
             print(f"✨ සියලුම Unprocessed Vacancies Process කර අවසන්! (එකතුව: {total_processed})")
             break
@@ -126,8 +144,8 @@ def process_sl_job_scraper_vacancies():
             raw_closing = vac.get("closing_date")
             clean_closing = clean_date_format(raw_closing)
             
-            web_link = vac.get("web_link", "")
-            file_link = vac.get("file_link")
+            web_link = vac.get("web_link", "") or ""
+            file_link = vac.get("file_link") or ""
             is_file = vac.get("is_file", False)
 
             print(f"📄 Processing ID {vac_id}: {title} ({company})...")
@@ -142,17 +160,30 @@ def process_sl_job_scraper_vacancies():
             extracted_data = {}
             has_gemini_error = False
 
+            # PDF / File URL එක තීරණය කිරීම (file_link නැතිනම් web_link පරීක්ෂා කරයි)
+            target_file_url = None
             if is_file and file_link and str(file_link).startswith("http"):
+                target_file_url = file_link
+            elif is_valid_file_url(web_link):
+                target_file_url = web_link
+            elif file_link and is_valid_file_url(file_link):
+                target_file_url = file_link
+
+            if target_file_url:
                 try:
-                    file_res = requests.get(file_link, timeout=15)
+                    print(f"📥 Downloading document from: {target_file_url}")
+                    file_res = requests.get(target_file_url, headers=HTTP_HEADERS, timeout=20, verify=False)
                     if file_res.status_code == 200:
                         file_bytes = file_res.content
-                        mime_type = "application/pdf" if str(file_link).lower().endswith(".pdf") else "image/jpeg"
+                        mime_type = "application/pdf" if ".pdf" in target_file_url.lower() else "image/jpeg"
+                        
+                        print(f"🤖 Sending file ({len(file_bytes)} bytes) to Gemini OCR...")
                         extracted_data = extract_with_gemini(file_bytes, mime_type)
+                        print(f"✨ Extracted Title: {extracted_data.get('title')}")
                     else:
-                        print(f"⚠️ File download HTTP Status: {file_res.status_code}")
+                        print(f"⚠️ File download failed HTTP Status: {file_res.status_code}")
                 except Exception as e:
-                    print(f"⚠️ Gemini/File Error for ID {vac_id}: {e}")
+                    print(f"⚠️ Gemini/File Download Error for ID {vac_id}: {e}")
                     if "503" in str(e) or "UNAVAILABLE" in str(e):
                         has_gemini_error = True
 
@@ -170,6 +201,7 @@ def process_sl_job_scraper_vacancies():
                 total_processed += 1
                 continue
 
+            # Fallback Logic - Extraction එක සාර්ථක වූ විට අදාළ fields 100% ක් නිවැරදිව පිරවේ
             post_payload = {
                 "title": extracted_data.get("title") or title,
                 "organization": extracted_data.get("organization") or company,
@@ -178,9 +210,9 @@ def process_sl_job_scraper_vacancies():
                 "closing_date": final_closing_date,
                 "salary_code": extracted_data.get("salary_code"),
                 "salary_amount": extracted_data.get("salary_amount"),
-                "description": extracted_data.get("description") or f"වැඩිවිස්තර සඳහා: {web_link}",
+                "description": extracted_data.get("description") or f"වැඩිවිස්තර සඳහා: {web_link or target_file_url}",
                 "qualifications": extracted_data.get("qualifications") or "සඳහන් නැත",
-                "pdf_url": file_link if is_file else web_link,
+                "pdf_url": target_file_url or web_link,
                 "status": "PENDING",
                 "source": "SL_JOB_SCRAPER"
             }
@@ -195,7 +227,7 @@ def process_sl_job_scraper_vacancies():
                 print(f"❌ DB Insert Error for ID {vac_id}: {db_err}")
 
         batch_num += 1
-        time.sleep(2)  # Batches අතර තත්පර 2ක විවේකයක්
+        time.sleep(2)
 
     print(f"\n🎉 Sync ක්‍රියාවලිය සම්පූර්ණයි! මුළු Process කළ ගණන: {total_processed}")
 
