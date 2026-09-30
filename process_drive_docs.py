@@ -16,9 +16,8 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
 
-if not all([GDR_JSON_STR if 'GDR_JSON_STR' in locals() else GDRIVE_JSON_STR, GDRIVE_FOLDER_ID, GEMINI_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
-    if not all([GDRIVE_JSON_STR, GDRIVE_FOLDER_ID, GEMINI_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
-        raise ValueError("Missing required environment variables.")
+if not all([GDRIVE_JSON_STR, GDRIVE_FOLDER_ID, GEMINI_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
+    raise ValueError("Missing required environment variables.")
 
 info = json.loads(GDRIVE_JSON_STR)
 creds = Credentials.from_service_account_info(info, scopes=['https://www.googleapis.com/auth/drive'])
@@ -59,7 +58,7 @@ def make_file_publicly_readable(file_id):
         print(f"⚠️ Permission notice: {str(e)}")
 
 # -------------------------------------------------------------
-# PASS 1: INITIAL EXTRACTION (With Stronger 503 Retry Logic)
+# PASS 1: INITIAL EXTRACTION (Deterministic with Temperature 0.0)
 # -------------------------------------------------------------
 def extract_data_with_gemini(file_bytes, mime_type):
     prompt = """
@@ -91,13 +90,11 @@ def extract_data_with_gemini(file_bytes, mime_type):
     )
 
     max_retries = 5
-    delays = [15, 30, 60, 90, 120]  # වැඩි කරන ලද පසුබෑමේ කාල පරතරයන්
+    delay = 5  # තත්පර 5 කින් ආරම්භ වේ
 
     for attempt in range(1, max_retries + 1):
         try:
-            time.sleep(3) # Server එක සූදානම් කර ගැනීමට කුඩා විරාමයක්
             print(f"🤖 Requesting Gemini Extraction (Attempt {attempt}/{max_retries})...")
-            
             response = ai_client.models.generate_content(
                 model='gemini-3.8-flash',
                 contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), prompt],
@@ -117,10 +114,11 @@ def extract_data_with_gemini(file_bytes, mime_type):
             err_str = str(e)
             print(f"⚠️ Gemini Extraction Error (Attempt {attempt}/{max_retries}): {err_str}")
             
+            # 503 UNAVAILABLE හෝ High Demand Error එකක් ආවොත් පමණක් Wait කර Retries කරයි
             if ("503" in err_str or "UNAVAILABLE" in err_str or "high demand" in err_str) and attempt < max_retries:
-                wait_time = delays[attempt - 1]
-                print(f"⏳ Gemini Server Busy (503). Retrying in {wait_time} seconds...")
-                time.sleep(wait_time)
+                print(f"⏳ Gemini Server Busy (503). Retrying in {delay} seconds...")
+                time.sleep(delay)
+                delay *= 2  # Exponential backoff (5s -> 10s -> 20s -> 40s)
             else:
                 raise e
 
@@ -128,6 +126,9 @@ def extract_data_with_gemini(file_bytes, mime_type):
 # PASS 2: QUALITY CHECK & RE-AUDIT PASS
 # -------------------------------------------------------------
 def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
+    """
+    Re-scans document, checks character-by-character details, and recovers missed positions with Retries.
+    """
     extracted_titles = [p.get("title", "") for p in primary_posts]
 
     qc_prompt = f"""
@@ -146,7 +147,7 @@ def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
       "missing_posts": [
         ... missed post objects matching standard structure ...
       ],
-      "qc_summary": "Short audit summary note in Sinhala (e.g. 'සියලු තනතුරු පරීක්ෂා කර තහවුරු කරන ලදී.')"
+      "qc_summary": "Short audit summary note in Sinhala (e.g. 'සියලු තනතුරු 13 පරීක්ෂා කර තහවුරු කරන ලදී.')"
     }}
     """
 
@@ -158,7 +159,9 @@ def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
     max_retries = 3
     for attempt in range(1, max_retries + 1):
         try:
-            time.sleep(5)
+            # API Rate Limits වැළැක්වීමට තත්පර 3 ක Pause එකක්
+            time.sleep(3)
+            
             response = ai_client.models.generate_content(
                 model='gemini-3.8-flash',
                 contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), qc_prompt],
@@ -175,8 +178,9 @@ def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
         except Exception as e:
             print(f"⚠️ Quality check pass retry {attempt}/{max_retries} error: {str(e)}")
             if attempt < max_retries:
-                time.sleep(10)
+                time.sleep(5)
             else:
+                # Retries 3 ම අසාර්ථක වුවහොත් පමණක් Bypass වේ
                 return primary_posts, 0, "QC Verification bypassed after retries."
 
 def log_document_status(file_name, file_id, status, count, titles_str, qc_note, error_msg=None):
@@ -270,13 +274,13 @@ def process_drive_files():
             print(f"❌ Error processing {file_name}: {err_msg}")
             log_document_status(file_name, file_id, "FAILED", 0, "", "Server Busy / API Failure", err_msg)
 
-            # 503 හෝ High Demand Error එකක් නම් ෆයිල් එක ආරක්ෂිතව ප්‍රධාන ෆෝල්ඩරයේම තබයි
-            if "503" in err_msg or "UNAVAILABLE" in err_msg or "high demand" in err_msg:
-                print(f"⏳ 503 Server Overload detected. Keeping {file_name} in main folder for next run retry[cite: 5].")
+            # 503 Temporary Error එකක් නම් File එක Unsuccessful එකට නොදා ඊළඟ Run එකට තබයි
+            if "503" in err_msg or "UNAVAILABLE" in err_msg:
+                print(f"⏳ 503 Server Overload detected. Keeping {file_name} in main folder for next run retry.")
             else:
                 try:
                     move_file(file_id, GDRIVE_FOLDER_ID, unsuccessful_folder_id)
-                    print(f"⚠️ Processing failed due to structural/other error. Moved {file_name} to 'Unsuccessful'.")
+                    print(f"⚠️ Processing failed. Moved {file_name} to 'Unsuccessful' folder.")
                 except Exception as move_err:
                     print(f"🚨 Could not move failed file {file_name}: {str(move_err)}")
 
