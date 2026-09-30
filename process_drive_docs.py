@@ -26,6 +26,9 @@ drive_service = build('drive', 'v3', credentials=creds)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# Free Tier Rate Limit වැළැක්වීමට වඩාත් ස්ථායී Model එකක් භාවිතය
+MODEL_NAME = 'gemini-3.8-flash'
+
 def get_or_create_folder(parent_folder_id, folder_name):
     query = f"'{parent_folder_id}' in parents and name = '{folder_name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
     results = drive_service.files().list(q=query, fields="files(id, name)").execute()
@@ -90,13 +93,13 @@ def extract_data_with_gemini(file_bytes, mime_type):
     )
 
     max_retries = 5
-    delay = 5  # තත්පර 5 කින් ආරම්භ වේ
+    delay = 10  # Rate Limits පාලනයට තත්පර 10 කින් ආරම්භ වේ
 
     for attempt in range(1, max_retries + 1):
         try:
             print(f"🤖 Requesting Gemini Extraction (Attempt {attempt}/{max_retries})...")
             response = ai_client.models.generate_content(
-                model='gemini-3.8-flash',
+                model=MODEL_NAME,
                 contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), prompt],
                 config=config
             )
@@ -114,11 +117,11 @@ def extract_data_with_gemini(file_bytes, mime_type):
             err_str = str(e)
             print(f"⚠️ Gemini Extraction Error (Attempt {attempt}/{max_retries}): {err_str}")
             
-            # 503 UNAVAILABLE හෝ High Demand Error එකක් ආවොත් පමණක් Wait කර Retries කරයි
-            if ("503" in err_str or "UNAVAILABLE" in err_str or "high demand" in err_str) and attempt < max_retries:
-                print(f"⏳ Gemini Server Busy (503). Retrying in {delay} seconds...")
+            # 503 UNAVAILABLE, 429 RESOURCE_EXHAUSTED හෝ Quota Error එකක් ආවොත් Wait කර Retries කරයි
+            if any(k in err_str for k in ["503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "high demand", "quota"]) and attempt < max_retries:
+                print(f"⏳ Gemini Server Busy / Rate Limit ({err_str[:30]}). Retrying in {delay} seconds...")
                 time.sleep(delay)
-                delay *= 2  # Exponential backoff (5s -> 10s -> 20s -> 40s)
+                delay *= 2  # Exponential backoff (10s -> 20s -> 40s -> 80s)
             else:
                 raise e
 
@@ -159,11 +162,11 @@ def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
     max_retries = 3
     for attempt in range(1, max_retries + 1):
         try:
-            # API Rate Limits වැළැක්වීමට තත්පර 3 ක Pause එකක්
-            time.sleep(3)
+            # API Rate Limits වැළැක්වීමට තත්පර 5 ක Pause එකක්
+            time.sleep(5)
             
             response = ai_client.models.generate_content(
-                model='gemini-3.8-flash',
+                model=MODEL_NAME,
                 contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), qc_prompt],
                 config=config
             )
@@ -178,7 +181,7 @@ def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
         except Exception as e:
             print(f"⚠️ Quality check pass retry {attempt}/{max_retries} error: {str(e)}")
             if attempt < max_retries:
-                time.sleep(5)
+                time.sleep(8)
             else:
                 # Retries 3 ම අසාර්ථක වුවහොත් පමණක් Bypass වේ
                 return primary_posts, 0, "QC Verification bypassed after retries."
@@ -272,11 +275,11 @@ def process_drive_files():
         except Exception as e:
             err_msg = str(e)
             print(f"❌ Error processing {file_name}: {err_msg}")
-            log_document_status(file_name, file_id, "FAILED", 0, "", "Server Busy / API Failure", err_msg)
+            log_document_status(file_name, file_id, "FAILED", 0, "", "Server Busy / Rate Limit", err_msg)
 
-            # 503 Temporary Error එකක් නම් File එක Unsuccessful එකට නොදා ඊළඟ Run එකට තබයි
-            if "503" in err_msg or "UNAVAILABLE" in err_msg:
-                print(f"⏳ 503 Server Overload detected. Keeping {file_name} in main folder for next run retry.")
+            # 503 Overload හෝ 429 Quota/Rate Limit Error එකක් නම් File එක Unsuccessful එකට නොදා ඊළඟ Run එකට තබයි
+            if any(k in err_msg for k in ["503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "quota"]):
+                print(f"⏳ Rate Limit / Server Overload detected. Keeping {file_name} in main folder for next run retry.")
             else:
                 try:
                     move_file(file_id, GDRIVE_FOLDER_ID, unsuccessful_folder_id)
