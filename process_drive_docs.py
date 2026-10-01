@@ -26,8 +26,40 @@ drive_service = build('drive', 'v3', credentials=creds)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Free Tier Rate Limit වැළැක්වීමට වඩාත් ස්ථායී Model එකක් භාවිතය
-MODEL_NAME = 'gemini-3.8-flash'
+# Set these with GitHub Actions repository variables to change models without editing this file.
+MODEL_NAME = os.getenv("GEMINI_MODEL") or "gemini-3.8-flash"
+FALLBACK_MODEL_NAME = os.getenv("GEMINI_FALLBACK_MODEL") or "gemini-2.5-flash"
+MODEL_NAMES = list(dict.fromkeys([MODEL_NAME, FALLBACK_MODEL_NAME]))
+
+def generate_content_with_retry(contents, config):
+    retryable_errors = ["503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "high demand", "quota"]
+    last_error = None
+
+    for model_index, model_name in enumerate(MODEL_NAMES):
+        delay = 10
+        for attempt in range(1, 4):
+            try:
+                print(f"🤖 Requesting Gemini ({model_name}, attempt {attempt}/3)...")
+                return ai_client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                    config=config
+                )
+            except Exception as e:
+                last_error = e
+                err_str = str(e)
+                print(f"⚠️ Gemini error with {model_name} (attempt {attempt}/3): {err_str}")
+
+                if not any(error in err_str for error in retryable_errors):
+                    raise
+                if attempt < 3:
+                    print(f"⏳ Retrying in {delay} seconds...")
+                    time.sleep(delay)
+                    delay *= 2
+                elif model_index < len(MODEL_NAMES) - 1:
+                    print(f"🔁 {model_name} is unavailable; switching to {MODEL_NAMES[model_index + 1]}.")
+
+    raise last_error
 
 def get_or_create_folder(parent_folder_id, folder_name):
     query = f"'{parent_folder_id}' in parents and name = '{folder_name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
@@ -92,38 +124,18 @@ def extract_data_with_gemini(file_bytes, mime_type):
         response_mime_type="application/json"
     )
 
-    max_retries = 5
-    delay = 10  # Rate Limits පාලනයට තත්පර 10 කින් ආරම්භ වේ
+    response = generate_content_with_retry(
+        contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), prompt],
+        config=config
+    )
+    clean_text = response.text.strip()
+    data = json.loads(clean_text)
 
-    for attempt in range(1, max_retries + 1):
-        try:
-            print(f"🤖 Requesting Gemini Extraction (Attempt {attempt}/{max_retries})...")
-            response = ai_client.models.generate_content(
-                model=MODEL_NAME,
-                contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), prompt],
-                config=config
-            )
-
-            clean_text = response.text.strip()
-            data = json.loads(clean_text)
-            
-            if isinstance(data, list):
-                return data
-            elif isinstance(data, dict) and "posts" in data:
-                return data["posts"]
-            return []
-
-        except Exception as e:
-            err_str = str(e)
-            print(f"⚠️ Gemini Extraction Error (Attempt {attempt}/{max_retries}): {err_str}")
-            
-            # 503 UNAVAILABLE, 429 RESOURCE_EXHAUSTED හෝ Quota Error එකක් ආවොත් Wait කර Retries කරයි
-            if any(k in err_str for k in ["503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "high demand", "quota"]) and attempt < max_retries:
-                print(f"⏳ Gemini Server Busy / Rate Limit ({err_str[:30]}). Retrying in {delay} seconds...")
-                time.sleep(delay)
-                delay *= 2  # Exponential backoff (10s -> 20s -> 40s -> 80s)
-            else:
-                raise e
+    if isinstance(data, list):
+        return data
+    elif isinstance(data, dict) and "posts" in data:
+        return data["posts"]
+    return []
 
 # -------------------------------------------------------------
 # PASS 2: QUALITY CHECK & RE-AUDIT PASS
@@ -159,32 +171,20 @@ def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
         response_mime_type="application/json"
     )
 
-    max_retries = 3
-    for attempt in range(1, max_retries + 1):
-        try:
-            # API Rate Limits වැළැක්වීමට තත්පර 5 ක Pause එකක්
-            time.sleep(5)
-            
-            response = ai_client.models.generate_content(
-                model=MODEL_NAME,
-                contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), qc_prompt],
-                config=config
-            )
+    try:
+        response = generate_content_with_retry(
+            contents=[genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type), qc_prompt],
+            config=config
+        )
+        qc_result = json.loads(response.text.strip())
+        missing_posts = qc_result.get("missing_posts", [])
+        qc_summary = qc_result.get("qc_summary", "Quality check completed.")
 
-            qc_result = json.loads(response.text.strip())
-            missing_posts = qc_result.get("missing_posts", [])
-            qc_summary = qc_result.get("qc_summary", "Quality check completed.")
-
-            final_posts = primary_posts + missing_posts
-            return final_posts, len(missing_posts), qc_summary
-
-        except Exception as e:
-            print(f"⚠️ Quality check pass retry {attempt}/{max_retries} error: {str(e)}")
-            if attempt < max_retries:
-                time.sleep(8)
-            else:
-                # Retries 3 ම අසාර්ථක වුවහොත් පමණක් Bypass වේ
-                return primary_posts, 0, "QC Verification bypassed after retries."
+        final_posts = primary_posts + missing_posts
+        return final_posts, len(missing_posts), qc_summary
+    except Exception as e:
+        print(f"⚠️ Quality check failed after retries: {str(e)}")
+        return primary_posts, 0, "QC Verification bypassed after retries."
 
 def log_document_status(file_name, file_id, status, count, titles_str, qc_note, error_msg=None):
     try:
