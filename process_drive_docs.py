@@ -2,12 +2,16 @@ import os
 import json
 import io
 import time
+import warnings
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from google import genai
 from google.genai import types
 from supabase import create_client, Client
+
+# Deprecation සහ Informational Warnings Hide කිරීම
+warnings.filterwarnings("ignore")
 
 # Environment Variables Validation
 GDRIVE_JSON_STR = os.getenv("GDRIVE_SERVICE_ACCOUNT_JSON")
@@ -27,15 +31,23 @@ drive_service = build('drive', 'v3', credentials=creds)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Official Google Gemini Production Models (Default to stable 3.8, 1.5-flash & 2.0-flash)
-PRIMARY_MODEL = os.getenv("GEMINI_MODEL") or "gemini-3.8-flash"
-FALLBACK_1 = os.getenv("GEMINI_FALLBACK_MODEL") or "gemini-2.0-flash"
-FALLBACK_2 = "gemini-1.5-flash"
+# -------------------------------------------------------------
+# VERIFIED 4-TIER MODEL FALLBACK CHAIN (Directly from user API Key)
+# -------------------------------------------------------------
+ENV_PRIMARY = os.getenv("GEMINI_MODEL", "").strip()
+ENV_FALLBACK = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
 
-# Duplicate නොවෙන විදිහට Models 3ම Order එකට පිළියෙල කිරීම
+DEFAULT_CHAIN = [
+    "gemini-3.8-flash",       # Tier 1: Highest Accuracy for Sinhala OCR
+    "gemini-3.5-flash",       # Tier 2: Strong backup
+    "gemini-2.5-flash",       # Tier 3: Extremely Stable workhorse
+    "gemini-2.5-flash-lite"   # Tier 4: High rate-limit buffer
+]
+
 MODEL_NAMES = []
-for m in [PRIMARY_MODEL, FALLBACK_1, FALLBACK_2]:
-    m_clean = m.strip() if m else ""
+# Env variables වලින් වෙනස්කම් කර ඇත්නම් ඒවා මුලට එකතු කිරීම
+for m in [ENV_PRIMARY, ENV_FALLBACK] + DEFAULT_CHAIN:
+    m_clean = m.replace("models/", "").strip() if m else ""
     if m_clean and m_clean not in MODEL_NAMES:
         MODEL_NAMES.append(m_clean)
 
@@ -58,11 +70,10 @@ def generate_content_with_retry(contents, config):
             except Exception as e:
                 last_error = e
                 err_str = str(e)
-                print(f"⚠️ Gemini error with {model_name} (attempt {attempt}/3): {err_str}")
+                print(f"⚠️ Gemini error with {model_name} (attempt {attempt}/3): {err_str[:120]}...")
 
-                # If model is invalid/404, switch to fallback model immediately
                 if any(error in err_str.lower() for error in model_not_found_errors):
-                    print(f"⚠️ Model {model_name} not available. Switching immediately...")
+                    print(f"⚠️ Model {model_name} unavailable. Switching immediately to next tier...")
                     break
                 
                 if not any(error in err_str.lower() for error in retryable_errors):
@@ -73,7 +84,7 @@ def generate_content_with_retry(contents, config):
                     time.sleep(delay)
                     delay *= 2
                 elif model_index < len(MODEL_NAMES) - 1:
-                    print(f"🔁 Switching to fallback model: {MODEL_NAMES[model_index + 1]}...")
+                    print(f"🔁 {model_name} unavailable. Switching to Fallback: {MODEL_NAMES[model_index + 1]}...")
 
     raise last_error
 
@@ -215,7 +226,6 @@ def log_document_status(file_name, file_id, status, count, titles_str, qc_note, 
 
 def process_drive_files():
     processed_folder_id = get_or_create_folder(GDRIVE_FOLDER_ID, "Processed")
-    unsuccessful_folder_id = get_or_create_folder(GDRIVE_FOLDER_ID, "Unsuccessful")
     
     query = f"'{GDRIVE_FOLDER_ID}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
     results = drive_service.files().list(q=query, fields="files(id, name, mimeType)").execute()
@@ -288,16 +298,10 @@ def process_drive_files():
         except Exception as e:
             err_msg = str(e)
             print(f"❌ Error processing {file_name}: {err_msg}")
-            log_document_status(file_name, file_id, "FAILED", 0, "", "Server Busy / API Failure", err_msg)
+            log_document_status(file_name, file_id, "FAILED", 0, "", "Processing Error", err_msg)
 
-            if any(k in err_msg.lower() for k in ["503", "unavailable", "429", "resource_exhausted", "quota"]):
-                print(f"⏳ Server Busy/Rate limit. Keeping {file_name} in main folder for next retry.")
-            else:
-                try:
-                    move_file(file_id, GDRIVE_FOLDER_ID, unsuccessful_folder_id)
-                    print(f"⚠️ Processing failed. Moved {file_name} to 'Unsuccessful' folder.")
-                except Exception as move_err:
-                    print(f"🚨 Could not move failed file {file_name}: {str(move_err)}")
+            # Process එක Fail වුවහොත් File එක 'Unsuccessful' එකට නොදා ඊළඟ Run එක වෙනුවෙන් Main Folder එකේම තබයි
+            print(f"⏳ Keeping {file_name} in main Drive folder for next scheduled run retry.")
 
 if __name__ == "__main__":
     process_drive_files()
