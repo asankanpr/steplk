@@ -9,7 +9,7 @@ from google import genai
 from google.genai import types
 from supabase import create_client, Client
 
-# Environment Variables
+# Environment Variables Validation
 GDRIVE_JSON_STR = os.getenv("GDRIVE_SERVICE_ACCOUNT_JSON")
 GDRIVE_FOLDER_ID = os.getenv("GDRIVE_FOLDER_ID")
 GEMINI_API_KEY = os.getenv("GEMINI_DRIVE_API_KEY") or os.getenv("GEMINI_API_KEY")
@@ -19,6 +19,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY
 if not all([GDRIVE_JSON_STR, GDRIVE_FOLDER_ID, GEMINI_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
     raise ValueError("Missing required environment variables.")
 
+# Initialize Clients
 info = json.loads(GDRIVE_JSON_STR)
 creds = Credentials.from_service_account_info(info, scopes=['https://www.googleapis.com/auth/drive'])
 drive_service = build('drive', 'v3', credentials=creds)
@@ -26,19 +27,26 @@ drive_service = build('drive', 'v3', credentials=creds)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Set these with GitHub Actions repository variables to change models without editing this file.
-MODEL_NAME = os.getenv("GEMINI_MODEL") or "gemini-3.8-flash"
-FALLBACK_MODEL_NAME = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
-MODEL_NAMES = list(dict.fromkeys(model for model in [MODEL_NAME, FALLBACK_MODEL_NAME] if model))
+# Official Google Gemini Production Models (Default to stable 3.8, 1.5-flash & 2.0-flash)
+PRIMARY_MODEL = os.getenv("GEMINI_MODEL") or "gemini-3.8-flash"
+FALLBACK_1 = os.getenv("GEMINI_FALLBACK_MODEL") or "gemini-2.0-flash"
+FALLBACK_2 = "gemini-1.5-flash"
+
+# Duplicate නොවෙන විදිහට Models 3ම Order එකට පිළියෙල කිරීම
+MODEL_NAMES = []
+for m in [PRIMARY_MODEL, FALLBACK_1, FALLBACK_2]:
+    m_clean = m.strip() if m else ""
+    if m_clean and m_clean not in MODEL_NAMES:
+        MODEL_NAMES.append(m_clean)
 
 def generate_content_with_retry(contents, config):
-    retryable_errors = ["503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "high demand", "quota"]
-    model_not_found_errors = ["404", "NOT_FOUND", "not found", "not supported for"]
+    retryable_errors = ["503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "high demand", "quota", "overloaded"]
+    model_not_found_errors = ["404", "NOT_FOUND", "not found", "not supported"]
+    
     last_error = None
-    transient_error = None
 
     for model_index, model_name in enumerate(MODEL_NAMES):
-        delay = 10
+        delay = 5
         for attempt in range(1, 4):
             try:
                 print(f"🤖 Requesting Gemini ({model_name}, attempt {attempt}/3)...")
@@ -52,20 +60,22 @@ def generate_content_with_retry(contents, config):
                 err_str = str(e)
                 print(f"⚠️ Gemini error with {model_name} (attempt {attempt}/3): {err_str}")
 
-                if any(error in err_str for error in model_not_found_errors):
-                    print(f"⚠️ Skipping unavailable model {model_name}.")
+                # If model is invalid/404, switch to fallback model immediately
+                if any(error in err_str.lower() for error in model_not_found_errors):
+                    print(f"⚠️ Model {model_name} not available. Switching immediately...")
                     break
-                if not any(error in err_str for error in retryable_errors):
-                    raise
-                transient_error = e
+                
+                if not any(error in err_str.lower() for error in retryable_errors):
+                    raise e
+
                 if attempt < 3:
                     print(f"⏳ Retrying in {delay} seconds...")
                     time.sleep(delay)
                     delay *= 2
                 elif model_index < len(MODEL_NAMES) - 1:
-                    print(f"🔁 {model_name} is unavailable; switching to {MODEL_NAMES[model_index + 1]}.")
+                    print(f"🔁 Switching to fallback model: {MODEL_NAMES[model_index + 1]}...")
 
-    raise transient_error or last_error
+    raise last_error
 
 def get_or_create_folder(parent_folder_id, folder_name):
     query = f"'{parent_folder_id}' in parents and name = '{folder_name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
@@ -99,7 +109,7 @@ def make_file_publicly_readable(file_id):
         print(f"⚠️ Permission notice: {str(e)}")
 
 # -------------------------------------------------------------
-# PASS 1: INITIAL EXTRACTION (Deterministic with Temperature 0.0)
+# PASS 1: INITIAL EXTRACTION
 # -------------------------------------------------------------
 def extract_data_with_gemini(file_bytes, mime_type):
     prompt = """
@@ -147,9 +157,6 @@ def extract_data_with_gemini(file_bytes, mime_type):
 # PASS 2: QUALITY CHECK & RE-AUDIT PASS
 # -------------------------------------------------------------
 def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
-    """
-    Re-scans document, checks character-by-character details, and recovers missed positions with Retries.
-    """
     extracted_titles = [p.get("title", "") for p in primary_posts]
 
     qc_prompt = f"""
@@ -189,7 +196,7 @@ def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
         final_posts = primary_posts + missing_posts
         return final_posts, len(missing_posts), qc_summary
     except Exception as e:
-        print(f"⚠️ Quality check failed after retries: {str(e)}")
+        print(f"⚠️ Quality check bypassed after retries: {str(e)}")
         return primary_posts, 0, "QC Verification bypassed after retries."
 
 def log_document_status(file_name, file_id, status, count, titles_str, qc_note, error_msg=None):
@@ -242,7 +249,7 @@ def process_drive_files():
             primary_posts = extract_data_with_gemini(file_bytes, mime_type)
             print(f"🔍 Primary Extraction found: {len(primary_posts)} posts.")
 
-            # 2. Quality Check & Re-verification Pass
+            # 2. Quality Check Pass
             final_posts, recovered_count, qc_summary = run_quality_check_and_reverify(file_bytes, mime_type, primary_posts)
             print(f"🛡️ Quality Check Audit: {qc_summary} (Recovered: {recovered_count} missed posts). Total: {len(final_posts)}")
 
@@ -281,11 +288,10 @@ def process_drive_files():
         except Exception as e:
             err_msg = str(e)
             print(f"❌ Error processing {file_name}: {err_msg}")
-            log_document_status(file_name, file_id, "FAILED", 0, "", "Server Busy / Rate Limit", err_msg)
+            log_document_status(file_name, file_id, "FAILED", 0, "", "Server Busy / API Failure", err_msg)
 
-            # 503 Overload හෝ 429 Quota/Rate Limit Error එකක් නම් File එක Unsuccessful එකට නොදා ඊළඟ Run එකට තබයි
-            if any(k in err_msg for k in ["503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "quota", "404", "NOT_FOUND", "not supported for"]):
-                print(f"⏳ Gemini unavailable or model configuration invalid. Keeping {file_name} in main folder for next run retry.")
+            if any(k in err_msg.lower() for k in ["503", "unavailable", "429", "resource_exhausted", "quota"]):
+                print(f"⏳ Server Busy/Rate limit. Keeping {file_name} in main folder for next retry.")
             else:
                 try:
                     move_file(file_id, GDRIVE_FOLDER_ID, unsuccessful_folder_id)
