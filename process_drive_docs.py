@@ -38,10 +38,11 @@ ENV_PRIMARY = os.getenv("GEMINI_MODEL", "").strip()
 ENV_FALLBACK = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
 
 DEFAULT_CHAIN = [
-    "gemini-3.8-flash",       # Tier 1: Highest Accuracy for Sinhala OCR
-    "gemini-3.5-flash",       # Tier 2: Strong backup
-    "gemini-2.5-flash",       # Tier 3: Extremely Stable workhorse
-    "gemini-2.5-flash-lite"   # Tier 4: High rate-limit buffer
+    "gemini-3.8-flash",       # Tier 1: Primary Model (High Accuracy)
+    "gemini-3.6-flash",       # Tier 2: Fast & Reliable Backup
+    "gemini-3.5-flash",       # Tier 3: Workhorse Backup (අද extraction එක කරලා දුන්නේ මේකෙන්!)
+    "gemini-3.5-flash-lite",  # Tier 4: Google Recommended Lite Model
+    "gemini-3.1-flash-lite"   # Tier 5: High Rate Limit Buffer
 ]
 
 MODEL_NAMES = []
