@@ -1,0 +1,26 @@
+name: Check Available Gemini Models
+
+on:
+  workflow_dispatch: # GitHub Dashboard එකෙන් Run කරවීමට
+
+jobs:
+  check-models:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install google-genai
+        run: pip install google-genai
+
+      - name: Run Check Models Script
+        env:
+          GEMINI_DRIVE_API_KEY: ${{ secrets.GEMINI_DRIVE_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python check_models.py
