@@ -12,7 +12,7 @@ from supabase import create_client, Client
 # Environment Variables
 GDRIVE_JSON_STR = os.getenv("GDRIVE_SERVICE_ACCOUNT_JSON")
 GDRIVE_FOLDER_ID = os.getenv("GDRIVE_FOLDER_ID")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_DRIVE_API_KEY") or os.getenv("GEMINI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
 
@@ -28,12 +28,14 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Set these with GitHub Actions repository variables to change models without editing this file.
 MODEL_NAME = os.getenv("GEMINI_MODEL") or "gemini-3.8-flash"
-FALLBACK_MODEL_NAME = os.getenv("GEMINI_FALLBACK_MODEL") or "gemini-2.5-flash"
-MODEL_NAMES = list(dict.fromkeys([MODEL_NAME, FALLBACK_MODEL_NAME]))
+FALLBACK_MODEL_NAME = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
+MODEL_NAMES = list(dict.fromkeys(model for model in [MODEL_NAME, FALLBACK_MODEL_NAME] if model))
 
 def generate_content_with_retry(contents, config):
     retryable_errors = ["503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "high demand", "quota"]
+    model_not_found_errors = ["404", "NOT_FOUND", "not found", "not supported for"]
     last_error = None
+    transient_error = None
 
     for model_index, model_name in enumerate(MODEL_NAMES):
         delay = 10
@@ -50,8 +52,12 @@ def generate_content_with_retry(contents, config):
                 err_str = str(e)
                 print(f"⚠️ Gemini error with {model_name} (attempt {attempt}/3): {err_str}")
 
+                if any(error in err_str for error in model_not_found_errors):
+                    print(f"⚠️ Skipping unavailable model {model_name}.")
+                    break
                 if not any(error in err_str for error in retryable_errors):
                     raise
+                transient_error = e
                 if attempt < 3:
                     print(f"⏳ Retrying in {delay} seconds...")
                     time.sleep(delay)
@@ -59,7 +65,7 @@ def generate_content_with_retry(contents, config):
                 elif model_index < len(MODEL_NAMES) - 1:
                     print(f"🔁 {model_name} is unavailable; switching to {MODEL_NAMES[model_index + 1]}.")
 
-    raise last_error
+    raise transient_error or last_error
 
 def get_or_create_folder(parent_folder_id, folder_name):
     query = f"'{parent_folder_id}' in parents and name = '{folder_name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
@@ -278,8 +284,8 @@ def process_drive_files():
             log_document_status(file_name, file_id, "FAILED", 0, "", "Server Busy / Rate Limit", err_msg)
 
             # 503 Overload හෝ 429 Quota/Rate Limit Error එකක් නම් File එක Unsuccessful එකට නොදා ඊළඟ Run එකට තබයි
-            if any(k in err_msg for k in ["503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "quota"]):
-                print(f"⏳ Rate Limit / Server Overload detected. Keeping {file_name} in main folder for next run retry.")
+            if any(k in err_msg for k in ["503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "quota", "404", "NOT_FOUND", "not supported for"]):
+                print(f"⏳ Gemini unavailable or model configuration invalid. Keeping {file_name} in main folder for next run retry.")
             else:
                 try:
                     move_file(file_id, GDRIVE_FOLDER_ID, unsuccessful_folder_id)
