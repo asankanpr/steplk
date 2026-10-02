@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="si" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Favicon & PWA Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#061626">
+
+    <!-- Mobile App & iOS Support -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StepLK">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+    
+    <title>StepLK - අධ්‍යාපන පීඨය (Education Hub)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#061626',
+                            card: '#0B1E36',
+                            emerald: '#10B981',
+                            emeraldDark: '#059669',
+                            yellow: '#F59E0B',
+                            charcoal: '#0F172A',
+                            border: '#1E293B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            display: flex;
+            width: max-content;
+            animation: marquee 25s linear infinite;
+        }
+        .animate-marquee:hover, .animate-marquee:active {
+            animation-play-state: paused;
+        }
+    </style>
+</head>
+<body class="bg-brand-dark text-slate-100 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- 1. TOP TICKER TAPE -->
+    <div class="bg-brand-charcoal border-b border-brand-border py-2 text-xs font-medium overflow-hidden whitespace-nowrap text-slate-300 relative">
+        <div class="animate-marquee items-center gap-6">
+            <div class="flex items-center gap-6 px-3">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-graduation-cap text-amber-400"></i> Education Portal: <strong class="text-white">Sri Lankan Student & Teacher Resource Center</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-university text-brand-emerald"></i> UGC Admissions: <strong class="text-white">University Handbook & Course Sorting Active</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-brand-emerald"></i> Verified Educational Content</span>
+            </div>
+            <div class="flex items-center gap-6 px-3">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-graduation-cap text-amber-400"></i> Education Portal: <strong class="text-white">Sri Lankan Student & Teacher Resource Center</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-university text-brand-emerald"></i> UGC Admissions: <strong class="text-white">University Handbook & Course Sorting Active</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-brand-emerald"></i> Verified Educational Content</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. MAIN HEADER -->
+    <header class="bg-brand-dark/90 backdrop-blur-md border-b border-brand-border sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-3.5 py-2.5 flex items-center justify-between gap-2">
+            
+            <a href="index.html" class="flex items-center gap-2.5 sm:gap-3.5 group flex-shrink-0">
+                <img src="./icons/logo-512.png" alt="StepLK Logo" class="w-12 h-12 sm:w-16 sm:h-16 object-contain group-hover:scale-105 transition-transform">
+                <div class="flex flex-col">
+                    <div class="flex items-center leading-none">
+                        <span class="text-2xl sm:text-4xl font-black tracking-tight text-white">Step<span class="text-brand-emerald">LK</span></span>
+                    </div>
+                    <span class="text-[10px] sm:text-xs text-brand-yellow font-bold tracking-wider uppercase mt-1 group-hover:text-white transition">ඔබ වෙනුවෙන්මයි</span>
+                </div>
+            </a>
+            
+            <div class="relative w-36 sm:w-60 md:w-72 flex-shrink-0 flex items-center">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 text-slate-400 text-xs z-10 pointer-events-none"></i>
+                <input type="text" id="search-input" placeholder="පාඨමාලා / විෂයන් සොයන්න..." 
+                    class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-8 pr-3 h-11 text-[11px] sm:text-xs text-white outline-none text-center shadow-sm transition-all" />
+            </div>
+
+        </div>
+    </header>
+
+    <!-- 3. SUB-NAVIGATION BAR -->
+    <nav class="bg-brand-charcoal border-b border-brand-border px-3 py-2 text-xs font-bold shadow-md">
+        <div class="max-w-7xl mx-auto grid grid-cols-3 gap-2 w-full text-center">
+            <a href="index.html" class="py-1.5 px-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center justify-center gap-1.5 whitespace-nowrap text-xs md:text-sm font-extrabold">
+                <i class="fa-solid fa-house text-sm"></i> <span>Home</span>
+            </a>
+            <a href="education.html" class="py-1.5 px-2 rounded-lg bg-brand-emerald text-brand-dark flex items-center justify-center gap-1.5 whitespace-nowrap text-xs md:text-sm font-extrabold shadow-sm">
+                <i class="fa-solid fa-graduation-cap text-sm"></i> <span>Education</span>
+            </a>
+            <a href="#" class="py-1.5 px-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center justify-center gap-1.5 whitespace-nowrap text-xs md:text-sm font-extrabold">
+                <i class="fa-solid fa-icons text-sky-400 text-sm"></i> <span>LifeStyle</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 4. MAIN CONTENT SECTION -->
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-1 w-full space-y-8">
+
+        <!-- Hero Banner -->
+        <div class="bg-gradient-to-r from-brand-card via-brand-charcoal to-brand-card p-6 rounded-3xl border border-brand-border shadow-2xl relative overflow-hidden">
+            <div class="max-w-2xl">
+                <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block mb-3">
+                    <i class="fa-solid fa-graduation-cap"></i> Education Hub
+                </span>
+                <h1 class="text-xl sm:text-3xl font-black text-white leading-tight mb-2">
+                    ශ්‍රී ලංකා අධ්‍යාපන හා විශ්වවිද්‍යාල ප්‍රවේශ පෝරමය
+                </h1>
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    පාසල් අධ්‍යාපනය, ගුරු සේවය සහ විශ්වවිද්‍යාල පාඨමාලා තේරීම් ඇතුළු සියලුම අධ්‍යාපනික තොරතුරු එකම ස්ථානයකින් ලබාගන්න.
+                </p>
+            </div>
+        </div>
+
+        <!-- 4 MODERN CARDS GRID -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <!-- CARD 1: University Admission -->
+            <a href="university-admission.html" class="group bg-brand-card border border-brand-border hover:border-brand-emerald/70 rounded-3xl p-6 shadow-xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-brand-emerald/10 rounded-full blur-xl group-hover:bg-brand-emerald/20 transition-all"></div>
+                
+                <div class="space-y-4">
+                    <div class="w-14 h-14 rounded-2xl bg-brand-emerald/10 border border-brand-emerald/30 flex items-center justify-center text-brand-emerald text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-university"></i>
+                    </div>
+
+                    <div>
+                        <span class="text-[10px] font-mono font-semibold text-brand-emerald uppercase tracking-wider block mb-1">Higher Education</span>
+                        <h2 class="text-lg font-bold text-white group-hover:text-brand-emerald transition">University Admission</h2>
+                        <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                            UGC HandBook පදනම් කරගත් විශ්වවිද්‍යාල පාඨමාලා තේරීම් උපකරණය (Course Sorting Tool) සහ Z-Score විස්තර.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="pt-6 mt-4 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-brand-emerald">
+                    <span>ප්‍රවේශ වන්න</span>
+                    <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- CARD 2: Secondary School -->
+            <a href="secondary-school.html" class="group bg-brand-card border border-brand-border hover:border-sky-500/70 rounded-3xl p-6 shadow-xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-sky-500/10 rounded-full blur-xl group-hover:bg-sky-500/20 transition-all"></div>
+
+                <div class="space-y-4">
+                    <div class="w-14 h-14 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-book-open"></i>
+                    </div>
+
+                    <div>
+                        <span class="text-[10px] font-mono font-semibold text-sky-400 uppercase tracking-wider block mb-1">Grades 6 - 13</span>
+                        <h2 class="text-lg font-bold text-white group-hover:text-sky-400 transition">Secondary School</h2>
+                        <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                            අධ්‍යයන පොදු සහතික පත්‍ර සාමාන්‍ය පෙළ සහ උසස් පෙළ විෂය නිර්දේශ, පසුගිය විභාග ප්‍රශ්න පත්‍ර හා නිවේදන.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="pt-6 mt-4 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-sky-400">
+                    <span>ප්‍රවේශ වන්න</span>
+                    <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- CARD 3: Primary School -->
+            <a href="primary-school.html" class="group bg-brand-card border border-brand-border hover:border-amber-500/70 rounded-3xl p-6 shadow-xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all"></div>
+
+                <div class="space-y-4">
+                    <div class="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-child"></i>
+                    </div>
+
+                    <div>
+                        <span class="text-[10px] font-mono font-semibold text-amber-400 uppercase tracking-wider block mb-1">Grades 1 - 5</span>
+                        <h2 class="text-lg font-bold text-white group-hover:text-amber-400 transition">Primary School</h2>
+                        <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                            5 ශ්‍රේණිය ශිෂ්‍යත්ව විභාග මාර්ගෝපදේශ, ප්‍රශ්න පත්‍ර සහ ප්‍රාථමික ශ්‍රේණි සඳහා වූ අධ්‍යාපනික කටයුතු.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="pt-6 mt-4 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-amber-400">
+                    <span>ප්‍රවේශ වන්න</span>
+                    <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- CARD 4: Teachers -->
+            <a href="teachers.html" class="group bg-brand-card border border-brand-border hover:border-purple-500/70 rounded-3xl p-6 shadow-xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-purple-500/10 rounded-full blur-xl group-hover:bg-purple-500/20 transition-all"></div>
+
+                <div class="space-y-4">
+                    <div class="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                    </div>
+
+                    <div>
+                        <span class="text-[10px] font-mono font-semibold text-purple-400 uppercase tracking-wider block mb-1">Teaching Staff</span>
+                        <h2 class="text-lg font-bold text-white group-hover:text-purple-400 transition">Teachers Portal</h2>
+                        <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                            ගුරු මාර්ගෝපදේශ (Teacher Guides), චක්‍රලේඛ, ගුරු මාරුවීම් හා විභාග සම්බන්ධ සියලුම තොරතුරු.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="pt-6 mt-4 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-purple-400">
+                    <span>ප්‍රවේශ වන්න</span>
+                    <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-brand-charcoal border-t border-brand-border py-6 mt-12 text-center text-xs text-slate-500">
+        <p>© 2026 StepLK (steplk.com) — Powered by Official Government Gazette & Public Sources.</p>
+    </footer>
+
+</body>
+</html>
