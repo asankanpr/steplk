@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="si" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#061626">
+    <title>StepLK - විශ්වවිද්‍යාල ප්‍රවේශය (University Admission)</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#061626',
+                            card: '#0B1E36',
+                            emerald: '#10B981',
+                            emeraldDark: '#059669',
+                            yellow: '#F59E0B',
+                            charcoal: '#0F172A',
+                            border: '#1E293B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-brand-dark text-slate-100 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- HEADER -->
+    <header class="bg-brand-dark/90 backdrop-blur-md border-b border-brand-border sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-3.5 py-2.5 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-2.5 group">
+                <img src="./icons/logo-512.png" alt="StepLK" class="w-10 h-10 sm:w-12 sm:h-12 object-contain">
+                <div class="flex flex-col">
+                    <span class="text-xl sm:text-2xl font-black text-white">Step<span class="text-brand-emerald">LK</span></span>
+                    <span class="text-[9px] text-brand-yellow font-bold uppercase">අධ්‍යාපන පීඨය</span>
+                </div>
+            </a>
+            <a href="education.html" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                <i class="fa-solid fa-arrow-left"></i> පසුපසට
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-5xl mx-auto px-3 py-4 flex-1 w-full space-y-3">
+
+        <!-- INTRO CARD -->
+        <div class="bg-brand-card/60 p-3.5 rounded-2xl border border-brand-border/80">
+            <h1 class="text-sm md:text-base font-bold text-white mb-0.5 flex items-center gap-2">
+                <i class="fa-solid fa-university text-brand-emerald text-xs"></i> විශ්වවිද්‍යාල පාඨමාලා තේරීම් උපකරණය (UGC Course Finder)
+            </h1>
+            <p class="text-xs text-slate-400">ඔබේ උසස් පෙළ (A/L) විෂය ධාරාව සහ විෂයන් 3 තෝරා ඔබට සුදුසුකම් ඇති උපාධි පාඨමාලා සොයාගන්න.</p>
+        </div>
+
+        <!-- FILTER SELECTION PANEL -->
+        <div class="bg-brand-card border border-brand-border p-3.5 rounded-2xl shadow-xl space-y-3">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Stream Dropdown -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">1. උසස් පෙළ විෂය ධාරාව (A/L Stream)</label>
+                    <select id="stream-select" onchange="onStreamChange()" class="w-full bg-brand-dark border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-emerald">
+                        <option value="">-- විෂය ධාරාව තෝරන්න --</option>
+                        <option value="Biological Science">ජීව විද්‍යා ධාරාව (Biological Science)</option>
+                        <option value="Physical Science">භෞතික විද්‍යා ධාරාව (Physical Science / Maths)</option>
+                        <option value="Commerce">වාණිජ ධාරාව (Commerce)</option>
+                        <option value="Arts">කලා ධාරාව (Arts)</option>
+                        <option value="Technology">තොරතුරු හා තාක්ෂණවේදය (Technology)</option>
+                        <option value="Common">වෙනත් / පොදු (Common Subjects)</option>
+                    </select>
+                </div>
+
+                <!-- Handbook Year -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">අධ්‍යයන වර්ෂය (Handbook Year)</label>
+                    <select id="year-select" class="w-full bg-brand-dark border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-emerald">
+                        <option value="2025/2026">2025/2026 (නවතම Handbook)</option>
+                        <option value="2024/2025">2024/2025</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Subject Selection Area (3 Dropdowns) -->
+            <div id="subjects-container" class="hidden space-y-2 pt-2 border-t border-slate-800">
+                <label class="block text-xs font-bold text-brand-emerald">2. ඔබේ විෂයන් 3 තෝරන්න (Select 3 Subjects):</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <select id="sub1" class="bg-brand-dark border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white outline-none focus:border-brand-emerald"></select>
+                    <select id="sub2" class="bg-brand-dark border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white outline-none focus:border-brand-emerald"></select>
+                    <select id="sub3" class="bg-brand-dark border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white outline-none focus:border-brand-emerald"></select>
+                </div>
+                <button onclick="findEligibleCourses()" class="w-full bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-black py-2.5 rounded-xl transition text-xs shadow-lg shadow-brand-emerald/20 mt-2 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass"></i> සුදුසුකම් ඇති උපාධි පාඨමාලා සොයන්න
+                </button>
+            </div>
+
+        </div>
+
+        <!-- RESULTS SECTION (COMPACT CARDS - MINIMAL GAP) -->
+        <div class="space-y-2">
+            <div id="results-header" class="text-xs font-bold text-slate-400 hidden flex items-center justify-between">
+                <span>හමුවූ උපාධි පාඨමාලා ලැයිස්තුව:</span>
+                <span id="results-count" class="text-brand-yellow">0 Courses</span>
+            </div>
+
+            <!-- COMPACT CARDS LIST -->
+            <div id="courses-list" class="space-y-1.5">
+                <div class="text-center py-8 text-slate-500 text-xs bg-brand-card/40 rounded-2xl border border-slate-800">
+                    <i class="fa-solid fa-graduation-cap text-2xl mb-1 text-slate-600 block"></i>
+                    ඉහතින් ඔබේ විෂයයන් තෝරා Search කරන්න.
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- COURSE DETAIL MODAL + LIVE JOB MATCHES -->
+    <div id="course-modal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 hidden">
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-5 w-full max-w-2xl shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto relative">
+            
+            <button onclick="closeCourseModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white bg-slate-800 w-7 h-7 rounded-full flex items-center justify-center text-xs">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Course Overview -->
+            <div>
+                <span id="m-degree-badge" class="bg-brand-emerald/10 text-brand-emerald border border-brand-emerald/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase inline-block mb-1">BSc</span>
+                <h2 id="m-course-si" class="text-base font-bold text-white">Course Title Sinhala</h2>
+                <p id="m-course-en" class="text-xs text-slate-400 italic">Course Title English</p>
+            </div>
+
+            <!-- Details Grid -->
+            <div class="grid grid-cols-2 gap-2 text-xs bg-brand-dark/60 p-3 rounded-xl border border-slate-800">
+                <div>
+                    <span class="text-[10px] text-slate-500 block">පිරිනමන උපාධිය (Awarded Degree)</span>
+                    <strong id="m-degree-name" class="text-brand-yellow">BSc (Hons)</strong>
+                </div>
+                <div>
+                    <span class="text-[10px] text-slate-500 block">පාඨමාලා කාලය</span>
+                    <strong id="m-duration" class="text-white">අවුරුදු 4</strong>
+                </div>
+            </div>
+
+            <div class="space-y-1 text-xs">
+                <span class="font-bold text-slate-300">අවශ්‍ය විෂයන් හා සුදුසුකම්:</span>
+                <p id="m-subjects" class="bg-brand-dark p-2.5 rounded-xl border border-slate-800 text-slate-300 leading-relaxed"></p>
+            </div>
+
+            <div class="space-y-1 text-xs">
+                <span class="font-bold text-slate-300">පිරිනමන විශ්වවිද්‍යාල ලැයිස්තුව:</span>
+                <div id="m-unis" class="flex flex-wrap gap-1.5 pt-1"></div>
+            </div>
+
+            <!-- REAL-TIME MATCHING JOBS SECTION -->
+            <div class="pt-3 border-t border-slate-800 space-y-3">
+                <div class="bg-brand-emerald/10 border border-brand-emerald/30 p-2.5 rounded-xl">
+                    <h3 class="text-xs font-bold text-brand-emerald flex items-center gap-1.5">
+                        <i class="fa-solid fa-briefcase"></i> මෙම උපාධිය සම්පූර්ණ කළ අයෙකුට වර්තමානයේ අයදුම් කළ හැකි රැකියා:
+                    </h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5">අපගේ පද්ධතියේ දැනට පවතින ඉහළම වැටුප් සහිත සජීවී ඇබෑර්තු 10ක් පහතින් දැක්වේ.</p>
+                </div>
+
+                <!-- Govt Jobs Top 5 -->
+                <div>
+                    <span class="text-[11px] font-bold text-amber-400 block mb-1.5"><i class="fa-solid fa-building-columns"></i> රජයේ / අර්ධ රාජ්‍ය රැකියා (Govt / Semi-Govt):</span>
+                    <div id="govt-jobs-list" class="space-y-1"></div>
+                </div>
+
+                <!-- Private Jobs Top 5 -->
+                <div>
+                    <span class="text-[11px] font-bold text-sky-400 block mb-1.5"><i class="fa-solid fa-briefcase"></i> පෞද්ගලික අංශයේ රැකියා (Private Sector):</span>
+                    <div id="pvt-jobs-list" class="space-y-1"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SUPABASE SCRIPT -->
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        const SUPABASE_URL = 'https://wlgnfprghzczwjjpoqym.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_j4dFy0AhNEmQOIEUpsS7mg_83NOxeFj';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const SUBJECT_MAP = {
+            "Biological Science": ["Biology", "Chemistry", "Physics", "Agricultural Science"],
+            "Physical Science": ["Combined Mathematics", "Physics", "Chemistry", "Higher Mathematics", "Information & Communication Technology (ICT)"],
+            "Commerce": ["Accounting", "Business Studies", "Economics", "Business Statistics"],
+            "Arts": ["Sinhala", "Buddhist Civilization", "Political Science", "Logic & Scientific Method", "Geography", "History", "Economics"],
+            "Technology": ["Engineering Technology (ET)", "Bio Systems Technology (BST)", "Science for Technology (SFT)", "ICT"],
+            "Common": ["Biology", "Combined Mathematics", "Chemistry", "Physics", "Accounting", "Economics", "Business Studies", "Political Science", "Logic", "ICT", "Agricultural Science", "ET", "BST", "SFT"]
+        };
+
+        window.onStreamChange = function() {
+            const stream = document.getElementById('stream-select').value;
+            const container = document.getElementById('subjects-container');
+            
+            if (!stream) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            const subjects = SUBJECT_MAP[stream] || SUBJECT_MAP["Common"];
+
+            ['sub1', 'sub2', 'sub3'].forEach((id, idx) => {
+                const select = document.getElementById(id);
+                select.innerHTML = `<option value="">-- විෂය ${idx+1} --</option>` + 
+                    subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+            });
+        };
+
+        window.findEligibleCourses = async function() {
+            const stream = document.getElementById('stream-select').value;
+            const sub1 = document.getElementById('sub1').value;
+            const sub2 = document.getElementById('sub2').value;
+            const sub3 = document.getElementById('sub3').value;
+
+            const listContainer = document.getElementById('courses-list');
+            listContainer.innerHTML = `<div class="text-center py-4 text-xs text-brand-emerald"><i class="fa-solid fa-spinner fa-spin"></i> පාඨමාලා සෙවීම සිදුකරයි...</div>`;
+
+            // Query Supabase university_courses table
+            const { data: courses, error } = await supabase
+                .from('university_courses')
+                .select('*')
+                .eq('stream', stream);
+
+            if (error || !courses || courses.length === 0) {
+                listContainer.innerHTML = `<div class="text-center py-4 text-xs text-slate-400">ගැලපෙන පාඨමාලා හමු නොවුණි.</div>`;
+                return;
+            }
+
+            document.getElementById('results-header').classList.remove('hidden');
+            document.getElementById('results-count').innerText = `${courses.length} Courses Found`;
+
+            let html = '';
+            courses.forEach(c => {
+                html += `
+                <div onclick="openCourseModal('${c.id}')" class="bg-brand-card hover:bg-slate-800/80 border border-brand-border hover:border-brand-emerald/50 p-2.5 rounded-xl cursor-pointer transition flex items-center justify-between gap-2 shadow-sm group">
+                    <div>
+                        <h3 class="text-xs font-bold text-white group-hover:text-brand-emerald transition">${c.course_name_si}</h3>
+                        <p class="text-[10px] text-slate-400">${c.course_name_en}</p>
+                    </div>
+                    <span class="text-[9px] bg-brand-dark px-2 py-1 rounded border border-slate-700 font-mono font-bold text-brand-yellow flex-shrink-0">
+                        ${c.degree}
+                    </span>
+                </div>`;
+            });
+
+            listContainer.innerHTML = html;
+            window.currentLoadedCourses = courses;
+        };
+
+        window.openCourseModal = async function(courseId) {
+            const course = (window.currentLoadedCourses || []).find(c => c.id == courseId);
+            if (!course) return;
+
+            document.getElementById('m-degree-badge').innerText = course.degree;
+            document.getElementById('m-course-si').innerText = course.course_name_si;
+            document.getElementById('m-course-en').innerText = course.course_name_en;
+            document.getElementById('m-degree-name').innerText = course.degree;
+            document.getElementById('m-duration').innerText = `අවුරුදු ${course.duration_years || 4}`;
+            document.getElementById('m-subjects').innerText = (course.subject_requirements || []).join(', ') + " | " + (course.other_requirements || '');
+
+            const unis = course.universities || [];
+            document.getElementById('m-unis').innerHTML = unis.map(u => `<span class="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] px-2 py-0.5 rounded-md font-semibold">${u}</span>`).join('');
+
+            // Fetch Real-time Top 5 Govt & Top 5 Pvt Jobs from `posts` table
+            fetchMatchingJobs(course.degree, course.course_name_en);
+
+            document.getElementById('course-modal').classList.remove('hidden');
+        };
+
+        async function fetchMatchingJobs(degreeType, degreeTitle) {
+            const govtBox = document.getElementById('govt-jobs-list');
+            const pvtBox = document.getElementById('pvt-jobs-list');
+
+            govtBox.innerHTML = `<div class="text-[10px] text-slate-500">සෙවීම සිදුකරයි...</div>`;
+            pvtBox.innerHTML = `<div class="text-[10px] text-slate-500">සෙවීම සිදුකරයි...</div>`;
+
+            // Top 5 Govt Jobs
+            const { data: govtJobs } = await supabase
+                .from('posts')
+                .select('*')
+                .eq('status', 'PUBLISHED')
+                .ilike('category', '%Government%')
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            // Top 5 Private Jobs
+            const { data: pvtJobs } = await supabase
+                .from('posts')
+                .select('*')
+                .eq('status', 'PUBLISHED')
+                .ilike('category', '%Private%')
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            renderJobsList(govtJobs, govtBox);
+            renderJobsList(pvtJobs, pvtBox);
+        }
+
+        function renderJobsList(jobs, container) {
+            if (!jobs || jobs.length === 0) {
+                container.innerHTML = `<p class="text-[10px] text-slate-500">දැනට ඇබෑර්තු නොමැත.</p>`;
+                return;
+            }
+
+            let html = '';
+            jobs.forEach(j => {
+                html += `
+                <div class="bg-brand-dark/80 p-2 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
+                    <div>
+                        <strong class="text-white text-[11px] block">${j.title}</strong>
+                        <span class="text-[10px] text-slate-400">${j.organization || 'N/A'} | වැටුප: ${j.salary_amount || 'සඳහන් නැත'}</span>
+                    </div>
+                    <a href="${j.pdf_url || '#'}" target="_blank" class="bg-brand-emerald/20 text-brand-emerald text-[9px] font-bold px-2 py-1 rounded border border-brand-emerald/40 hover:bg-brand-emerald hover:text-brand-dark transition">
+                        විස්තර
+                    </a>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        window.closeCourseModal = function() {
+            document.getElementById('course-modal').classList.add('hidden');
+        };
+    </script>
+</body>
+</html>
