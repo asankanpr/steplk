@@ -3,7 +3,7 @@ import json
 import io
 import time
 import warnings
-import fitz as pymupdf  # Fast & accurate Sinhala/English Unicode text extractor
+import fitz as pymupdf
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -21,9 +21,8 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
 
 if not all([GDRIVE_JSON_STR, GDRIVE_FOLDER_ID, GEMINI_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
-    raise ValueError("❌ Missing required environment variables! Please check GitHub Secrets.")
+    raise ValueError("❌ Missing required environment variables!")
 
-# Initialize Clients
 info = json.loads(GDRIVE_JSON_STR)
 creds = Credentials.from_service_account_info(info, scopes=['https://www.googleapis.com/auth/drive'])
 drive_service = build('drive', 'v3', credentials=creds)
@@ -31,16 +30,15 @@ drive_service = build('drive', 'v3', credentials=creds)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 5-Tier Fallback Model Chain
+# Bulk Text Process කිරීමට Free Tier එකේ වඩාත්ම Stable Models මුලට යෙදීම
 DEFAULT_CHAIN = [
-    "gemini-3.8-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-3.5-flash-lite",
-    "gemini-3.1-flash-lite"
+    "gemini-3.5-flash-lite",  # Tier 1: Extremely high rate limits & zero 429 errors
+    "gemini-3.5-flash",       # Tier 2: High capacity backup
+    "gemini-3.6-flash",       # Tier 3
+    "gemini-3.8-flash"        # Tier 4
 ]
 
-BATCH_SIZE = 15  # Text පමණක් බැවින් පිටු 15ක් එකවර ගත හැක
+BATCH_SIZE = 12  # Optimal Token Size per prompt
 
 def generate_content_with_retry(prompt_text):
     retryable_errors = ["503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "high demand", "quota", "overloaded"]
@@ -54,9 +52,9 @@ def generate_content_with_retry(prompt_text):
     last_error = None
 
     for model_name in DEFAULT_CHAIN:
-        for attempt in range(1, 4):
+        for attempt in range(1, 3):
             try:
-                print(f"🤖 Requesting Gemini ({model_name}, attempt {attempt}/3)...")
+                print(f"🤖 Requesting Gemini ({model_name}, attempt {attempt}/2)...")
                 return ai_client.models.generate_content(
                     model=model_name,
                     contents=prompt_text,
@@ -65,7 +63,7 @@ def generate_content_with_retry(prompt_text):
             except Exception as e:
                 last_error = e
                 err_str = str(e)
-                print(f"⚠️ Gemini notice ({model_name}): {err_str[:120]}...")
+                print(f"⚠️ Gemini notice ({model_name}): {err_str[:100]}...")
 
                 if any(error in err_str.lower() for error in model_not_found_errors):
                     break
@@ -73,8 +71,7 @@ def generate_content_with_retry(prompt_text):
                 if not any(error in err_str.lower() for error in retryable_errors):
                     raise e
 
-                if attempt < 3:
-                    time.sleep(10)
+                time.sleep(5)
 
     raise last_error
 
@@ -104,7 +101,7 @@ def move_file(file_id, current_folder_id, target_folder_id):
 def extract_courses_from_clean_text(extracted_text, year="2025/2026"):
     prompt = f"""
     You are an expert UGC Sri Lanka University Admission Handbook Data Extractor.
-    Analyze the following raw extracted text from the handbook and extract ALL Degree Programmes mentioned into structured JSON for admission year {year}.
+    Analyze the following raw text from the handbook and extract ALL Degree Programmes into structured JSON for admission year {year}.
 
     EXTRACTED TEXT CONTENT:
     \"\"\"
@@ -161,7 +158,6 @@ def process_handbook_files():
         
         print(f"\n📚 Processing University Handbook: {file_name}...")
 
-        # Download File Bytes
         request = drive_service.files().get_media(fileId=file_id)
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
@@ -180,7 +176,7 @@ def process_handbook_files():
 
             for start_page in range(0, total_pages, BATCH_SIZE):
                 end_page = min(start_page + BATCH_SIZE, total_pages)
-                print(f"\n🔄 Extracting Clean Text from Pages {start_page + 1} to {end_page}...")
+                print(f"\n🔄 Pages {start_page + 1} to {end_page}...")
 
                 chunk_text = ""
                 for page_num in range(start_page, end_page):
@@ -190,14 +186,12 @@ def process_handbook_files():
                         chunk_text += f"\n--- Page {page_num + 1} ---\n" + page_txt
 
                 if not chunk_text.strip():
-                    print(f"ℹ️ Pages {start_page + 1}-{end_page} contain no readable text. Skipping...")
                     continue
 
                 courses = extract_courses_from_clean_text(chunk_text, year="2025/2026")
 
                 if courses:
                     for course in courses:
-                        # Defensive checks for Supabase NOT NULL Constraints
                         if not course.get("subject_requirements"):
                             course["subject_requirements"] = []
                         if not course.get("universities"):
@@ -207,25 +201,23 @@ def process_handbook_files():
                         if not course.get("stream"):
                             course["stream"] = "Common"
 
-                        supabase.table("university_courses").insert(course).execute()
-                    
+                        # Safe DB insert
+                        try:
+                            supabase.table("university_courses").insert(course).execute()
+                        except Exception as db_err:
+                            print(f"⚠️ DB Insert Notice: {db_err}")
+
                     total_extracted += len(courses)
                     print(f"✅ Saved {len(courses)} courses from pages {start_page + 1}-{end_page}.")
-                else:
-                    print(f"ℹ️ No degree courses found in pages {start_page + 1}-{end_page}.")
 
-                # Rate Limit Safety Delay (විනාඩියක Pause එකක්)
-                if end_page < total_pages:
-                    print("⏳ Sleeping for 60 seconds to completely reset Gemini Free Tier TPM Quota...")
-                    time.sleep(60)
+                time.sleep(15)  # Fast 15s delay for 3.5-flash-lite
 
             doc.close()
             move_file(file_id, GDRIVE_FOLDER_ID, processed_folder_id)
-            print(f"\n🎉 Successfully processed {file_name}. Total degree courses added: {total_extracted}.")
+            print(f"\n🎉 Successfully processed {file_name}. Total courses added: {total_extracted}.")
 
         except Exception as e:
             print(f"❌ Error processing handbook {file_name}: {e}")
-            print("⏳ Keeping file in main Drive folder for retry in next scheduled run.")
 
 if __name__ == "__main__":
     process_handbook_files()
