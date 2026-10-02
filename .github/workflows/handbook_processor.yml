@@ -2,8 +2,8 @@ name: University Handbook Auto Processor
 
 on:
   schedule:
-    - cron: '30 6 * * *'  # SLT: 12:00 PM (UTC: 06:30 AM)
-  workflow_dispatch: # GitHub Dashboard එකෙන් අවශ්‍ය වෙලාවට Manual Run කිරීමට
+    - cron: '30 3 * * *'  # SLT: 09:00 AM (UTC: 03:30 AM)
+  workflow_dispatch:
 
 jobs:
   process-handbook:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Install Dependencies
         run: |
