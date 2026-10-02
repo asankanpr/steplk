@@ -3,7 +3,7 @@ import json
 import io
 import time
 import warnings
-import fitz  # PyMuPDF for PDF page chunking
+import fitz as pymupdf  # Fast & accurate Sinhala/English Unicode text extractor
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -31,37 +31,41 @@ drive_service = build('drive', 'v3', credentials=creds)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Verified 5-Tier Fallback Model Chain
+# 5-Tier Fallback Model Chain
 DEFAULT_CHAIN = [
-    "gemini-3.8-flash",       # Tier 1: Primary Model (High Accuracy)
-    "gemini-3.6-flash",       # Tier 2: Fast & Reliable Backup
-    "gemini-3.5-flash",       # Tier 3: Workhorse Backup
-    "gemini-3.5-flash-lite",  # Tier 4: Google Recommended Lite Model
-    "gemini-3.1-flash-lite"   # Tier 5: High Rate Limit Buffer
+    "gemini-3.8-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite"
 ]
 
-BATCH_SIZE = 10  # Free limit නොඉක්මවීමට පිටු 10 බැගින් process කිරීම
+BATCH_SIZE = 15  # Text පමණක් බැවින් පිටු 15ක් එකවර ගත හැක
 
-def generate_content_with_retry(contents, config):
+def generate_content_with_retry(prompt_text):
     retryable_errors = ["503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "high demand", "quota", "overloaded"]
     model_not_found_errors = ["404", "NOT_FOUND", "not found"]
     
+    config = types.GenerateContentConfig(
+        temperature=0.0,
+        response_mime_type="application/json"
+    )
+
     last_error = None
 
-    for model_index, model_name in enumerate(DEFAULT_CHAIN):
-        delay = 4
+    for model_name in DEFAULT_CHAIN:
         for attempt in range(1, 4):
             try:
                 print(f"🤖 Requesting Gemini ({model_name}, attempt {attempt}/3)...")
                 return ai_client.models.generate_content(
                     model=model_name,
-                    contents=contents,
+                    contents=prompt_text,
                     config=config
                 )
             except Exception as e:
                 last_error = e
                 err_str = str(e)
-                print(f"⚠️ Gemini error with {model_name}: {err_str[:120]}...")
+                print(f"⚠️ Gemini notice ({model_name}): {err_str[:120]}...")
 
                 if any(error in err_str.lower() for error in model_not_found_errors):
                     break
@@ -70,8 +74,7 @@ def generate_content_with_retry(contents, config):
                     raise e
 
                 if attempt < 3:
-                    time.sleep(delay)
-                    delay *= 2
+                    time.sleep(10)
 
     raise last_error
 
@@ -98,12 +101,17 @@ def move_file(file_id, current_folder_id, target_folder_id):
         fields='id, parents'
     ).execute()
 
-def extract_courses_from_pdf_chunk(chunk_bytes, year="2025/2026"):
+def extract_courses_from_clean_text(extracted_text, year="2025/2026"):
     prompt = f"""
-    You are an expert UGC Sri Lanka University Admission Handbook Extractor.
-    Extract ALL University Degree Programmes found in the attached document chunk for admission year {year}.
+    You are an expert UGC Sri Lanka University Admission Handbook Data Extractor.
+    Analyze the following raw extracted text from the handbook and extract ALL Degree Programmes mentioned into structured JSON for admission year {year}.
 
-    Return JSON array:
+    EXTRACTED TEXT CONTENT:
+    \"\"\"
+    {extracted_text}
+    \"\"\"
+
+    Return JSON strictly in this structure:
     {{
       "courses": [
         {{
@@ -120,19 +128,11 @@ def extract_courses_from_pdf_chunk(chunk_bytes, year="2025/2026"):
         }}
       ]
     }}
+    If no degree course details are found in this text segment, return {{"courses": []}}.
     Respond strictly with valid JSON.
     """
 
-    config = types.GenerateContentConfig(
-        temperature=0.0,
-        response_mime_type="application/json"
-    )
-
-    response = generate_content_with_retry(
-        contents=[genai.types.Part.from_bytes(data=chunk_bytes, mime_type="application/pdf"), prompt],
-        config=config
-    )
-
+    response = generate_content_with_retry(prompt)
     clean_text = response.text.strip()
     data = json.loads(clean_text)
 
@@ -149,8 +149,7 @@ def process_handbook_files():
     results = drive_service.files().list(q=query, fields="files(id, name, mimeType)").execute()
     files = results.get('files', [])
 
-    # Handbook files පමණක් තෝරාගැනීම
-    handbook_files = [f for f in files if "handbook" in f['name'].lower() or "ugc" in f['name'].lower() or "university" in f['name'].lower()]
+    handbook_files = [f for f in files if "handbook" in f['name'].lower() or "ugc" in f['name'].lower() or "university" in f['name'].lower() or f['name'].endswith('.pdf')]
 
     if not handbook_files:
         print("📁 No new University Handbook PDFs found in Google Drive.")
@@ -173,34 +172,56 @@ def process_handbook_files():
         pdf_bytes = fh.getvalue()
 
         try:
-            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
             total_pages = len(doc)
-            print(f"📖 Total Pages: {total_pages}. Processing in chunks of {BATCH_SIZE} pages...")
+            print(f"📖 Total Pages: {total_pages}. Processing in text batches of {BATCH_SIZE} pages...")
 
             total_extracted = 0
 
             for start_page in range(0, total_pages, BATCH_SIZE):
                 end_page = min(start_page + BATCH_SIZE, total_pages)
-                print(f"🔄 Chunking Pages {start_page + 1} to {end_page}...")
+                print(f"\n🔄 Extracting Clean Text from Pages {start_page + 1} to {end_page}...")
 
-                chunk_doc = fitz.open()
-                chunk_doc.insert_pdf(doc, from_page=start_page, to_page=end_page - 1)
-                chunk_bytes = chunk_doc.write()
-                chunk_doc.close()
+                chunk_text = ""
+                for page_num in range(start_page, end_page):
+                    page = doc.load_page(page_num)
+                    page_txt = page.get_text("text")
+                    if page_txt.strip():
+                        chunk_text += f"\n--- Page {page_num + 1} ---\n" + page_txt
 
-                courses = extract_courses_from_pdf_chunk(chunk_bytes, year="2025/2026")
+                if not chunk_text.strip():
+                    print(f"ℹ️ Pages {start_page + 1}-{end_page} contain no readable text. Skipping...")
+                    continue
+
+                courses = extract_courses_from_clean_text(chunk_text, year="2025/2026")
 
                 if courses:
                     for course in courses:
+                        # Defensive checks for Supabase NOT NULL Constraints
+                        if not course.get("subject_requirements"):
+                            course["subject_requirements"] = []
+                        if not course.get("universities"):
+                            course["universities"] = []
+                        if not course.get("degree"):
+                            course["degree"] = "General Degree"
+                        if not course.get("stream"):
+                            course["stream"] = "Common"
+
                         supabase.table("university_courses").insert(course).execute()
+                    
                     total_extracted += len(courses)
                     print(f"✅ Saved {len(courses)} courses from pages {start_page + 1}-{end_page}.")
-                
-                time.sleep(4)  # Rate limit protection delay
+                else:
+                    print(f"ℹ️ No degree courses found in pages {start_page + 1}-{end_page}.")
+
+                # Rate Limit Safety Delay (විනාඩියක Pause එකක්)
+                if end_page < total_pages:
+                    print("⏳ Sleeping for 60 seconds to completely reset Gemini Free Tier TPM Quota...")
+                    time.sleep(60)
 
             doc.close()
             move_file(file_id, GDRIVE_FOLDER_ID, processed_folder_id)
-            print(f"🎉 Successfully processed {file_name}. Total courses added: {total_extracted}.")
+            print(f"\n🎉 Successfully processed {file_name}. Total degree courses added: {total_extracted}.")
 
         except Exception as e:
             print(f"❌ Error processing handbook {file_name}: {e}")
