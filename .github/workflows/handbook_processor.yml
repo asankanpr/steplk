@@ -1,0 +1,33 @@
+name: University Handbook Auto Processor
+
+on:
+  schedule:
+    - cron: '30 6 * * *'  # SLT: 12:00 PM (UTC: 06:30 AM)
+  workflow_dispatch: # GitHub Dashboard එකෙන් අවශ්‍ය වෙලාවට Manual Run කිරීමට
+
+jobs:
+  process-handbook:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests supabase google-genai PyMuPDF google-api-python-client google-auth
+
+      - name: Run Handbook Processing Script
+        env:
+          GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python process_university_handbook.py
