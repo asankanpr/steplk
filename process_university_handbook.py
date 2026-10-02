@@ -13,7 +13,7 @@ from supabase import create_client, Client
 
 warnings.filterwarnings("ignore")
 
-# Environment Variables
+# Environment Variables Verification
 GDRIVE_JSON_STR = os.getenv("GDRIVE_SERVICE_ACCOUNT_JSON")
 GDRIVE_FOLDER_ID = os.getenv("GDRIVE_FOLDER_ID")
 GEMINI_API_KEY = os.getenv("GEMINI_DRIVE_API_KEY") or os.getenv("GEMINI_API_KEY")
@@ -21,8 +21,9 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
 
 if not all([GDRIVE_JSON_STR, GDRIVE_FOLDER_ID, GEMINI_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
-    raise ValueError("❌ Missing required environment variables!")
+    raise ValueError("❌ Missing required environment variables! Please check GitHub Secrets.")
 
+# Initialize API Clients
 info = json.loads(GDRIVE_JSON_STR)
 creds = Credentials.from_service_account_info(info, scopes=['https://www.googleapis.com/auth/drive'])
 drive_service = build('drive', 'v3', credentials=creds)
@@ -30,18 +31,18 @@ drive_service = build('drive', 'v3', credentials=creds)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Stable Fallback Model Chain
+# High-Resiliency 4-Tier Model Fallback Chain
 DEFAULT_CHAIN = [
-    "gemini-3.5-flash-lite",  # Tier 1: Highest rate limit buffer & zero 429 errors
+    "gemini-3.5-flash-lite",  # Tier 1: Highest rate limit buffer
     "gemini-3.5-flash",       # Tier 2: High capacity backup
-    "gemini-3.6-flash",       # Tier 3
-    "gemini-3.8-flash"        # Tier 4
+    "gemini-3.6-flash",       # Tier 3: Reliable fallback
+    "gemini-3.8-flash"        # Tier 4: Primary deep reasoning
 ]
 
-BATCH_SIZE = 10  # 10 pages per batch for maximum accuracy and zero omissions
+BATCH_SIZE = 10  # Optimal page chunking size to prevent rate limits and omissions
 
 def is_duplicate_course(course_si, course_en, year):
-    """Smart Duplicate Checker before DB insertion"""
+    """Checks whether the degree programme already exists in Supabase to prevent duplicates."""
     try:
         if course_en and str(course_en).strip():
             res_en = supabase.table("university_courses").select("id").eq("admission_year", year).ilike("course_name_en", course_en.strip()).limit(1).execute()
@@ -122,7 +123,7 @@ def extract_courses_from_clean_text(extracted_text, year="2025/2026"):
     Analyze the raw extracted text from the handbook and extract ALL Degree Programmes into structured JSON for admission year {year}.
 
     CRITICAL SINHALA FONT DECODING INSTRUCTION:
-    The input text contains legacy Sinhala font encodings (e.g. FM-Abhaya ASCII text such as 'úlsrK Ys,amh', 'Aõh system', 'ksA' or non-standard characters).
+    The input text contains legacy Sinhala font encodings (e.g., FM-Abhaya ASCII text such as 'úlsrK Ys,amh', 'Aõh system', 'ksA' or non-standard characters).
     You MUST DECODE AND CONVERT ALL legacy ASCII Sinhala text into standard, clean, properly spelled Sinhala Unicode characters (e.g., 'විකිරණ ශිල්පය').
     NEVER output raw ASCII/ANSI gibberish font text in course_name_si or description!
 
@@ -163,16 +164,21 @@ def extract_courses_from_clean_text(extracted_text, year="2025/2026"):
     return []
 
 def process_handbook_files():
-    processed_folder_id = get_or_create_folder(GDRIVE_FOLDER_ID, "Processed")
+    # 1. Main Drive Folder එක ඇතුළේ 'UGC_Handbooks' subfolder එක සාදයි/ලබාගනී
+    ugc_folder_id = get_or_create_folder(GDRIVE_FOLDER_ID, "UGC_Handbooks")
     
-    query = f"'{GDRIVE_FOLDER_ID}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
+    # 2. 'UGC_Handbooks' ඇතුළේ 'Processed' folder එක සාදයි
+    processed_folder_id = get_or_create_folder(ugc_folder_id, "Processed")
+    
+    # 3. 'UGC_Handbooks' folder එකේ ඇති PDFs පමණක් Scan කරයි (Job scraper එකට අහුවීම වළක්වයි)
+    query = f"'{ugc_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
     results = drive_service.files().list(q=query, fields="files(id, name, mimeType)").execute()
     files = results.get('files', [])
 
-    handbook_files = [f for f in files if "handbook" in f['name'].lower() or "ugc" in f['name'].lower() or "university" in f['name'].lower() or f['name'].endswith('.pdf')]
+    handbook_files = [f for f in files if f['name'].endswith('.pdf')]
 
     if not handbook_files:
-        print("📁 No new University Handbook PDFs found in Google Drive main folder.")
+        print("📁 No new University Handbook PDFs found inside 'UGC_Handbooks' folder.")
         return
 
     for file in handbook_files:
@@ -219,13 +225,13 @@ def process_handbook_files():
                         c_si = course.get("course_name_si", "")
                         c_en = course.get("course_name_en", "")
 
-                        # Smart Duplicate Pre-Check
+                        # Smart Deduplication Pre-Check
                         if is_duplicate_course(c_si, c_en, "2025/2026"):
                             print(f"🔄 [DUPLICATE SKIP] {c_si} / {c_en} දැනටමත් පවතී.")
                             total_skipped_duplicates += 1
                             continue
 
-                        # Ensure array/not-null safety
+                        # Defensive checks for Supabase Array & Not-Null constraints
                         if not course.get("subject_requirements"):
                             course["subject_requirements"] = []
                         if not course.get("universities"):
@@ -240,10 +246,11 @@ def process_handbook_files():
                     
                     print(f"✅ Saved courses batch from pages {start_page + 1}-{end_page}.")
 
-                time.sleep(12)  # Rate limit protection
+                time.sleep(12)  # Rate limit protection pause
 
             doc.close()
-            move_file(file_id, GDRIVE_FOLDER_ID, processed_folder_id)
+            # 4. Processing සාර්ථක වූ පසු 'UGC_Handbooks/Processed' folder එකට Move කරයි
+            move_file(file_id, ugc_folder_id, processed_folder_id)
             print(f"\n🎉 Successfully processed {file_name}!")
             print(f"📊 Total new courses saved: {total_extracted} | Duplicates skipped: {total_skipped_duplicates}")
 
