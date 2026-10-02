@@ -20,7 +20,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install requests supabase google-genai
+          python -m pip install --upgrade pip
+          pip install requests supabase google-genai beautifulsoup4 PyMuPDF
 
       - name: Run Job Sync Script
         env:
