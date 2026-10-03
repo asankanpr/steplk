@@ -12,7 +12,7 @@ from google import genai
 from google.genai import types
 from supabase import create_client, Client
 
-# urllib3 SSL Warnings පාලනය කිරීම
+# urllib3 SSL Warnings
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -23,7 +23,7 @@ SRC_SUPABASE_KEY = os.getenv("SRC_SUPABASE_SERVICE_ROLE_KEY")
 DEST_SUPABASE_URL = os.getenv("DEST_SUPABASE_URL") or os.getenv("SUPABASE_URL")
 DEST_SUPABASE_KEY = os.getenv("DEST_SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_JOB_SCRAPER_KEY") or os.getenv("GEMINI_API_KEY")
 
 if not all([SRC_SUPABASE_URL, SRC_SUPABASE_KEY, DEST_SUPABASE_URL, DEST_SUPABASE_KEY, GEMINI_API_KEY]):
     raise ValueError("❌ Missing required environment variables! Please check GitHub Secrets.")
@@ -36,14 +36,13 @@ SL_TZ = timezone(timedelta(hours=5, minutes=30))
 
 # AI Fallback Model Chain
 DEFAULT_CHAIN = [
-    "gemini-3.8-flash",       # Tier 1: Primary Model (High Accuracy)
-    "gemini-3.6-flash",       # Tier 2: Fast & Reliable Backup
-    "gemini-3.5-flash",       # Tier 3: Workhorse Backup
-    "gemini-3.5-flash-lite",  # Tier 4: Google Recommended Lite Model
-    "gemini-3.1-flash-lite"   # Tier 5: High Rate Limit Buffer
+    "gemini-3.8-flash",       # Tier 1: Primary Model
+    "gemini-3.6-flash",       # Tier 2: Backup
+    "gemini-3.5-flash",       # Tier 3: Workhorse
+    "gemini-3.5-flash-lite",  # Tier 4: Lite
+    "gemini-3.1-flash-lite"   # Tier 5: High Buffer
 ]
 
-# Custom Headers - Govt/Sri Lankan Sites Block වීම වැළැක්වීමට
 HTTP_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,pdf;q=0.8,*/*;q=0.8',
@@ -81,7 +80,6 @@ def is_post_expired(closing_date_str):
     return False
 
 def is_duplicate_post(title, organization, pdf_url, closing_date=None):
-    """Target Database එකෙහි දැනටමත් මෙම Job / Course post එක පවතීදැයි පරීක්ෂා කරයි."""
     try:
         if pdf_url:
             res_url = supabase_dest.table("posts").select("id").eq("pdf_url", pdf_url).limit(1).execute()
@@ -102,14 +100,10 @@ def is_duplicate_post(title, organization, pdf_url, closing_date=None):
     return False
 
 def resolve_actual_file_url(url):
-    """
-    ලැබෙන URL එක HTML Webpage එකක් නම්, ඒ තුළ ඇති ඇත්තම PDF/Image direct URL එක හාරා සොයාගනී.
-    """
     if not url or not isinstance(url, str):
         return None
     
     lower_url = url.lower()
-    # Direct PDF / Image Link එකක් නම් එලෙසම ලබාදෙයි
     if any(lower_url.endswith(ext) for ext in ['.pdf', '.jpg', '.jpeg', '.png', '.webp']):
         return url
 
@@ -121,10 +115,8 @@ def resolve_actual_file_url(url):
             if 'application/pdf' in content_type or 'image/' in content_type:
                 return url
             
-            # HTML Page එකක් නම් BeautifulSoup මඟින් PDF / Image Tag සොයයි
             soup = BeautifulSoup(res.text, 'html.parser')
             
-            # 1. <a> tag links
             for a_tag in soup.find_all('a', href=True):
                 href = a_tag['href']
                 if any(ext in href.lower() for ext in ['.pdf', '.jpg', '.jpeg', '.png']):
@@ -132,7 +124,6 @@ def resolve_actual_file_url(url):
                     print(f"🎯 Found PDF/Image link inside HTML: {found_url}")
                     return found_url
             
-            # 2. <iframe / embed / img> tags
             for embed in soup.find_all(['iframe', 'embed', 'img'], src=True):
                 src = embed['src']
                 if any(ext in src.lower() for ext in ['.pdf', '.jpg', '.jpeg', '.png']):
@@ -145,9 +136,6 @@ def resolve_actual_file_url(url):
     return url
 
 def convert_pdf_to_images(pdf_bytes, max_pages=3):
-    """
-    PDF එකෙහි පිටු 200 DPI High-Quality JPEG Images බවට පත් කරයි (Scan කළාක් මෙන්).
-    """
     images = []
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -156,7 +144,7 @@ def convert_pdf_to_images(pdf_bytes, max_pages=3):
         
         for page_num in range(total_pages):
             page = doc.load_page(page_num)
-            pix = page.get_pixmap(dpi=200) # 200 DPI for ultra clear Sinhala text
+            pix = page.get_pixmap(dpi=200)
             img_bytes = pix.tobytes("jpeg")
             images.append(img_bytes)
     except Exception as e:
@@ -165,9 +153,6 @@ def convert_pdf_to_images(pdf_bytes, max_pages=3):
     return images
 
 def extract_with_gemini_vision(image_bytes_list):
-    """
-    Image Bytes (JPEG) එකක් හෝ කීපයක් Gemini Vision AI එකට යවා Accurate OCR Extraction සිදු කරයි.
-    """
     prompt = """
     You are an expert Sri Lankan Job Advertisement, Course Notice, and Public Exam OCR Specialist.
     Carefully inspect the attached document image(s) from top to bottom.
@@ -203,7 +188,6 @@ def extract_with_gemini_vision(image_bytes_list):
     Respond strictly with valid JSON.
     """
 
-    # Image Parts පිළියෙල කිරීම
     contents = []
     for img_bytes in image_bytes_list:
         contents.append(genai.types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"))
@@ -216,7 +200,6 @@ def extract_with_gemini_vision(image_bytes_list):
 
     last_error = None
 
-    # Fallback Model Chain එක හරහා Call කිරීම
     for model_name in DEFAULT_CHAIN:
         try:
             print(f"🤖 Calling AI Vision Model: {model_name}...")
@@ -230,7 +213,7 @@ def extract_with_gemini_vision(image_bytes_list):
             return data
         except Exception as e:
             last_error = e
-            print(f"⚠️ Model [{model_name}] failed: {e}. Trying fallback model...")
+            print(f"⚠️️ Model [{model_name}] failed: {e}. Trying fallback model...")
             time.sleep(2)
 
     raise RuntimeError(f"❌ All Gemini models in DEFAULT_CHAIN failed! Last error: {last_error}")
@@ -265,7 +248,6 @@ def process_sl_job_scraper_vacancies():
 
             print(f"\n📄 Processing ID {vac_id}: {title} ({company})...")
 
-            # Pre-Check Expired
             if clean_closing and is_post_expired(clean_closing):
                 print(f"⏩ [Pre-Check] ID {vac_id} - Post Expired ({clean_closing}). Skipping...")
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
@@ -275,7 +257,6 @@ def process_sl_job_scraper_vacancies():
             extracted_data = {}
             has_gemini_error = False
 
-            # 1. Web Link Resolver හරහා direct file URL එක තීරණය කිරීම
             raw_target_url = file_link if (file_link and str(file_link).startswith("http")) else web_link
             target_file_url = resolve_actual_file_url(raw_target_url)
 
@@ -289,10 +270,8 @@ def process_sl_job_scraper_vacancies():
                         
                         images_to_process = []
                         if is_pdf:
-                            # PDF එක High-Resolution JPEGs බවට පත් කරයි
                             images_to_process = convert_pdf_to_images(file_bytes, max_pages=3)
                         else:
-                            # කෙළින්ම Image එකක් නම්
                             images_to_process = [file_bytes]
 
                         if images_to_process:
@@ -310,11 +289,10 @@ def process_sl_job_scraper_vacancies():
                 print(f"⏳ Processing error for ID {vac_id}. Skipping for next run.")
                 continue
 
-            # Junk Filter Check
             is_valid_ad = extracted_data.get("is_valid_ad", True)
             if not is_valid_ad:
                 reason = extracted_data.get("rejection_reason", "Not a job or course vacancy")
-                print(f"🗑️ [JUNK REJECTED] ID {vac_id} - {reason}. Skipping & marking processed...")
+                print(f"🗑️️ [JUNK REJECTED] ID {vac_id} - {reason}. Skipping & marking processed...")
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
                 total_skipped += 1
                 continue
@@ -322,7 +300,6 @@ def process_sl_job_scraper_vacancies():
             gemini_date = clean_date_format(extracted_data.get("closing_date"))
             final_closing_date = gemini_date or clean_closing
 
-            # Post-Check Expired
             if final_closing_date and is_post_expired(final_closing_date):
                 print(f"⏩ [Post-Check] ID {vac_id} - Extracted Date Expired ({final_closing_date}). Skipping...")
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
@@ -332,14 +309,12 @@ def process_sl_job_scraper_vacancies():
             final_title = extracted_data.get("title") or title
             final_org = extracted_data.get("organization") or company
 
-            # Duplicate Check
             if is_duplicate_post(final_title, final_org, target_file_url, final_closing_date):
                 print(f"🔄 [DUPLICATE DETECTED] ID {vac_id} - ({final_title} | {final_org}) දැනටමත් පවතී. Skipping...")
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
                 total_skipped += 1
                 continue
 
-            # Destination Payload
             post_payload = {
                 "title": final_title,
                 "organization": final_org,
