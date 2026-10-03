@@ -2,7 +2,8 @@ name: University Handbook Auto Processor
 
 on:
   schedule:
-    - cron: '30 5 * * *'   # 11:00 AM (උදෑසන 11:00)
+    # SLT: 08:30 AM & 02:30 PM (UTC: 03:00 AM & 09:00 AM)
+    - cron: '0 3,9 * * *'
   workflow_dispatch:
 
 jobs:
@@ -27,7 +28,8 @@ jobs:
         env:
           GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_HANDBOOK_KEY: ${{ secrets.GEMINI_HANDBOOK_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_HANDBOOK_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python process_university_handbook.py
