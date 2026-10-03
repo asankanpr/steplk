@@ -2,7 +2,8 @@ name: Sync SL Job Scraper
 
 on:
   schedule:
-    - cron: '30 4,8 * * *'  # SLT: 10:00 AM & 2:00 PM (UTC: 04:30 AM & 08:30 AM)
+    # SLT: 07:30 AM & 01:30 PM (UTC: 02:00 AM & 08:00 AM)
+    - cron: '0 2,8 * * *'
   workflow_dispatch:
 
 jobs:
@@ -29,5 +30,6 @@ jobs:
           SRC_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SRC_SUPABASE_SERVICE_ROLE_KEY }}
           DEST_SUPABASE_URL: ${{ secrets.DEST_SUPABASE_URL }}
           DEST_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEST_SUPABASE_SERVICE_ROLE_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_JOB_SCRAPER_KEY: ${{ secrets.GEMINI_JOB_SCRAPER_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_JOB_SCRAPER_KEY }}
         run: python sync_sl_job_scraper.py
