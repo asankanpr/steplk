@@ -2,9 +2,8 @@ name: Google Drive Document Extractor
 
 on:
   schedule:
-    # ලංකාවේ වේලාවෙන් (SLST): උදේ 7:30, 11:30, හවස 3:30 සහ රෑ 7:30
-    # UTC Times: 02:00, 06:00, 10:00, 14:00
-    - cron: '0 2,6,10,14 * * *'
+    # SLT: 10:00 AM & 04:00 PM (UTC: 04:30 AM & 10:30 AM)
+    - cron: '30 4,10 * * *'
   workflow_dispatch:
 
 jobs:
@@ -29,8 +28,9 @@ jobs:
         env:
           GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
-          GEMINI_DRIVE_API_KEY: ${{ secrets.GEMINI_DRIVE_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_DOC_EXTRACTOR_KEY: ${{ secrets.GEMINI_DOC_EXTRACTOR_KEY }}
+          GEMINI_DRIVE_API_KEY: ${{ secrets.GEMINI_DOC_EXTRACTOR_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_DOC_EXTRACTOR_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
           GEMINI_FALLBACK_MODEL: ${{ vars.GEMINI_FALLBACK_MODEL || 'gemini-2.0-flash' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
