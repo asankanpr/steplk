@@ -2,7 +2,7 @@ name: University Handbook Auto Processor
 
 on:
   schedule:
-    - cron: '30 3 * * *'  # SLT: 09:00 AM (UTC: 03:30 AM)
+    - cron: '30 5 * * *'   # 11:00 AM (උදෑසන 11:00)
   workflow_dispatch:
 
 jobs:
