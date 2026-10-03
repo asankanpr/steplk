@@ -2,10 +2,8 @@ name: StepLK Daily Utilities Cron Job
 
 on:
   schedule:
-    # 1. Runs at 4:00 AM Sri Lanka Time (22:30 UTC)
-    - cron: '30 22 * * *'
-    # 2. Runs at 1:00 PM Sri Lanka Time (07:30 UTC)
-    - cron: '30 7 * * *'
+    - cron: '30 1 * * *'   # 07:00 AM (උදෑසන 07:00)
+    - cron: '30 9 * * *'   # 03:00 PM (පස්වරු 03:00)
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
