@@ -10,13 +10,12 @@ from google import genai
 from google.genai import types
 from supabase import create_client, Client
 
-# Deprecation සහ Informational Warnings Hide කිරීම
 warnings.filterwarnings("ignore")
 
 # Environment Variables Validation
 GDRIVE_JSON_STR = os.getenv("GDRIVE_SERVICE_ACCOUNT_JSON")
 GDRIVE_FOLDER_ID = os.getenv("GDRIVE_FOLDER_ID")
-GEMINI_API_KEY = os.getenv("GEMINI_DRIVE_API_KEY") or os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_DOC_EXTRACTOR_KEY") or os.getenv("GEMINI_DRIVE_API_KEY") or os.getenv("GEMINI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
 
@@ -31,22 +30,18 @@ drive_service = build('drive', 'v3', credentials=creds)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# -------------------------------------------------------------
-# VERIFIED 4-TIER MODEL FALLBACK CHAIN (Directly from user API Key)
-# -------------------------------------------------------------
 ENV_PRIMARY = os.getenv("GEMINI_MODEL", "").strip()
 ENV_FALLBACK = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
 
 DEFAULT_CHAIN = [
-    "gemini-3.8-flash",       # Tier 1: Primary Model (High Accuracy)
-    "gemini-3.6-flash",       # Tier 2: Fast & Reliable Backup
-    "gemini-3.5-flash",       # Tier 3: Workhorse Backup (අද extraction එක කරලා දුන්නේ මේකෙන්!)
-    "gemini-3.5-flash-lite",  # Tier 4: Google Recommended Lite Model
-    "gemini-3.1-flash-lite"   # Tier 5: High Rate Limit Buffer
+    "gemini-3.8-flash",       # Tier 1: Primary Model
+    "gemini-3.6-flash",       # Tier 2: Backup
+    "gemini-3.5-flash",       # Tier 3: Workhorse
+    "gemini-3.5-flash-lite",  # Tier 4: Lite
+    "gemini-3.1-flash-lite"   # Tier 5: High Buffer
 ]
 
 MODEL_NAMES = []
-# Env variables වලින් වෙනස්කම් කර ඇත්නම් ඒවා මුලට එකතු කිරීම
 for m in [ENV_PRIMARY, ENV_FALLBACK] + DEFAULT_CHAIN:
     m_clean = m.replace("models/", "").strip() if m else ""
     if m_clean and m_clean not in MODEL_NAMES:
@@ -120,9 +115,6 @@ def make_file_publicly_readable(file_id):
     except Exception as e:
         print(f"⚠️ Permission notice: {str(e)}")
 
-# -------------------------------------------------------------
-# PASS 1: INITIAL EXTRACTION
-# -------------------------------------------------------------
 def extract_data_with_gemini(file_bytes, mime_type):
     prompt = """
     You are a meticulous Sri Lankan Gazette & Job Advertisement OCR Specialist.
@@ -165,9 +157,6 @@ def extract_data_with_gemini(file_bytes, mime_type):
         return data["posts"]
     return []
 
-# -------------------------------------------------------------
-# PASS 2: QUALITY CHECK & RE-AUDIT PASS
-# -------------------------------------------------------------
 def run_quality_check_and_reverify(file_bytes, mime_type, primary_posts):
     extracted_titles = [p.get("title", "") for p in primary_posts]
 
@@ -256,11 +245,9 @@ def process_drive_files():
         file_bytes = fh.getvalue()
 
         try:
-            # 1. Primary Extraction
             primary_posts = extract_data_with_gemini(file_bytes, mime_type)
             print(f"🔍 Primary Extraction found: {len(primary_posts)} posts.")
 
-            # 2. Quality Check Pass
             final_posts, recovered_count, qc_summary = run_quality_check_and_reverify(file_bytes, mime_type, primary_posts)
             print(f"🛡️ Quality Check Audit: {qc_summary} (Recovered: {recovered_count} missed posts). Total: {len(final_posts)}")
 
@@ -268,7 +255,6 @@ def process_drive_files():
 
             extracted_titles = []
 
-            # 3. Insert Final Verified Posts into Database
             for idx, post in enumerate(final_posts, start=1):
                 post_title = post.get("title", f"{file_name} - Position {idx}")
                 
@@ -301,7 +287,6 @@ def process_drive_files():
             print(f"❌ Error processing {file_name}: {err_msg}")
             log_document_status(file_name, file_id, "FAILED", 0, "", "Processing Error", err_msg)
 
-            # Process එක Fail වුවහොත් File එක 'Unsuccessful' එකට නොදා ඊළඟ Run එක වෙනුවෙන් Main Folder එකේම තබයි
             print(f"⏳ Keeping {file_name} in main Drive folder for next scheduled run retry.")
 
 if __name__ == "__main__":
