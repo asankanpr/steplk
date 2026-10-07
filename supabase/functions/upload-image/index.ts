@@ -12,19 +12,19 @@ serve(async (req) => {
   }
 
   try {
-    const IMGBB_API_KEY = Deno.env.get("IMGBB_API_KEY");
-    
-    // Key එක තියෙනවද කියලා අනිවාර්යයෙන්ම බලනවා
-    if (!IMGBB_API_KEY) {
-      console.error("IMGBB_API_KEY is missing in Supabase Secrets!");
-      throw new Error("Server configuration error: Missing API Key.");
-    }
+    // Supabase Secret එකෙන් හෝ නැත්නම් Hardcoded Fallback එකෙන් Key එක ලබාගැනීම
+    const IMGBB_API_KEY = Deno.env.get("IMGBB_API_KEY") || "a6b8a783f1c3a779ba56333049e2dc2c";
 
     const requestData = await req.json();
-    const base64Image = requestData.base64Image;
+    let base64Image = requestData.base64Image;
 
     if (!base64Image) {
       throw new Error("No image data provided in the request.");
+    }
+
+    // Base64 string එකේ prefix එකක් (data:image/...;base64,) තිබේ නම් එය ඉවත් කිරීම
+    if (base64Image.includes(',')) {
+      base64Image = base64Image.split(',')[1];
     }
 
     const formData = new FormData();
