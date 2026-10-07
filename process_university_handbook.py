@@ -42,6 +42,17 @@ DEFAULT_CHAIN = [
 
 BATCH_SIZE = 10  # Optimal page chunking size for 100% accuracy
 
+def clean_sinhala_text(val):
+    """Post-processing sanitizer for text fields to fix AI translation errors and legacy font remnants."""
+    if not val:
+        return val
+    if isinstance(val, str):
+        val = re.sub(r'අයනිකරණය', 'ප්‍රායෝගික විද්‍යාවන්', val)
+        val = val.strip()
+    elif isinstance(val, list):
+        val = [clean_sinhala_text(item) for item in val if item]
+    return val
+
 def is_duplicate_course(course_si, course_en, year):
     """Checks whether the degree programme already exists in Supabase to prevent duplicates."""
     try:
@@ -196,10 +207,27 @@ def process_handbook_files():
                 You are an expert UGC Sri Lanka University Admission Handbook Data Extractor and Sinhala Font Decoder.
                 Analyze the raw extracted text from the handbook and extract ALL Degree Programmes into structured JSON for admission year 2025/2026.
 
-                CRITICAL SINHALA FONT DECODING INSTRUCTION:
-                The input text contains legacy Sinhala font encodings (e.g., FM-Abhaya ASCII text such as 'úlsrK Ys,amh', 'Aõh system', 'ksA' or non-standard characters).
-                You MUST DECODE AND CONVERT ALL legacy ASCII Sinhala text into standard, clean, properly spelled Sinhala Unicode characters (e.g., 'විකිරණ ශිල්පය').
-                NEVER output raw ASCII/ANSI gibberish font text in course_name_si or description!
+                CRITICAL SINHALA FONT DECODING & TRANSLATION INSTRUCTIONS:
+                1. The input text contains legacy Sinhala font encodings (e.g., FM-Abhaya ASCII text like 'úlsrK Ys,amh', 'fmardfoKsh', 'chj¾Okmqr', 'úYvjúoHd.h').
+                   You MUST DECODE AND CONVERT ALL legacy ASCII Sinhala text into standard, clean, properly spelled Sinhala Unicode characters (e.g., 'විකිරණ ශිල්පය').
+                2. ALWAYS output Official Sri Lankan University Names in clean standard Sinhala Unicode in the 'universities' array:
+                   Example university mappings:
+                   - 'කොළඹ විශ්වවිද්‍යාලය'
+                   - 'පේරාදෙණිය විශ්වවිද්‍යාලය'
+                   - 'ශ්‍රී ජයවර්ධනපුර විශ්වවිද්‍යාලය'
+                   - 'කැලණිය විශ්වවිද්‍යාලය'
+                   - 'රුහුණ විශ්වවිද්‍යාලය'
+                   - 'යාපනය විශ්වවිද්‍යාලය'
+                   - 'රජරට විශ්වවිද්‍යාලය'
+                   - 'සබරගමුව විශ්වවිද්‍යාලය'
+                   - 'වයඹ විශ්වවිද්‍යාලය'
+                   - 'ඌව වෙල්ලස්ස විශ්වවිද්‍යාලය'
+                   - 'අග්නිදිග විශ්වවිද්‍යාලය'
+                   - 'පූර්ව දිග විශ්වවිද්‍යාලය'
+                   - 'ලංකා විවෘත විශ්වවිද්‍යාලය'
+                   - 'ශ්‍රී ලංකා ජාතික අධ්‍යාපන ආයතනය'
+                3. NEVER translate 'Applied Sciences' as 'අයනිකරණය'. Always translate 'Applied Sciences' as 'ප්‍රායෝගික විද්‍යාවන්'.
+                4. ALL text fields ('course_name_si', 'universities', 'subject_requirements', 'description', 'other_requirements') MUST BE strictly in clean Unicode Sinhala. NEVER leave raw ASCII font gibberish!
 
                 EXTRACTED TEXT CONTENT:
                 \"\"\"
@@ -218,7 +246,7 @@ def process_handbook_files():
                       "subject_requirements": ["Subject 1", "Subject 2", "Subject 3"],
                       "other_requirements": "O/L passes, Aptitude Tests, or special criteria if any, else null",
                       "duration_years": 4,
-                      "universities": ["University of Colombo", "University of Peradeniya"],
+                      "universities": ["කොළඹ විශ්වවිද්‍යාලය", "පේරාදෙණිය විශ්වවිද්‍යාලය"],
                       "description": "Brief course description in Clean Sinhala Unicode"
                     }}
                   ]
@@ -227,12 +255,19 @@ def process_handbook_files():
                 Respond strictly with valid JSON.
                 """
 
-                # STRICT EXTRACTION (Will throw Exception if invalid JSON, ensuring ZERO SKIPS)
+                # STRICT EXTRACTION
                 courses = extract_courses_with_strict_retry(prompt, year="2025/2026")
 
                 chunk_saved = 0
                 if courses:
                     for course in courses:
+                        # Clean fields using sanitizer
+                        course["course_name_si"] = clean_sinhala_text(course.get("course_name_si", ""))
+                        course["course_name_en"] = clean_sinhala_text(course.get("course_name_en", ""))
+                        course["universities"] = clean_sinhala_text(course.get("universities", []))
+                        course["subject_requirements"] = clean_sinhala_text(course.get("subject_requirements", []))
+                        course["description"] = clean_sinhala_text(course.get("description", ""))
+
                         c_si = course.get("course_name_si", "")
                         c_en = course.get("course_name_en", "")
 
@@ -264,7 +299,7 @@ def process_handbook_files():
 
             doc.close()
 
-            # 100% COMPLETE VERIFICATION - Move File Only After All Pages Audit Successfully
+            # Move File Only After All Pages Audit Successfully
             move_file(file_id, ugc_folder_id, processed_folder_id)
             
             print("\n==================================================")
