@@ -3,7 +3,7 @@ name: Deploy Supabase Edge Functions
 on:
   push:
     branches:
-      - main # ඔයාගේ ප්‍රධාන branch එක main නම් (නැත්නම් master කියලා දෙන්න)
+      - main # ඔයාගේ ප්‍රධාන branch එක
     paths:
       - 'supabase/functions/**'
   workflow_dispatch:
@@ -20,6 +20,7 @@ jobs:
           version: latest
           
       - name: Deploy upload-image function
-        run: supabase functions deploy upload-image --project-ref wlgnfprghzczwjjpoqym
+        # මෙතන --project-ref එකත් එක්කම Service Role Key එක පාවිච්චි කරලා ලොග් වෙනවා
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} 
+        run: supabase functions deploy upload-image --project-ref wlgnfprghzczwjjpoqym
