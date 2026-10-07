@@ -8,6 +8,11 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#061626">
     <title>StepLK - විශ්වවිද්‍යාල ප්‍රවේශය (University Admission)</title>
+
+    <!-- Google Sinhala Font Load කිරීම -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -15,6 +20,9 @@
             darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans Sinhala"', 'sans-serif']
+                    },
                     colors: {
                         brand: {
                             dark: '#061626',
