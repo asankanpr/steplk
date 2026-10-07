@@ -104,7 +104,7 @@
 
         </div>
 
-        <!-- RESULTS SECTION (COMPACT CARDS - MINIMAL GAP) -->
+        <!-- RESULTS SECTION -->
         <div class="space-y-2">
             <div id="results-header" class="text-xs font-bold text-slate-400 hidden flex items-center justify-between">
                 <span>හමුවූ උපාධි පාඨමාලා ලැයිස්තුව:</span>
@@ -165,7 +165,7 @@
                     <h3 class="text-xs font-bold text-brand-emerald flex items-center gap-1.5">
                         <i class="fa-solid fa-briefcase"></i> මෙම උපාධිය සම්පූර්ණ කළ අයෙකුට වර්තමානයේ අයදුම් කළ හැකි රැකියා:
                     </h3>
-                    <p class="text-[10px] text-slate-400 mt-0.5">අපගේ පද්ධතියේ දැනට පවතින ඉහළම වැටුප් සහිත සජීවී ඇබෑර්තු 10ක් පහතින් දැක්වේ.</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">මෙම උපාධියට සෘජුවම ගැලපෙන සහ අපගේ පද්ධතියේ දැනට පවතින ඉහළම රැකියා 10ක් පහතින් දැක්වේ.</p>
                 </div>
 
                 <!-- Govt Jobs Top 5 -->
@@ -201,6 +201,30 @@
             "Common": ["Biology", "Combined Mathematics", "Chemistry", "Physics", "Accounting", "Economics", "Business Studies", "Political Science", "Logic", "ICT", "Agricultural Science", "ET", "BST", "SFT"]
         };
 
+        // Legacy Font Decoding Helper for Clean Unicode Display
+        function cleanUniversityName(uni) {
+            if (!uni) return '';
+            let clean = String(uni).trim();
+            clean = clean.replace(/අයනිකරණය/g, 'ප්‍රායෝගික විද්‍යාවන්');
+
+            // Detect Legacy ASCII Font Patterns and Map to Standard Unicode Sinhala
+            if (/úYvjúoHd|fmardfoKsh|chj¾Okmqr|le\.Ksh|hdmkh|reyqK|fld/i.test(clean)) {
+                if (/fmardfoKsh/i.test(clean)) return 'පේරාදෙණිය විශ්වවිද්‍යාලය';
+                if (/chj¾Okmqr/i.test(clean)) return 'ශ්‍රී ජයවර්ධනපුර විශ්වවිද්‍යාලය';
+                if (/le\.Ksh/i.test(clean)) return 'කැලණිය විශ්වවිද්‍යාලය';
+                if (/hdmkh/i.test(clean)) return 'යාපනය විශ්වවිද්‍යාලය';
+                if (/reyqK/i.test(clean)) return 'රුහුණ විශ්වවිද්‍යාලය';
+                if (/fld/i.test(clean)) return 'කොළඹ විශ්වවිද්‍යාලය';
+                return 'ශ්‍රී ලංකා විශ්වවිද්‍යාලය';
+            }
+            return clean;
+        }
+
+        function cleanSinhalaDisplay(text) {
+            if (!text) return '';
+            return String(text).replace(/අයනිකරණය/g, 'ප්‍රායෝගික විද්‍යාවන්');
+        }
+
         window.onStreamChange = function() {
             const stream = document.getElementById('stream-select').value;
             const container = document.getElementById('subjects-container');
@@ -222,14 +246,9 @@
 
         window.findEligibleCourses = async function() {
             const stream = document.getElementById('stream-select').value;
-            const sub1 = document.getElementById('sub1').value;
-            const sub2 = document.getElementById('sub2').value;
-            const sub3 = document.getElementById('sub3').value;
-
             const listContainer = document.getElementById('courses-list');
             listContainer.innerHTML = `<div class="text-center py-4 text-xs text-brand-emerald"><i class="fa-solid fa-spinner fa-spin"></i> පාඨමාලා සෙවීම සිදුකරයි...</div>`;
 
-            // Query Supabase university_courses table
             const { data: courses, error } = await supabase
                 .from('university_courses')
                 .select('*')
@@ -245,10 +264,11 @@
 
             let html = '';
             courses.forEach(c => {
+                const cSi = cleanSinhalaDisplay(c.course_name_si);
                 html += `
                 <div onclick="openCourseModal('${c.id}')" class="bg-brand-card hover:bg-slate-800/80 border border-brand-border hover:border-brand-emerald/50 p-2.5 rounded-xl cursor-pointer transition flex items-center justify-between gap-2 shadow-sm group">
                     <div>
-                        <h3 class="text-xs font-bold text-white group-hover:text-brand-emerald transition">${c.course_name_si}</h3>
+                        <h3 class="text-xs font-bold text-white group-hover:text-brand-emerald transition">${cSi}</h3>
                         <p class="text-[10px] text-slate-400">${c.course_name_en}</p>
                     </div>
                     <span class="text-[9px] bg-brand-dark px-2 py-1 rounded border border-slate-700 font-mono font-bold text-brand-yellow flex-shrink-0">
@@ -266,53 +286,86 @@
             if (!course) return;
 
             document.getElementById('m-degree-badge').innerText = course.degree;
-            document.getElementById('m-course-si').innerText = course.course_name_si;
+            document.getElementById('m-course-si').innerText = cleanSinhalaDisplay(course.course_name_si);
             document.getElementById('m-course-en').innerText = course.course_name_en;
             document.getElementById('m-degree-name').innerText = course.degree;
             document.getElementById('m-duration').innerText = `අවුරුදු ${course.duration_years || 4}`;
-            document.getElementById('m-subjects').innerText = (course.subject_requirements || []).join(', ') + " | " + (course.other_requirements || '');
 
+            // Requirements Handling with Fallback
+            const reqsList = (course.subject_requirements && course.subject_requirements.length > 0)
+                ? course.subject_requirements.join(', ')
+                : 'උසස් පෙළ (A/L) අදාළ විෂය ධාරාවෙන් සමත් වීම';
+            const extraReqs = course.other_requirements ? ` | ${course.other_requirements}` : '';
+            document.getElementById('m-subjects').innerText = reqsList + extraReqs;
+
+            // University List Rendering
             const unis = course.universities || [];
-            document.getElementById('m-unis').innerHTML = unis.map(u => `<span class="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] px-2 py-0.5 rounded-md font-semibold">${u}</span>`).join('');
+            document.getElementById('m-unis').innerHTML = unis.length > 0 
+                ? unis.map(u => `<span class="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] px-2 py-0.5 rounded-md font-semibold">${cleanUniversityName(u)}</span>`).join('')
+                : `<span class="text-slate-500 text-[10px]">සියලුම රාජ්‍ය විශ්වවිද්‍යාල</span>`;
 
-            // Fetch Real-time Top 5 Govt & Top 5 Pvt Jobs from `posts` table
-            fetchMatchingJobs(course.degree, course.course_name_en);
+            // Smart Degree Priority Job Search
+            fetchMatchingJobs(course.degree, course.course_name_en, course.course_name_si);
 
             document.getElementById('course-modal').classList.remove('hidden');
         };
 
-        async function fetchMatchingJobs(degreeType, degreeTitle) {
+        // Priority Degree Matching Job Finder Engine
+        async function fetchMatchingJobs(degreeType, degreeTitleEn, degreeTitleSi) {
             const govtBox = document.getElementById('govt-jobs-list');
             const pvtBox = document.getElementById('pvt-jobs-list');
 
-            govtBox.innerHTML = `<div class="text-[10px] text-slate-500">සෙවීම සිදුකරයි...</div>`;
-            pvtBox.innerHTML = `<div class="text-[10px] text-slate-500">සෙවීම සිදුකරයි...</div>`;
+            govtBox.innerHTML = `<div class="text-[10px] text-slate-500"><i class="fa-solid fa-spinner fa-spin"></i> රැකියා සෙවීම සිදුකරයි...</div>`;
+            pvtBox.innerHTML = `<div class="text-[10px] text-slate-500"><i class="fa-solid fa-spinner fa-spin"></i> රැකියා සෙවීම සිදුකරයි...</div>`;
 
-            // Top 5 Govt Jobs
-            const { data: govtJobs } = await supabase
+            // Extract Search Keywords from Course Name (e.g., "Biological", "Physiotherapy", "Biochemistry")
+            const keyword = (degreeTitleEn || '').split(' ')[0] || '';
+
+            // Fetch All Recent Govt & Private Jobs from `posts` table (No Deadline Filter)
+            const { data: allGovt } = await supabase
                 .from('posts')
                 .select('*')
                 .eq('status', 'PUBLISHED')
                 .ilike('category', '%Government%')
                 .order('created_at', { ascending: false })
-                .limit(5);
+                .limit(20);
 
-            // Top 5 Private Jobs
-            const { data: pvtJobs } = await supabase
+            const { data: allPvt } = await supabase
                 .from('posts')
                 .select('*')
                 .eq('status', 'PUBLISHED')
                 .ilike('category', '%Private%')
                 .order('created_at', { ascending: false })
-                .limit(5);
+                .limit(20);
 
-            renderJobsList(govtJobs, govtBox);
-            renderJobsList(pvtJobs, pvtBox);
+            // Filter & Rank Jobs with Degree Priority
+            const prioritizedGovt = rankJobsByDegree(allGovt || [], degreeType, keyword);
+            const prioritizedPvt = rankJobsByDegree(allPvt || [], degreeType, keyword);
+
+            renderJobsList(prioritizedGovt.slice(0, 5), govtBox);
+            renderJobsList(prioritizedPvt.slice(0, 5), pvtBox);
+        }
+
+        function rankJobsByDegree(jobs, degreeType, keyword) {
+            if (!jobs || jobs.length === 0) return [];
+
+            // Score jobs: +2 for exact degree keyword match in title, +1 for degree type
+            return jobs.map(j => {
+                let score = 0;
+                const fullText = ((j.title || '') + ' ' + (j.description || '') + ' ' + (j.qualifications || '')).toLowerCase();
+                
+                if (keyword && fullText.includes(keyword.toLowerCase())) score += 5;
+                if (degreeType && fullText.includes(degreeType.toLowerCase())) score += 2;
+
+                return { job: j, score: score };
+            })
+            .sort((a, b) => b.score - a.score)
+            .map(item => item.job);
         }
 
         function renderJobsList(jobs, container) {
             if (!jobs || jobs.length === 0) {
-                container.innerHTML = `<p class="text-[10px] text-slate-500">දැනට ඇබෑර්තු නොමැත.</p>`;
+                container.innerHTML = `<p class="text-[10px] text-slate-500">දැනට සෘජු ඇබෑර්තු නොමැත.</p>`;
                 return;
             }
 
@@ -320,11 +373,11 @@
             jobs.forEach(j => {
                 html += `
                 <div class="bg-brand-dark/80 p-2 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
-                    <div>
-                        <strong class="text-white text-[11px] block">${j.title}</strong>
-                        <span class="text-[10px] text-slate-400">${j.organization || 'N/A'} | වැටුප: ${j.salary_amount || 'සඳහන් නැත'}</span>
+                    <div class="pr-2">
+                        <strong class="text-white text-[11px] block leading-tight">${j.title}</strong>
+                        <span class="text-[10px] text-slate-400 block">${j.organization || 'N/A'} | වැටුප: ${j.salary_amount || 'සඳහන් නැත'}</span>
                     </div>
-                    <a href="${j.pdf_url || '#'}" target="_blank" class="bg-brand-emerald/20 text-brand-emerald text-[9px] font-bold px-2 py-1 rounded border border-brand-emerald/40 hover:bg-brand-emerald hover:text-brand-dark transition">
+                    <a href="${j.pdf_url || '#'}" target="_blank" class="bg-brand-emerald/20 text-brand-emerald text-[9px] font-bold px-2.5 py-1 rounded border border-brand-emerald/40 hover:bg-brand-emerald hover:text-brand-dark transition flex-shrink-0">
                         විස්තර
                     </a>
                 </div>`;
