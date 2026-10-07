@@ -1,0 +1,25 @@
+name: Deploy Supabase Edge Functions
+
+on:
+  push:
+    branches:
+      - main # ඔයාගේ ප්‍රධාන branch එක main නම් (නැත්නම් master කියලා දෙන්න)
+    paths:
+      - 'supabase/functions/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+          
+      - name: Deploy upload-image function
+        run: supabase functions deploy upload-image --project-ref wlgnfprghzczwjjpoqym
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
