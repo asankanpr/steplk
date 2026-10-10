@@ -6,7 +6,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // CORS Preflight Request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -18,21 +17,18 @@ serve(async (req) => {
       throw new Error("GEMINI_API_KEY is not configured in Supabase Edge Function.");
     }
 
-    const requestData = await req.json();
-    const base64Data = requestData.base64Data;
-    const mimeType = requestData.mimeType || "image/jpeg";
+    const { base64Data, mimeType } = await req.json();
 
     if (!base64Data) {
       throw new Error("No image data provided for scanning.");
     }
 
-    // Gemini API Request Payload
     const geminiPayload = {
       contents: [{
         parts: [
           {
             inlineData: {
-              mimeType: mimeType,
+              mimeType: mimeType || "image/jpeg",
               data: base64Data
             }
           },
@@ -59,7 +55,6 @@ serve(async (req) => {
       }
     };
 
-    // Call Gemini API directly from Edge Function
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: {
@@ -77,20 +72,14 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(geminiData),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error: any) {
     console.error("Edge Function Exception:", error.message);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
