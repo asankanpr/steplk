@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // CORS Preflight Request
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -15,7 +15,7 @@ serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     
     if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is missing in Edge Function secrets.");
+      throw new Error("GEMINI_API_KEY missing in environment.");
     }
 
     const requestData = await req.json();
@@ -23,10 +23,10 @@ serve(async (req) => {
     const mimeType = requestData.mimeType || "image/jpeg";
 
     if (!base64Data) {
-      throw new Error("No image data received.");
+      throw new Error("No image data provided.");
     }
 
-    // Prepare Payload for Gemini
+    // Gemini Payload
     const geminiPayload = {
       contents: [{
         parts: [
@@ -38,9 +38,9 @@ serve(async (req) => {
           },
           {
             text: `Extract details from this job advertisement.
-Return ONLY a valid JSON object matching this schema exactly, do not add any markdown formatting like \`\`\`json:
+Return ONLY a valid JSON object matching this schema exactly, with NO markdown formatting (do not use \`\`\`json):
 {
-  "title": "Job title",
+  "title": "Exact job title",
   "org": "Organization name",
   "meq": "One of: NONE, OL, AL, NVQ, DEGREE",
   "salary": "Salary if mentioned, else ''",
@@ -56,8 +56,10 @@ Return ONLY a valid JSON object matching this schema exactly, do not add any mar
       }
     };
 
-    // Call Gemini API (using gemini-1.5-flash as it is faster and cheaper)
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    // Correct API Endpoint and Fetch call
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -67,24 +69,19 @@ Return ONLY a valid JSON object matching this schema exactly, do not add any mar
 
     const geminiData = await response.json();
 
-    // Catch API Errors (This will now show exactly why Gemini failed)
     if (!response.ok) {
-      const apiErrorMsg = geminiData.error?.message || "Unknown Gemini API Error";
-      console.error("Gemini API Error Details:", geminiData);
-      return new Response(
-        JSON.stringify({ error: `Gemini API Failed: ${apiErrorMsg}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+        console.error("Gemini API Error Response:", geminiData);
+        // This will now throw the ACTUAL error from Gemini back to your frontend
+        throw new Error(geminiData.error?.message || "Gemini API request failed.");
     }
 
-    // Success response
     return new Response(
       JSON.stringify(geminiData),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error: any) {
-    console.error("Edge Function Caught Error:", error.message);
+    console.error("Edge Function Error:", error.message);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
