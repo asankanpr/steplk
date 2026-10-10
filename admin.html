@@ -708,150 +708,147 @@
         }
 
         // Helper: Convert File to Base64
-           function fileToBase64(file) {
-               return new Promise((resolve, reject) => {
-                   const reader = new FileReader();
-                   reader.readAsDataURL(file);
-                   reader.onload = () => resolve(reader.result.split(',')[1]);
-                   reader.onerror = error => reject(error);
-               });
+       function fileToBase64(file) {
+           return new Promise((resolve, reject) => {
+               const reader = new FileReader();
+               reader.readAsDataURL(file);
+               reader.onload = () => resolve(reader.result.split(',')[1]);
+               reader.onerror = error => reject(error);
+           });
+       }
+    
+       window.autoScanPvtFile = async function(event) {
+           const file = event.target.files[0];
+           if (!file) return;
+    
+           if (!file.type.startsWith('image/')) {
+               alert("කරුණාකර Job Flyer එක Image එකක් ලෙස Upload කරන්න.");
+               event.target.value = ''; 
+               return;
            }
-        
-           window.autoScanPvtFile = async function(event) {
-               const file = event.target.files[0];
-               if (!file) return;
-        
-               if (!file.type.startsWith('image/')) {
-                   alert("කරුණාකර Job Flyer එක Image එකක් (JPG / PNG / WEBP) ලෙස Upload කරන්න. PDF භාරගනු නොලැබේ.");
-                   event.target.value = ''; 
+    
+           if (file.size > 2 * 1024 * 1024) {
+               alert("Image පරිමාව 2MB ට වඩා වැඩි විය නොහැක!");
+               return;
+           }
+    
+           const loader = document.getElementById('pvt-scan-loader');
+           loader.classList.remove('hidden');
+    
+           try {
+               const base64Data = await fileToBase64(file);
+               const mimeType = file.type || 'image/jpeg';
+               
+               // Securely call Supabase Edge Function! (No API Keys here)
+               const { data, error } = await supabase.functions.invoke('scan-flyer', {
+                   body: { base64Data, mimeType }
+               });
+    
+               loader.classList.add('hidden');
+    
+               if (error) {
+                   console.error("Invoke Error:", error);
+                   alert("Edge Function දෝෂයක්: " + error.message);
                    return;
                }
-        
-               if (file.size > 2 * 1024 * 1024) {
-                   alert("Image පරිමාව 2MB ට වඩා වැඩි විය නොහැක!");
+    
+               if (data && data.error) {
+                   console.error("Backend Error:", data.error);
+                   alert("API Error: " + data.error);
                    return;
                }
-        
-               const loader = document.getElementById('pvt-scan-loader');
-               loader.classList.remove('hidden');
-        
-               try {
+    
+               // Successful Extract
+               if (data && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                   let rawText = data.candidates[0].content.parts[0].text.trim();
+                   rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                   
+                   const extracted = JSON.parse(rawText);
+    
+                   if (extracted.title) document.getElementById('pvt-title').value = extracted.title;
+                   if (extracted.org) document.getElementById('pvt-org').value = extracted.org;
+                   if (extracted.meq) document.getElementById('pvt-meq').value = extracted.meq;
+                   if (extracted.salary) document.getElementById('pvt-salary').value = extracted.salary;
+                   if (extracted.closing) document.getElementById('pvt-closing').value = extracted.closing;
+                   if (extracted.qualifications) document.getElementById('pvt-qualifications').value = extracted.qualifications;
+                   if (extracted.contact) document.getElementById('pvt-contact').value = extracted.contact;
+    
+                   alert("කියවීම සාර්ථකයි! Flyer එකේ විස්තර Form එකට ඇතුළත් කරන ලදී.");
+               } else {
+                   alert("කියවීමට නොහැකි විය. Document එක පැහැදිලි නැත.");
+               }
+    
+           } catch (err) {
+               loader.classList.add('hidden');
+               console.error("Scan Error Details:", err);
+               alert("දෝෂයක් සිදුවිය: " + err.message);
+           }
+       };
+    
+       window.submitNewVacancy = async function(e) {
+           e.preventDefault();
+           const btn = document.getElementById('pvt-submit-btn');
+           btn.disabled = true;
+           btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> සැකසෙමින් පවතී...';
+    
+           const fileInput = document.getElementById('pvt-file-input');
+           let imageUrl = null;
+    
+           try {
+               if (fileInput.files.length > 0) {
+                   const file = fileInput.files[0];
+    
+                   if (!file.type.startsWith('image/')) {
+                       throw new Error("කරුණාකර Image එකක් පමණක් Upload කරන්න.");
+                   }
+    
                    const base64Data = await fileToBase64(file);
-                   const mimeType = file.type || 'image/jpeg';
-        
-                   // Get current session for Auth Header
-                   const { data: { session } } = await supabase.auth.getSession();
-                   const token = session?.access_token;
-        
-                   // Call Edge Function with Authorization Header
-                   const { data, error } = await supabase.functions.invoke('scan-flyer', {
-                       body: { base64Data, mimeType },
-                       headers: {
-                           Authorization: `Bearer ${token}`
-                       }
+                   
+                   // Securely call upload-image Edge Function
+                   const { data: uploadData, error: uploadError } = await supabase.functions.invoke('upload-image', {
+                       body: { base64Image: base64Data }
                    });
-        
-                   loader.classList.add('hidden');
-        
-                   if (error) {
-                       alert("Edge Function දෝෂයක්: " + error.message);
-                       return;
+    
+                   if (uploadError || !uploadData || !uploadData.success) {
+                       throw new Error("Flyer Image එක Upload කරගත නොහැකි විය.");
                    }
-        
-                   if (data && data.error) {
-                       alert("Gemini API Error: " + (data.error.message || JSON.stringify(data.error)));
-                       return;
-                   }
-        
-                   if (data && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-                       let rawText = data.candidates[0].content.parts[0].text.trim();
-                       rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-                       const extracted = JSON.parse(rawText);
-        
-                       if (extracted.title) document.getElementById('pvt-title').value = extracted.title;
-                       if (extracted.org) document.getElementById('pvt-org').value = extracted.org;
-                       if (extracted.meq) document.getElementById('pvt-meq').value = extracted.meq;
-                       if (extracted.salary) document.getElementById('pvt-salary').value = extracted.salary;
-                       if (extracted.closing) document.getElementById('pvt-closing').value = extracted.closing;
-                       if (extracted.qualifications) document.getElementById('pvt-qualifications').value = extracted.qualifications;
-        
-                       alert("කියවීම සාර්ථකයි! Flyer එකේ විස්තර Form එකට ඇතුළත් කරන ලදී.");
-                   } else {
-                       alert("Document එක පැහැදිලි නැත. කරුණාකර Form එකේ විස්තර අතින් ඇතුළත් කරන්න.");
-                   }
-        
-               } catch (err) {
-                   loader.classList.add('hidden');
-                   alert("දෝෂයක් සිදුවිය: " + err.message);
+                   imageUrl = uploadData.url; 
                }
-           };
-        
-           window.submitNewVacancy = async function(e) {
-               e.preventDefault();
-               const btn = document.getElementById('pvt-submit-btn');
-               btn.disabled = true;
-               btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> සැකසෙමින් පවතී...';
-        
-               const fileInput = document.getElementById('pvt-file-input');
-               let imageUrl = null;
-        
-               try {
-                   // Get current session for Auth Header
-                   const { data: { session } } = await supabase.auth.getSession();
-                   const token = session?.access_token;
-        
-                   if (fileInput.files.length > 0) {
-                       const file = fileInput.files[0];
-                       const base64Data = await fileToBase64(file);
-                       
-                       // Call Edge Function with Authorization Header
-                       const { data: uploadData, error: uploadError } = await supabase.functions.invoke('upload-image', {
-                           body: { base64Image: base64Data },
-                           headers: {
-                               Authorization: `Bearer ${token}`
-                           }
-                       });
-        
-                       if (uploadError || !uploadData || !uploadData.success) {
-                           throw new Error("Flyer Image එක Upload කරගත නොහැකි විය.");
-                       }
-                       imageUrl = uploadData.url; 
-                   }
-        
-                   const payload = {
-                       title: escapeHtml(document.getElementById('pvt-title').value.trim()),
-                       organization: escapeHtml(document.getElementById('pvt-org').value.trim()),
-                       category: 'Private Job', // අදාල නම් වෙනස් කරගත හැක
-                       meq_level: escapeHtml(document.getElementById('pvt-meq').value),
-                       salary_amount: escapeHtml(document.getElementById('pvt-salary').value) || 'සඳහන් නැත',
-                       closing_date: escapeHtml(document.getElementById('pvt-closing').value),
-                       qualifications: escapeHtml(document.getElementById('pvt-qualifications').value),
-                       description: "Manual Admin Upload",
-                       image_url: imageUrl ? escapeHtml(imageUrl) : null,
-                       status: 'PUBLISHED', // Admin දාන නිසා කෙලින්ම Publish වෙනවා
-                       source: 'ADMIN_PANEL',
-                       created_at: new Date().toISOString(),
-                       updated_at: new Date().toISOString()
-                   };
-        
-                   const { error } = await supabase.from('posts').insert([payload]);
-        
-                   btn.disabled = false;
-                   btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>කෙලින්ම Publish කරන්න</span>';
-        
-                   if (error) {
-                       alert("දෝෂයක් සිදුවිය: " + error.message);
-                   } else {
-                       document.getElementById('pvt-job-form').reset();
-                       alert("පෝස්ටුව සාර්ථකව Live Publish කරන ලදී!");
-                   }
-        
-               } catch (err) {
-                   btn.disabled = false;
-                   btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>කෙලින්ම Publish කරන්න</span>';
-                   alert("දෝෂයක් සිදුවිය: " + err.message);
+    
+               const payload = {
+                   title: escapeHtml(document.getElementById('pvt-title').value.trim()),
+                   organization: escapeHtml(document.getElementById('pvt-org').value.trim()),
+                   category: 'Private Job', 
+                   meq_level: escapeHtml(document.getElementById('pvt-meq').value),
+                   salary_amount: escapeHtml(document.getElementById('pvt-salary').value) || 'සඳහන් නැත',
+                   closing_date: escapeHtml(document.getElementById('pvt-closing').value),
+                   qualifications: escapeHtml(document.getElementById('pvt-qualifications').value),
+                   description: "Manual Admin Upload",
+                   image_url: imageUrl ? escapeHtml(imageUrl) : null,
+                   status: 'PUBLISHED', 
+                   source: 'ADMIN_PANEL',
+                   created_at: new Date().toISOString(),
+                   updated_at: new Date().toISOString()
+               };
+    
+               const { error } = await supabase.from('posts').insert([payload]);
+    
+               btn.disabled = false;
+               btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>කෙලින්ම Publish කරන්න</span>';
+    
+               if (error) {
+                   alert("දෝෂයක් සිදුවිය: " + error.message);
+               } else {
+                   document.getElementById('pvt-job-form').reset();
+                   alert("පෝස්ටුව සාර්ථකව Live Publish කරන ලදී!");
                }
-           };
+    
+           } catch (err) {
+               btn.disabled = false;
+               btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>කෙලින්ම Publish කරන්න</span>';
+               alert("දෝෂයක් සිදුවිය: " + err.message);
+           }
+       };
         
     </script>
 </body>
