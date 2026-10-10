@@ -518,7 +518,9 @@
 
     // --- SECURITY UTILITY: ESCAPE HTML TO PREVENT DOM XSS INJECTION ---
     function escapeHtml(str) {
-        if (!str) return '';
+        // null, undefined, හෝ හිස් string එකක් ආවොත් හිස් string එකක්ම return කරන්න
+        if (str === null || str === undefined || str === '') return '';
+        // Object එකක් හරි අංකයක් හරි ආවොත්, ඒක string එකක් බවට පත් කරගන්නවා
         return String(str)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
