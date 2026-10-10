@@ -23,3 +23,8 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase functions deploy upload-image --project-ref wlgnfprghzczwjjpoqym
+
+      - name: Deploy scan-flyer function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy scan-flyer --project-ref wlgnfprghzczwjjpoqym
