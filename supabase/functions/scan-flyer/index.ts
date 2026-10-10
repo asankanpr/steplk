@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // CORS Preflight
+  // CORS Preflight Request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -18,7 +18,9 @@ serve(async (req) => {
       throw new Error("GEMINI_API_KEY is not configured in Supabase Edge Function.");
     }
 
-    const { base64Data, mimeType } = await req.json();
+    const requestData = await req.json();
+    const base64Data = requestData.base64Data;
+    const mimeType = requestData.mimeType || "image/jpeg";
 
     if (!base64Data) {
       throw new Error("No image data provided for scanning.");
@@ -30,7 +32,7 @@ serve(async (req) => {
         parts: [
           {
             inlineData: {
-              mimeType: mimeType || "image/jpeg",
+              mimeType: mimeType,
               data: base64Data
             }
           },
