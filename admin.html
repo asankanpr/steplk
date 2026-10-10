@@ -819,69 +819,78 @@
    };
     
        window.submitNewVacancy = async function(e) {
-           e.preventDefault();
-           const btn = document.getElementById('pvt-submit-btn');
-           btn.disabled = true;
-           btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> සැකසෙමින් පවතී...';
-    
-           const fileInput = document.getElementById('pvt-file-input');
-           let imageUrl = null;
-    
-           try {
-               if (fileInput.files.length > 0) {
-                   const file = fileInput.files[0];
-    
-                   if (!file.type.startsWith('image/')) {
-                       throw new Error("කරුණාකර Image එකක් පමණක් Upload කරන්න.");
-                   }
-    
-                   const base64Data = await fileToBase64(file);
-                   
-                   // Securely call upload-image Edge Function
-                   const { data: uploadData, error: uploadError } = await supabase.functions.invoke('upload-image', {
-                       body: { base64Image: base64Data }
-                   });
-    
-                   if (uploadError || !uploadData || !uploadData.success) {
-                       throw new Error("Flyer Image එක Upload කරගත නොහැකි විය.");
-                   }
-                   imageUrl = uploadData.url; 
+       e.preventDefault();
+       const btn = document.getElementById('pvt-submit-btn');
+       btn.disabled = true;
+       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> සැකසෙමින් පවතී...';
+
+       const fileInput = document.getElementById('pvt-file-input');
+       let imageUrl = null;
+
+       try {
+           if (fileInput.files.length > 0) {
+               const file = fileInput.files[0];
+
+               if (!file.type.startsWith('image/')) {
+                   throw new Error("කරුණාකර Image එකක් පමණක් Upload කරන්න.");
                }
-    
-               const payload = {
-                   title: escapeHtml(document.getElementById('pvt-title').value.trim()),
-                   organization: escapeHtml(document.getElementById('pvt-org').value.trim()),
-                   category: 'Private Job', 
-                   meq_level: escapeHtml(document.getElementById('pvt-meq').value),
-                   salary_amount: escapeHtml(document.getElementById('pvt-salary').value) || 'සඳහන් නැත',
-                   closing_date: escapeHtml(document.getElementById('pvt-closing').value),
-                   qualifications: escapeHtml(document.getElementById('pvt-qualifications').value),
-                   description: "Manual Admin Upload",
-                   image_url: imageUrl ? escapeHtml(imageUrl) : null,
-                   status: 'PUBLISHED', 
-                   source: 'ADMIN_PANEL',
-                   created_at: new Date().toISOString(),
-                   updated_at: new Date().toISOString()
-               };
-    
-               const { error } = await supabase.from('posts').insert([payload]);
-    
-               btn.disabled = false;
-               btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>කෙලින්ම Publish කරන්න</span>';
-    
-               if (error) {
-                   alert("දෝෂයක් සිදුවිය: " + error.message);
-               } else {
-                   document.getElementById('pvt-job-form').reset();
-                   alert("පෝස්ටුව සාර්ථකව Live Publish කරන ලදී!");
+
+               const base64Data = await fileToBase64(file);
+               
+               // Securely call upload-image Edge Function
+               const { data: uploadData, error: uploadError } = await supabase.functions.invoke('upload-image', {
+                   body: { base64Image: base64Data }
+               });
+
+               if (uploadError || !uploadData || !uploadData.success) {
+                   throw new Error("Flyer Image එක Upload කරගත නොහැකි විය.");
                }
-    
-           } catch (err) {
-               btn.disabled = false;
-               btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>කෙලින්ම Publish කරන්න</span>';
-               alert("දෝෂයක් සිදුවිය: " + err.message);
+               imageUrl = uploadData.url; 
            }
-       };
+
+           // --- Smart Dynamic Description Generation ---
+           const contactEl = document.getElementById('pvt-contact');
+           const contactVal = contactEl ? contactEl.value.trim() : '';
+
+           let smartDescription = "පෞද්ගලික අංශයේ රැකියා ඇබෑර්තුවකි.";
+           if (contactVal) {
+               smartDescription = `පෞද්ගලික අංශයේ රැකියා ඇබෑර්තුවකි. වැඩිදුර විස්තර සඳහා අමතන්න: ${escapeHtml(contactVal)}`;
+           }
+
+           const payload = {
+               title: escapeHtml(document.getElementById('pvt-title').value.trim()),
+               organization: escapeHtml(document.getElementById('pvt-org').value.trim()),
+               category: 'Private Job', 
+               meq_level: escapeHtml(document.getElementById('pvt-meq').value),
+               salary_amount: escapeHtml(document.getElementById('pvt-salary').value) || 'සඳහන් නැත',
+               closing_date: escapeHtml(document.getElementById('pvt-closing').value),
+               qualifications: escapeHtml(document.getElementById('pvt-qualifications').value),
+               description: smartDescription, // <-- මෙන්න මෙතනට අලුත් විස්තරය ආදේශ කළා
+               image_url: imageUrl ? escapeHtml(imageUrl) : null,
+               status: 'PUBLISHED', 
+               source: 'ADMIN_PANEL',
+               created_at: new Date().toISOString(),
+               updated_at: new Date().toISOString()
+           };
+
+           const { error } = await supabase.from('posts').insert([payload]);
+
+           btn.disabled = false;
+           btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>කෙලින්ම Publish කරන්න</span>';
+
+           if (error) {
+               alert("දෝෂයක් සිදුවිය: " + error.message);
+           } else {
+               document.getElementById('pvt-job-form').reset();
+               alert("පෝස්ටුව සාර්ථකව Live Publish කරන ලදී!");
+           }
+
+       } catch (err) {
+           btn.disabled = false;
+           btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>කෙලින්ම Publish කරන්න</span>';
+           alert("දෝෂයක් සිදුවිය: " + err.message);
+       }
+   };
         
     </script>
 </body>
