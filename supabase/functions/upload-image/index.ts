@@ -13,7 +13,11 @@ serve(async (req) => {
 
   try {
     // Supabase Secret එකෙන් හෝ නැත්නම් Hardcoded Fallback එකෙන් Key එක ලබාගැනීම
-    const IMGBB_API_KEY = Deno.env.get("IMGBB_API_KEY") || "a6b8a783f1c3a779ba56333049e2dc2c";
+    const IMGBB_API_KEY = Deno.env.get("IMGBB_API_KEY");
+
+    if (!IMGBB_API_KEY) {
+      throw new Error("IMGBB_API_KEY is not set in the environment variables.");
+    }
 
     const requestData = await req.json();
     let base64Image = requestData.base64Image;
