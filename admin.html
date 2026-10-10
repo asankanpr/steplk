@@ -130,6 +130,9 @@
                 <button id="tab-logs" onclick="switchTab('LOGS')" class="pb-2.5 text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1">
                     <i class="fa-solid fa-robot text-brand-yellow"></i> Scanned Log
                 </button>
+                <button id="tab-add-post" onclick="switchTab('ADD_POST')" class="pb-2.5 text-slate-400 hover:text-white transition-all whitespace-nowrap flex items-center gap-1">
+                    <i class="fa-solid fa-plus text-sky-400"></i> Add New Post
+                </button>
             </div>
             
             <!-- 1. PENDING VERIFICATION SECTION -->
@@ -271,6 +274,79 @@
                 <div id="logs-container" class="space-y-2 text-xs"></div>
             </div>
 
+            <!-- 4. ADD NEW POST SECTION -->
+            <div id="add-post-section" class="hidden">
+                <div class="bg-brand-card border border-brand-border rounded-2xl p-6 shadow-xl space-y-4">
+                    <div class="text-left border-b border-brand-border pb-3">
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-file-circle-plus text-brand-emerald"></i> නව ඇබෑර්තුවක් පල කරන්න
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Flyer එක Upload කරන්න, නැත්නම් විස්තර අතින් පුරවන්න.</p>
+                    </div>
+            
+                    <!-- FILE AUTO-SCANNER BOX -->
+                    <div class="border-2 border-dashed border-brand-emerald/40 bg-brand-dark/50 p-4 rounded-xl text-center space-y-2">
+                        <i class="fa-solid fa-file-arrow-up text-2xl text-brand-emerald"></i>
+                        <p class="text-xs text-slate-300 font-semibold">Ad Flyer එක හෝ Document එක Upload කරන්න</p>
+                        <p class="text-[10px] text-slate-500">(JPG, PNG, PDF - Max 2MB)</p>
+                        <input type="file" id="pvt-file-input" accept="image/png, image/jpeg, image/jpg, image/webp" onchange="autoScanPvtFile(event)" class="hidden">
+                        <button type="button" onclick="document.getElementById('pvt-file-input').click()" class="px-3 py-1.5 bg-brand-emerald/20 hover:bg-brand-emerald/30 text-brand-emerald text-xs font-bold rounded-lg transition border border-brand-emerald/40">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Scan & Pre-fill Form
+                        </button>
+                        <div id="pvt-scan-loader" class="hidden text-xs text-brand-yellow font-medium mt-2">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Document එක කියවමින් පවතී...
+                        </div>
+                    </div>
+            
+                    <!-- SUBMISSION FORM -->
+                    <form id="pvt-job-form" onsubmit="submitNewVacancy(event)" class="space-y-3 text-xs text-left">
+                        <div>
+                            <label class="block text-slate-300 font-semibold mb-1">තනතුරේ නම (Job Title) *</label>
+                            <input type="text" id="pvt-title" required class="w-full bg-brand-dark border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-brand-emerald">
+                        </div>
+            
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-slate-300 font-semibold mb-1">ආයතනයේ නම *</label>
+                                <input type="text" id="pvt-org" required class="w-full bg-brand-dark border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-brand-emerald">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 font-semibold mb-1">අවම සුදුසුකම (MEQ)</label>
+                                <select id="pvt-meq" class="w-full bg-brand-dark border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-brand-emerald">
+                                    <option value="NONE">None / Any</option>
+                                    <option value="OL">O/L</option>
+                                    <option value="AL">A/L</option>
+                                    <option value="NVQ">NVQ / Diploma</option>
+                                    <option value="DEGREE">Degree</option>
+                                    <option value="POST_GRAD">Post Graduate</option>
+                                </select>
+                            </div>
+                        </div>
+            
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-slate-300 font-semibold mb-1">වැටුප / කේතය</label>
+                                <input type="text" id="pvt-salary" class="w-full bg-brand-dark border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-brand-emerald">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 font-semibold mb-1">අවසන් දිනය *</label>
+                                <input type="date" id="pvt-closing" required class="w-full bg-brand-dark border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-brand-emerald">
+                            </div>
+                        </div>
+            
+                        <div>
+                            <label class="block text-slate-300 font-semibold mb-1">අවශ්‍ය සුදුසුකම් හා විස්තර</label>
+                            <textarea id="pvt-qualifications" rows="4" class="w-full bg-brand-dark border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-brand-emerald resize-none"></textarea>
+                        </div>
+            
+                        <button type="submit" id="pvt-submit-btn" class="w-full bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-black py-3 rounded-xl transition text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-emerald/20">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>කෙලින්ම Publish කරන්න</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -333,46 +409,41 @@
         });
 
         window.switchTab = function(tabName) {
-            const pubSec = document.getElementById('published-posts-section');
-            const pendSec = document.getElementById('pending-posts-section');
-            const logSec = document.getElementById('logs-section');
-
-            const tabPub = document.getElementById('tab-published');
-            const tabPend = document.getElementById('tab-pending');
-            const tabLogs = document.getElementById('tab-logs');
-
-            const activeStyle = "pb-3 text-xs md:text-sm font-bold text-emerald-400 border-b-2 border-emerald-400 transition-all flex items-center gap-1.5 whitespace-nowrap";
-            const inactiveStyle = "pb-3 text-xs md:text-sm font-bold text-slate-400 hover:text-white transition-all whitespace-nowrap";
-
-            if (tabName === 'PUBLISHED') {
-                pubSec.classList.remove('hidden');
-                pendSec.classList.add('hidden');
-                logSec.classList.add('hidden');
-
-                tabPub.className = activeStyle;
-                tabPend.className = inactiveStyle;
-                tabLogs.className = inactiveStyle;
-                loadPublishedPosts();
-            } else if (tabName === 'LOGS') {
-                logSec.classList.remove('hidden');
-                pendSec.classList.add('hidden');
-                pubSec.classList.add('hidden');
-
-                tabLogs.className = activeStyle;
-                tabPend.className = inactiveStyle;
-                tabPub.className = inactiveStyle;
-                loadAutomationLogs();
-            } else {
-                pendSec.classList.remove('hidden');
-                pubSec.classList.add('hidden');
-                logSec.classList.add('hidden');
-
-                tabPend.className = activeStyle;
-                tabPub.className = inactiveStyle;
-                tabLogs.className = inactiveStyle;
-                loadPendingPosts();
-            }
-        };
+        const pubSec = document.getElementById('published-posts-section');
+        const pendSec = document.getElementById('pending-posts-section');
+        const logSec = document.getElementById('logs-section');
+        const addSec = document.getElementById('add-post-section'); // අලුත් එක
+    
+        const tabPub = document.getElementById('tab-published');
+        const tabPend = document.getElementById('tab-pending');
+        const tabLogs = document.getElementById('tab-logs');
+        const tabAdd = document.getElementById('tab-add-post'); // අලුත් එක
+    
+        const activeStyle = "pb-3 text-xs md:text-sm font-bold text-emerald-400 border-b-2 border-emerald-400 transition-all flex items-center gap-1.5 whitespace-nowrap";
+        const inactiveStyle = "pb-3 text-xs md:text-sm font-bold text-slate-400 hover:text-white transition-all whitespace-nowrap";
+    
+        // මුලින්ම ඔක්කොම හංගලා (Hide), Inactive කරනවා
+        [pubSec, pendSec, logSec, addSec].forEach(sec => sec?.classList.add('hidden'));
+        [tabPub, tabPend, tabLogs, tabAdd].forEach(tab => { if(tab) tab.className = inactiveStyle; });
+    
+        // අවශ්‍ය එක විතරක් පෙන්නනවා (Show), Active කරනවා
+        if (tabName === 'PUBLISHED') {
+            pubSec.classList.remove('hidden');
+            tabPub.className = activeStyle;
+            loadPublishedPosts();
+        } else if (tabName === 'LOGS') {
+            logSec.classList.remove('hidden');
+            tabLogs.className = activeStyle;
+            loadAutomationLogs();
+        } else if (tabName === 'ADD_POST') {
+            addSec.classList.remove('hidden');
+            tabAdd.className = activeStyle;
+        } else {
+            pendSec.classList.remove('hidden');
+            tabPend.className = activeStyle;
+            loadPendingPosts();
+        }
+    };
 
         async function loadPendingPosts() {
             const { data, error } = await supabase
@@ -635,6 +706,137 @@
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 3500);
         }
+
+        // Helper: Convert File to Base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
+        }
+        
+        window.autoScanPvtFile = async function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+        
+            if (!file.type.startsWith('image/')) {
+                alert("කරුණාකර Job Flyer එක Image එකක් (JPG / PNG / WEBP) ලෙස Upload කරන්න. PDF භාරගනු නොලැබේ.");
+                event.target.value = ''; 
+                return;
+            }
+        
+            if (file.size > 2 * 1024 * 1024) {
+                alert("Image පරිමාව 2MB ට වඩා වැඩි විය නොහැක!");
+                return;
+            }
+        
+            const loader = document.getElementById('pvt-scan-loader');
+            loader.classList.remove('hidden');
+        
+            try {
+                const base64Data = await fileToBase64(file);
+                const mimeType = file.type || 'image/jpeg';
+        
+                const { data, error } = await supabase.functions.invoke('scan-flyer', {
+                    body: { base64Data, mimeType }
+                });
+        
+                loader.classList.add('hidden');
+        
+                if (error) {
+                    alert("Edge Function දෝෂයක්: " + error.message);
+                    return;
+                }
+        
+                if (data && data.error) {
+                    alert("Gemini API Error: " + (data.error.message || JSON.stringify(data.error)));
+                    return;
+                }
+        
+                if (data && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                    let rawText = data.candidates[0].content.parts[0].text.trim();
+                    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                    const extracted = JSON.parse(rawText);
+        
+                    if (extracted.title) document.getElementById('pvt-title').value = extracted.title;
+                    if (extracted.org) document.getElementById('pvt-org').value = extracted.org;
+                    if (extracted.meq) document.getElementById('pvt-meq').value = extracted.meq;
+                    if (extracted.salary) document.getElementById('pvt-salary').value = extracted.salary;
+                    if (extracted.closing) document.getElementById('pvt-closing').value = extracted.closing;
+                    if (extracted.qualifications) document.getElementById('pvt-qualifications').value = extracted.qualifications;
+        
+                    alert("කියවීම සාර්ථකයි! Flyer එකේ විස්තර Form එකට ඇතුළත් කරන ලදී.");
+                } else {
+                    alert("Document එක පැහැදිලි නැත. කරුණාකර Form එකේ විස්තර අතින් ඇතුළත් කරන්න.");
+                }
+        
+            } catch (err) {
+                loader.classList.add('hidden');
+                alert("දෝෂයක් සිදුවිය: " + err.message);
+            }
+        };
+        
+        window.submitNewVacancy = async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('pvt-submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> සැකසෙමින් පවතී...';
+        
+            const fileInput = document.getElementById('pvt-file-input');
+            let imageUrl = null;
+        
+            try {
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const base64Data = await fileToBase64(file);
+        
+                    const { data: uploadData, error: uploadError } = await supabase.functions.invoke('upload-image', {
+                        body: { base64Image: base64Data }
+                    });
+        
+                    if (uploadError || !uploadData || !uploadData.success) {
+                        throw new Error("Flyer Image එක Upload කරගත නොහැකි විය.");
+                    }
+                    imageUrl = uploadData.url; 
+                }
+        
+                const payload = {
+                    title: escapeHtml(document.getElementById('pvt-title').value.trim()),
+                    organization: escapeHtml(document.getElementById('pvt-org').value.trim()),
+                    category: 'Private Job', // අදාල නම් වෙනස් කරගත හැක
+                    meq_level: escapeHtml(document.getElementById('pvt-meq').value),
+                    salary_amount: escapeHtml(document.getElementById('pvt-salary').value) || 'සඳහන් නැත',
+                    closing_date: escapeHtml(document.getElementById('pvt-closing').value),
+                    qualifications: escapeHtml(document.getElementById('pvt-qualifications').value),
+                    description: "Manual Admin Upload",
+                    image_url: imageUrl ? escapeHtml(imageUrl) : null,
+                    status: 'PUBLISHED', // Admin දාන නිසා කෙලින්ම Publish වෙනවා
+                    source: 'ADMIN_PANEL',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+        
+                const { error } = await supabase.from('posts').insert([payload]);
+        
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>කෙලින්ම Publish කරන්න</span>';
+        
+                if (error) {
+                    alert("දෝෂයක් සිදුවිය: " + error.message);
+                } else {
+                    document.getElementById('pvt-job-form').reset();
+                    alert("පෝස්ටුව සාර්ථකව Live Publish කරන ලදී!");
+                }
+        
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>කෙලින්ම Publish කරන්න</span>';
+                alert("දෝෂයක් සිදුවිය: " + err.message);
+            }
+        };
+        
     </script>
 </body>
 </html>
