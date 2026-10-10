@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // CORS Preflight Request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -14,39 +15,39 @@ serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     
     if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not configured in Supabase Edge Function.");
+      throw new Error("GEMINI_API_KEY is missing in Edge Function secrets.");
     }
 
-    const { base64Data, mimeType } = await req.json();
+    const requestData = await req.json();
+    const base64Data = requestData.base64Data;
+    const mimeType = requestData.mimeType || "image/jpeg";
 
     if (!base64Data) {
-      throw new Error("No image data provided for scanning.");
+      throw new Error("No image data received.");
     }
 
+    // Prepare Payload for Gemini
     const geminiPayload = {
       contents: [{
         parts: [
           {
             inlineData: {
-              mimeType: mimeType || "image/jpeg",
+              mimeType: mimeType,
               data: base64Data
             }
           },
           {
-            text: `
-              You are an expert Sri Lankan Job Advertisement OCR Specialist.
-              Extract the following details from this image and return strictly in JSON format.
-              {
-                "title": "Exact job title",
-                "org": "Organization name",
-                "meq": "One of: NONE, OL, AL, NVQ, DEGREE",
-                "salary": "Salary amount or range if mentioned, else 'සඳහන් නැත'",
-                "closing": "Closing date in YYYY-MM-DD if mentioned, else ''",
-                "qualifications": "Qualifications in bullet points",
-                "contact": "Contact number if mentioned, else ''"
-              }
-              Respond ONLY with the JSON object.
-            `
+            text: `Extract details from this job advertisement.
+Return ONLY a valid JSON object matching this schema exactly, do not add any markdown formatting like \`\`\`json:
+{
+  "title": "Job title",
+  "org": "Organization name",
+  "meq": "One of: NONE, OL, AL, NVQ, DEGREE",
+  "salary": "Salary if mentioned, else ''",
+  "closing": "YYYY-MM-DD if mentioned, else ''",
+  "qualifications": "Qualifications",
+  "contact": "Contact number"
+}`
           }
         ]
       }],
@@ -55,6 +56,7 @@ serve(async (req) => {
       }
     };
 
+    // Call Gemini API (using gemini-1.5-flash as it is faster and cheaper)
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: {
@@ -65,18 +67,24 @@ serve(async (req) => {
 
     const geminiData = await response.json();
 
-    if (!response.ok || geminiData.error) {
-      console.error("Gemini API Error:", geminiData.error);
-      throw new Error(geminiData.error?.message || "Gemini API request failed.");
+    // Catch API Errors (This will now show exactly why Gemini failed)
+    if (!response.ok) {
+      const apiErrorMsg = geminiData.error?.message || "Unknown Gemini API Error";
+      console.error("Gemini API Error Details:", geminiData);
+      return new Response(
+        JSON.stringify({ error: `Gemini API Failed: ${apiErrorMsg}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
+    // Success response
     return new Response(
       JSON.stringify(geminiData),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error: any) {
-    console.error("Edge Function Exception:", error.message);
+    console.error("Edge Function Caught Error:", error.message);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
