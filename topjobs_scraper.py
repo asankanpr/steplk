@@ -29,7 +29,6 @@ AGENCY_KEYWORDS = [
     'headhunter', 'hr solution', 'outsourcing', 'human resource', 'executive search'
 ]
 
-# --- 2. SMART DATE CONVERTER ---
 def convert_topjobs_date(date_str):
     try:
         clean_str = re.sub(r'\s+', ' ', date_str.strip()).replace(',', '')
@@ -38,7 +37,6 @@ def convert_topjobs_date(date_str):
     except Exception:
         return None
 
-# --- 3. SCRAPING LOGIC ---
 def get_today_vacancies():
     url = f"{BASE_URL}/applicant/vacancybyfunctionalarea.jsp?jst=OPEN/1000"
     print(f"🔍 Topjobs වෙබ් අඩවිය පරීක්ෂා කරමින් පවතී...")
@@ -54,8 +52,8 @@ def get_today_vacancies():
         rows = soup.find_all('tr')
         for row in rows:
             row_html = str(row)
-            
             match_popup = re.search(r"(?:openSizeWindow|open_popup)\(['\"]([^'\"]+)['\"]", row_html)
+            
             if match_popup:
                 popup_path = match_popup.group(1).replace('%27', '')
                 full_url = requests.compat.urljoin(BASE_URL, popup_path)
@@ -77,7 +75,6 @@ def get_today_vacancies():
                         closing_raw = td_txt
 
                 closing_formatted = convert_topjobs_date(closing_raw)
-
                 vacancies.append({
                     'closing_date': closing_formatted,
                     'popup_url': full_url
@@ -97,6 +94,7 @@ def extract_flyer_image_url(popup_url, depth=0):
         res = requests.get(popup_url, headers=HEADERS, timeout=15)
         soup = BeautifulSoup(res.text, 'html.parser')
 
+        # Iframe/Frame පරීක්ෂාව
         for frame in soup.find_all(['iframe', 'frame']):
             src = frame.get('src', '')
             if src:
@@ -104,27 +102,47 @@ def extract_flyer_image_url(popup_url, depth=0):
                 img_url = extract_flyer_image_url(nested_url, depth + 1)
                 if img_url: return img_url
 
+        # 🔴 FIX: PDF ෆයිල් එකක් තියෙනවද කියලත් බලනවා
+        for a_tag in soup.find_all('a'):
+            href = a_tag.get('href', '')
+            if '.pdf' in href.lower():
+                return requests.compat.urljoin(popup_url, href)
+
+        # 🔴 FIX: පින්තූර පරීක්ෂාව (SMART LOGIC)
+        possible_flyers = []
         for img in soup.find_all('img'):
             src = img.get('src', '')
             src_lower = src.lower()
             
-            # 🔴 FIX 1: info.png වැනි අනවශ්‍ය icons සියල්ල block කිරීම
+            # අනවශ්‍ය UI පින්තූර මඟ හැරීම
             skip_words = ['spacer', 'btn', 'icon', 'blank', 'info.png', 'topjobs', 'print', 'email']
             if any(skip in src_lower for skip in skip_words):
                 continue
             
+            # "_small" (Small Company Logo) මඟ හැරීම
+            if '_small' in src_lower:
+                continue
+                
             if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']):
-                return requests.compat.urljoin(popup_url, src)
+                possible_flyers.append(requests.compat.urljoin(popup_url, src))
+                
+        # පළමුව හමුවන හොඳම පින්තූරය ලබාදීම
+        if possible_flyers:
+            return possible_flyers[0]
                 
     except Exception:
         pass
     return None
 
-# --- 4. INTEGRATION & DB INSERTION ---
 def process_and_save_vacancy(job_data):
     topjobs_img_url = extract_flyer_image_url(job_data['popup_url'])
     if not topjobs_img_url:
-        print("   ⚠️ මෙම ලින්ක් එකෙහි Image එකක් හමු නොවිණි.")
+        print("   ⚠️ මෙම ලින්ක් එකෙහි Image හෝ PDF එකක් හමු නොවිණි.")
+        return False
+
+    # PDF එකක් නම් අපි ඒක මඟහරිනවා (දැනට Image විතරයි support කරන්නේ)
+    if topjobs_img_url.lower().endswith('.pdf'):
+        print(f"   ⚠️ PDF Flyer එකක් හමුවිය. එය මඟහරින ලදී: {topjobs_img_url}")
         return False
 
     print(f"   📥 Flyer පින්තූරය හමු විය: {topjobs_img_url}")
@@ -144,18 +162,14 @@ def process_and_save_vacancy(job_data):
         if ".png" in topjobs_img_url.lower(): mime_type = "image/png"
         elif ".gif" in topjobs_img_url.lower(): mime_type = "image/gif" 
 
-        # -------------------------------------------------------------
-        # 🔴 FIX 2: Supabase Edge Functions Call with 60-Second Timeout 🔴
-        # -------------------------------------------------------------
-        
-        # 1. Gemini AI මගින් දත්ත කියවීම (scan-flyer)
+        # 1. Gemini AI මගින් දත්ත කියවීම (Timeout 60 seconds)
         print("   🤖 Gemini AI මගින් දත්ත කියවමින් පවතී...")
         scan_url = f"{SUPABASE_URL}/functions/v1/scan-flyer"
         scan_res = requests.post(
             scan_url,
             headers={"Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"},
             json={'base64Data': base64_data, 'mimeType': mime_type},
-            timeout=60 # තත්පර 60 ක කාලයක් දෙනවා
+            timeout=60
         )
         
         if scan_res.status_code != 200:
@@ -173,19 +187,18 @@ def process_and_save_vacancy(job_data):
         import json
         extracted = json.loads(raw_text)
 
-        # AI Agency Check (Level 2)
         if extracted.get("is_agency") == True:
             print(f"   🚫 [LEVEL 2 REJECT] AI විසින් මෙය Manpower/Agency එකක් බව හඳුනාගත්තා.")
             return False
 
-        # 2. ImgBB වෙත Upload කිරීම (upload-image)
+        # 2. ImgBB වෙත Upload කිරීම
         print("   ☁️ Genuine පෝස්ටුවකි. ImgBB වෙත Upload කරමින් පවතී...")
         upload_url = f"{SUPABASE_URL}/functions/v1/upload-image"
         upload_res = requests.post(
             upload_url,
             headers={"Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"},
             json={'base64Image': base64_data},
-            timeout=60 # තත්පර 60 ක කාලයක් දෙනවා
+            timeout=60
         )
         
         permanent_img_url = topjobs_img_url
