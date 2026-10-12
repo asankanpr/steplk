@@ -57,26 +57,28 @@ def fetch_exchange_rates():
 # 2. Fetch Gold Prices (22K & 24K Sovereign)
 # ==========================================
 def fetch_gold_prices(usd_to_lkr):
-    # Strategy 1: Local Market Web Scrape (goldprice.lk)
+    # ක්‍රමය 1: goldpricesrilanka.com වෙබ් අඩවියෙන් සජීවීව කියවීම
     try:
-        url = "https://goldprice.lk/"
+        url = "https://goldpricesrilanka.com/"
         res = requests.get(url, headers=HEADERS, timeout=15)
         if res.status_code == 200:
             soup = BeautifulSoup(res.text, "html.parser")
             text_content = soup.get_text()
             
-            gold_22k_match = re.search(r"22\s*K[^\d]*([\d,]{6,7})", text_content, re.IGNORECASE)
-            gold_24k_match = re.search(r"24\s*K[^\d]*([\d,]{6,7})", text_content, re.IGNORECASE)
+            # 22K සහ 24K පවුමක (Pawn) මිල Regex මඟින් හඳුනා ගැනීම
+            gold_22k_match = re.search(r"22K[^\d]*(\d{1,3}(?:,\d{3})+)", text_content, re.IGNORECASE)
+            gold_24k_match = re.search(r"24K[^\d]*(\d{1,3}(?:,\d{3})+)", text_content, re.IGNORECASE)
 
             if gold_22k_match and gold_24k_match:
+                print(f"🪙 Local Scraper Success: 22K -> LKR {gold_22k_match.group(1)}")
                 return {
                     "GOLD_22K": f"LKR {gold_22k_match.group(1)}",
                     "GOLD_24K": f"LKR {gold_24k_match.group(1)}"
                 }
     except Exception as e:
-        print(f"⚠️ Local Gold Scrape Error: {e}")
+        print(f"⚠️ Local Gold Site Scrape Error: {e}")
 
-    # Strategy 2: 100% Reliable Global Market Fallback (Mathematical Calculation)
+    # ක්‍රමය 2: ලෝක රන් අවුන්ස මිල (Global XAU) මඟින් ගණිතමයව ගණනය කිරීම (100% Fail-Safe)
     try:
         print("🔄 Switching to Global Gold API Calculation...")
         gold_url = "https://api.gold-api.com/price/XAU"
@@ -84,15 +86,11 @@ def fetch_gold_prices(usd_to_lkr):
         if res.status_code == 200:
             data = res.json()
             price_per_oz = data.get("price")
-            if price_per_oz:
-                # 1 Troy Ounce = 31.1034768g | 1 Sovereign (පවුම) = 8g 
+            if price_per_oz and usd_to_lkr:
+                # 1 Troy Ounce = 31.1034768g | 1 Sovereign (පවුම) = 8g
                 sovereign_24k_lkr = (price_per_oz / 31.1034768) * 8 * usd_to_lkr
                 sovereign_22k_lkr = sovereign_24k_lkr * (22 / 24)
                 
-                # ශ්‍රී ලංකා වෙළඳපොළේ සාමාන්‍යයෙන් පවතින 5% ක පමණ අමතර ගාස්තුව (Local Premium) එක් කිරීම
-                sovereign_24k_lkr *= 1.05
-                sovereign_22k_lkr *= 1.05
-
                 return {
                     "GOLD_22K": f"LKR {int(sovereign_22k_lkr):,}",
                     "GOLD_24K": f"LKR {int(sovereign_24k_lkr):,}"
@@ -100,7 +98,8 @@ def fetch_gold_prices(usd_to_lkr):
     except Exception as e:
         print(f"⚠️ Global Gold API Error: {e}")
 
-    return {"GOLD_22K": "LKR 185,000", "GOLD_24K": "LKR 200,000"}
+    # සියල්ල අසාර්ථක වුවහොත් වර්තමාන වෙළඳපොළට ගැළපෙන Fallback එක
+    return {"GOLD_22K": "LKR 328,500", "GOLD_24K": "LKR 358,000"}
 
 # ==========================================
 # 3. Calculate Astrological Data
