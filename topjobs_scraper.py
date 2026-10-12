@@ -3,13 +3,10 @@ import re
 import time
 import base64
 import requests
-import io  # 🔴 අලුතින් එක් කරන ලදී
 from datetime import datetime
 from bs4 import BeautifulSoup
 from supabase import create_client, Client
-from PIL import Image # 🔴 පින්තූර කැපීම සඳහා (Pillow) අලුතින් එක් කරන ලදී
 
-# --- 1. SECURITY & CREDENTIALS ---
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
@@ -140,7 +137,7 @@ def process_and_save_vacancy(job_data):
         return False
 
     if topjobs_img_url.lower().endswith('.pdf'):
-        print(f"   ⚠️ PDF Flyer එකක් හමුවිය. එය මඟහරින ලදී: {topjobs_img_url}")
+        print(f"   ⚠️ PDF Flyer එකක් හමුවිය. එය මඟහරින ලදී.")
         return False
 
     print(f"   📥 සැබෑ Flyer පින්තූරය හමු විය: {topjobs_img_url}")
@@ -155,45 +152,13 @@ def process_and_save_vacancy(job_data):
         if img_res.status_code != 200:
             return False
 
-        image_bytes = img_res.content
-
-        # -------------------------------------------------------------
-        # ✂️ 100% SMART WATERMARK REMOVAL (Topjobs සලකුණ කැපීම) ✂️
-        # -------------------------------------------------------------
-        try:
-            print("   ✂️ පින්තූරයේ ඇති Topjobs Watermark එක ඉවත් කරමින් පවතී...")
-            image = Image.open(io.BytesIO(image_bytes))
-            
-            # GIF, PNG වැනි දේවල් RGB වලට හැරවීම (Crop කිරීම පහසු වීමට)
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-            
-            width, height = image.size
-            
-            # සාමාන්‍යයෙන් Topjobs සලකුණ ඇත්තේ යටම කෙළවරේය (පහළින් පික්සෙල් 45ක් පමණ).
-            crop_amount = 45 
-            
-            # පින්තූරය ඉතා කුඩා නම් (height 200 ට අඩු නම්) crop නොකරමු
-            if height > 200:
-                # Box: (left, upper, right, lower)
-                image = image.crop((0, 0, width, height - crop_amount))
-            
-            # කැපූ පින්තූරය නැවත bytes බවට හැරවීම
-            img_byte_arr = io.BytesIO()
-            image.save(img_byte_arr, format='JPEG', quality=95)
-            image_bytes = img_byte_arr.getvalue()
-            
-            print("   ✅ Watermark එක සාර්ථකව කපා ඉවත් කරන ලදී!")
-        except Exception as e:
-            print(f"   ⚠️ පින්තූරය Crop කිරීමේ දෝෂයක්: {e}")
-
-        # Crop කරපු එක Base64 වලට හරවනවා
-        base64_data = base64.b64encode(image_bytes).decode('utf-8')
+        # කෙලින්ම Base64 කරනවා (Crop කරන්නේ නෑ)
+        base64_data = base64.b64encode(img_res.content).decode('utf-8')
         mime_type = "image/jpeg"
+        if ".png" in topjobs_img_url.lower(): mime_type = "image/png"
+        elif ".gif" in topjobs_img_url.lower(): mime_type = "image/gif" 
 
-        # -------------------------------------------------------------
-        # 🤖 1. Gemini AI මගින් දත්ත කියවීම 
-        # -------------------------------------------------------------
+        # 1. Gemini AI මගින් දත්ත කියවීම 
         print("   🤖 Gemini AI මගින් දත්ත කියවමින් පවතී...")
         scan_url = f"{SUPABASE_URL}/functions/v1/scan-flyer"
         
@@ -231,9 +196,7 @@ def process_and_save_vacancy(job_data):
             print(f"   🚫 [LEVEL 2 REJECT] AI විසින් මෙය Manpower/Agency එකක් බව හඳුනාගත්තා.")
             return False
 
-        # -------------------------------------------------------------
-        # ☁️ 2. Genuine නම් පමණක් ImgBB වෙත Upload කිරීම
-        # -------------------------------------------------------------
+        # 2. ImgBB වෙත Upload කිරීම
         print("   ☁️ Genuine පෝස්ටුවකි. ImgBB වෙත Upload කරමින් පවතී...")
         upload_url = f"{SUPABASE_URL}/functions/v1/upload-image"
         upload_res = requests.post(
@@ -281,7 +244,7 @@ def process_and_save_vacancy(job_data):
         return False
 
 if __name__ == "__main__":
-    print("🚀 Topjobs ස්වයංක්‍රීය (Anti-Spam & Watermark Free) Scraper ආරම්භ විය...")
+    print("🚀 Topjobs ස්වයංක්‍රීය (Anti-Spam) Scraper ආරම්භ විය...")
     jobs_list = get_today_vacancies()
     
     successful_inserts = 0
