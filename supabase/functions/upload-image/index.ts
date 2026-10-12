@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'; // 🔴 Added Supabase Client
 
 // 🔴 Security Update: Strict CORS Configuration
 const ALLOWED_ORIGINS = [
@@ -27,11 +28,26 @@ serve(async (req) => {
   }
 
   try {
-    // 🔴 Security Update: Auth Check (Authorization header is required)
+    // 🔴 Security Update: Strict JWT Auth Check via Supabase
     const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      console.warn("Unauthorized upload attempt.");
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.warn("Unauthorized upload attempt (Missing or Invalid token format).");
       return new Response(JSON.stringify({ success: false, error: "Unauthorized access." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Initialize Supabase client to verify the token
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Validating the JWT Token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.warn("Unauthorized upload attempt (Invalid or Expired JWT Token).", authError?.message);
+      return new Response(JSON.stringify({ success: false, error: "Invalid token. Unauthorized access." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const IMGBB_API_KEY = Deno.env.get("IMGBB_API_KEY");
