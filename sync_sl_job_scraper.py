@@ -12,10 +12,6 @@ from google import genai
 from google.genai import types
 from supabase import create_client, Client
 
-# urllib3 SSL Warnings
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 # Environment Variables
 SRC_SUPABASE_URL = os.getenv("SRC_SUPABASE_URL")
 SRC_SUPABASE_KEY = os.getenv("SRC_SUPABASE_SERVICE_ROLE_KEY")
@@ -99,6 +95,26 @@ def is_duplicate_post(title, organization, pdf_url, closing_date=None):
 
     return False
 
+def get_url_with_ssl_fallback(url, timeout=15):
+    """
+    Helper function to attempt a secure HTTPS request first.
+    If it fails specifically due to an SSL verification error (common with some SL Govt sites),
+    it logs a warning and retries without SSL verification as a fallback.
+    """
+    try:
+        # First attempt: Secure request (verify=True is default)
+        return requests.get(url, headers=HTTP_HEADERS, timeout=timeout)
+    except requests.exceptions.SSLError as e:
+        print(f"⚠️ SSL Verification failed for {url}. Attempting insecure fallback...")
+        # Second attempt: Insecure request (Fallback only for broken SSL)
+        # Suppress the warning just for this specific fallback call to avoid log spam
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        return requests.get(url, headers=HTTP_HEADERS, timeout=timeout, verify=False)
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Network Error for {url}: {e}")
+        raise
+
 def resolve_actual_file_url(url):
     if not url or not isinstance(url, str):
         return None
@@ -109,8 +125,8 @@ def resolve_actual_file_url(url):
 
     try:
         print(f"🔍 Inspecting webpage for embedded document: {url}")
-        res = requests.get(url, headers=HTTP_HEADERS, timeout=15, verify=False)
-        if res.status_code == 200:
+        res = get_url_with_ssl_fallback(url) # Updated to use the secure fallback function
+        if res and res.status_code == 200:
             content_type = res.headers.get('Content-Type', '').lower()
             if 'application/pdf' in content_type or 'image/' in content_type:
                 return url
@@ -213,7 +229,7 @@ def extract_with_gemini_vision(image_bytes_list):
             return data
         except Exception as e:
             last_error = e
-            print(f"⚠️️ Model [{model_name}] failed: {e}. Trying fallback model...")
+            print(f"⚠ Model [{model_name}] failed: {e}. Trying fallback model...")
             time.sleep(2)
 
     raise RuntimeError(f"❌ All Gemini models in DEFAULT_CHAIN failed! Last error: {last_error}")
@@ -263,8 +279,10 @@ def process_sl_job_scraper_vacancies():
             if target_file_url:
                 try:
                     print(f"📥 Downloading document/file from: {target_file_url}")
-                    file_res = requests.get(target_file_url, headers=HTTP_HEADERS, timeout=25, verify=False)
-                    if file_res.status_code == 200:
+                    # Updated to use the secure fallback function for downloading the file
+                    file_res = get_url_with_ssl_fallback(target_file_url, timeout=25) 
+                    
+                    if file_res and file_res.status_code == 200:
                         file_bytes = file_res.content
                         is_pdf = ".pdf" in target_file_url.lower() or "application/pdf" in file_res.headers.get("Content-Type", "").lower()
                         
@@ -280,7 +298,7 @@ def process_sl_job_scraper_vacancies():
                         else:
                             print("⚠️ No valid images extracted from document.")
                     else:
-                        print(f"⚠️ Download failed HTTP Status: {file_res.status_code}")
+                        print(f"⚠️ Download failed HTTP Status: {file_res.status_code if file_res else 'Unknown'}")
                 except Exception as e:
                     print(f"⚠️ Extraction Error for ID {vac_id}: {e}")
                     has_gemini_error = True
@@ -292,7 +310,7 @@ def process_sl_job_scraper_vacancies():
             is_valid_ad = extracted_data.get("is_valid_ad", True)
             if not is_valid_ad:
                 reason = extracted_data.get("rejection_reason", "Not a job or course vacancy")
-                print(f"🗑️️ [JUNK REJECTED] ID {vac_id} - {reason}. Skipping & marking processed...")
+                print(f"🗑 [JUNK REJECTED] ID {vac_id} - {reason}. Skipping & marking processed...")
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
                 total_skipped += 1
                 continue
