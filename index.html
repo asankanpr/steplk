@@ -75,11 +75,10 @@
 </head>
 <body class="bg-brand-dark text-slate-100 font-sans antialiased min-h-screen flex flex-col">
 
-    <!-- 1. TOP TICKER TAPE (Continuous Infinite Marquee) -->
+    <!-- 1. TOP TICKER TAPE -->
     <div class="bg-brand-charcoal border-b border-brand-border py-2 text-xs font-medium overflow-hidden whitespace-nowrap text-slate-300 relative">
         <div class="animate-marquee items-center gap-6">
-            
-            <!-- Items Block 1 -->
+            <!-- Block 1 -->
             <div class="flex items-center gap-6 px-3">
                 <span class="flex items-center gap-1.5"><i class="fa-solid fa-dollar-sign text-brand-emerald"></i> USD: <strong class="val-usd text-white">LKR 302.50</strong></span>
                 <span class="border-r border-slate-700 h-3"></span>
@@ -89,13 +88,12 @@
                 <span class="border-r border-slate-700 h-3"></span>
                 <span class="flex items-center gap-1.5"><i class="fa-solid fa-compass text-emerald-400"></i> සුබ දිශාව: <strong class="val-disawa text-white">දකුණ</strong></span>
                 <span class="border-r border-slate-700 h-3"></span>
-                <!-- 🔴 අලුතින් එක් කළ සුබ වර්ණය 🔴 -->
                 <span class="flex items-center gap-1.5"><i class="fa-solid fa-palette text-pink-400"></i> සුබ වර්ණය: <strong class="val-warnaya text-white">සුදු</strong></span>
                 <span class="border-r border-slate-700 h-3"></span>
                 <span class="flex items-center gap-1.5 text-slate-400"><i class="fa-solid fa-shield-halved text-brand-emerald"></i> Verified Govt Sources</span>
             </div>
 
-            <!-- Items Block 2 (Seamless Infinite Loop) -->
+            <!-- Block 2 (Seamless loop) -->
             <div class="flex items-center gap-6 px-3">
                 <span class="flex items-center gap-1.5"><i class="fa-solid fa-dollar-sign text-brand-emerald"></i> USD: <strong class="val-usd text-white">LKR 302.50</strong></span>
                 <span class="border-r border-slate-700 h-3"></span>
@@ -105,12 +103,10 @@
                 <span class="border-r border-slate-700 h-3"></span>
                 <span class="flex items-center gap-1.5"><i class="fa-solid fa-compass text-emerald-400"></i> සුබ දිශාව: <strong class="val-disawa text-white">දකුණ</strong></span>
                 <span class="border-r border-slate-700 h-3"></span>
-                <!-- 🔴 අලුතින් එක් කළ සුබ වර්ණය 🔴 -->
                 <span class="flex items-center gap-1.5"><i class="fa-solid fa-palette text-pink-400"></i> සුබ වර්ණය: <strong class="val-warnaya text-white">සුදු</strong></span>
                 <span class="border-r border-slate-700 h-3"></span>
                 <span class="flex items-center gap-1.5 text-slate-400"><i class="fa-solid fa-shield-halved text-brand-emerald"></i> Verified Govt Sources</span>
             </div>
-
         </div>
     </div>
 
@@ -118,7 +114,6 @@
     <header class="bg-brand-dark/90 backdrop-blur-md border-b border-brand-border sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-3.5 py-2.5 flex items-center justify-between gap-2">
             
-            <!-- Clickable Logo Unit -->
             <a href="#" onclick="window.location.reload(); return false;" class="flex items-center gap-2.5 sm:gap-3.5 group flex-shrink-0">
                 <img src="./icons/logo-512.png" alt="StepLK Logo" class="w-12 h-12 sm:w-16 sm:h-16 object-contain group-hover:scale-105 transition-transform">
                 <div class="flex flex-col">
@@ -129,13 +124,11 @@
                 </div>
             </a>
             
-            <!-- Search Box -->
             <div class="relative w-36 sm:w-60 md:w-72 flex-shrink-0 flex items-center">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 text-slate-400 text-xs z-10 pointer-events-none"></i>
                 <input type="text" id="search-input" placeholder="සොයන්න (Search)..." 
                     class="w-full bg-brand-charcoal border border-brand-border focus:border-brand-emerald rounded-xl pl-8 pr-3 h-11 text-[11px] sm:text-xs text-white outline-none text-center shadow-sm transition-all" />
             </div>
-
         </div>
     </header>
 
@@ -168,8 +161,9 @@
         <!-- MOBILE TOP BANNER AD -->
         <div class="block lg:hidden mb-4 bg-brand-card border border-dashed border-slate-700/80 rounded-2xl p-3 text-center">
             <span class="text-[9px] text-slate-500 uppercase tracking-widest block mb-1">Advertisement</span>
-            <div id="mobile-top-ad" class="h-24 bg-brand-dark/80 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+            <div class="h-24 bg-brand-dark/80 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
                 <a href="https://google.com" target="_blank" class="w-full h-full block">
+                    <!-- ADD IMAGE URL HERE -->
                     <img src="https://i.ibb.co/XZqLGbwj/image-a78c354e.jpg" alt="Ad" class="w-full h-full object-cover rounded-xl">
                 </a>
             </div>
@@ -248,7 +242,6 @@
                         </a>
                     </div>
                 </div>
-
             </div>
 
             <!-- DESKTOP RIGHT SIDEBAR -->
@@ -275,7 +268,6 @@
                             <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-compass text-emerald-400"></i> සුබ දිශාව</span>
                             <span id="sidebar-disawa" class="font-bold text-white val-disawa">දකුණ</span>
                         </div>
-                        <!-- 🔴 අලුතින් එක් කළ සුබ වර්ණය 🔴 -->
                         <div class="flex justify-between items-center bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800">
                             <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-palette text-pink-400"></i> සුබ වර්ණය</span>
                             <span id="sidebar-warnaya" class="font-bold text-white val-warnaya">සුදු</span>
@@ -285,13 +277,12 @@
                     <!-- DESKTOP SIDEBAR AD BANNER -->
                     <div class="mt-5 bg-slate-900 border border-dashed border-slate-700 rounded-xl p-4 text-center">
                         <span class="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Advertisement</span>
-                        <div id="desktop-sidebar-ad" class="h-32 bg-slate-800/50 rounded-lg overflow-hidden flex items-center justify-center">
+                        <div class="h-32 bg-slate-800/50 rounded-lg overflow-hidden flex items-center justify-center">
                             <a href="https://google.com" target="_blank" class="w-full h-full block">
                                 <img src="https://i.ibb.co/XZqLGbwj/image-a78c354e.jpg" alt="Ad" class="w-full h-full object-cover rounded-lg">
                             </a>
                         </div>
                     </div>
-
                 </div>
             </div>
 
@@ -358,7 +349,7 @@
             <!-- DETAIL MODAL AD BANNER -->
             <div class="bg-brand-dark/80 border border-slate-800 rounded-xl p-2.5 text-center my-2">
                 <span class="text-[9px] text-slate-500 uppercase tracking-widest block mb-1">Sponsored Notice</span>
-                <div id="modal-ad-container" class="h-24 bg-slate-900/60 rounded-lg overflow-hidden flex items-center justify-center">
+                <div class="h-24 bg-slate-900/60 rounded-lg overflow-hidden flex items-center justify-center">
                     <a href="https://google.com" target="_blank" class="w-full h-full block">
                         <img src="https://i.ibb.co/XZqLGbwj/image-a78c354e.jpg" alt="Ad" class="w-full h-full object-cover rounded-lg">
                     </a>
@@ -379,16 +370,13 @@
     <!-- MODERN CUSTOM POPUP ALERT MODAL -->
     <div id="custom-alert-modal" class="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-brand-card border border-brand-emerald/50 rounded-2xl p-6 w-full max-w-xs sm:max-w-sm text-center shadow-2xl space-y-4 relative transform transition-all scale-100">
-            
             <div id="alert-icon-box" class="w-14 h-14 mx-auto rounded-2xl bg-brand-emerald/10 border border-brand-emerald/30 flex items-center justify-center text-brand-emerald text-2xl shadow-inner">
                 <i id="alert-icon" class="fa-solid fa-circle-check"></i>
             </div>
-    
             <div>
                 <h3 id="alert-title" class="text-sm sm:text-base font-bold text-white mb-1">සාර්ථකයි!</h3>
                 <p id="alert-message" class="text-xs text-slate-300 leading-relaxed">තොරතුරු සාර්ථකව පද්ධතියට එක් විය.</p>
             </div>
-    
             <button onclick="closeCustomAlert()" class="w-full bg-brand-emerald hover:bg-brand-emeraldDark text-brand-dark font-black py-2.5 rounded-xl text-xs transition shadow-lg shadow-brand-emerald/20 active:scale-95">
                 OK
             </button>
@@ -405,9 +393,11 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
     const SUPABASE_URL = 'https://wlgnfprghzczwjjpoqym.supabase.co';
+    // 🔴 අතිශය වැදගත්: මෙතැනට ඔයාගේ Supabase 'anon' (public) key එක දාන්න 🔴
     const SUPABASE_ANON_KEY = 'sb_publishable_j4dFy0AhNEmQOIEUpsS7mg_83NOxeFj';
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // XSS Protection Function (අනිවාර්යයෙන් දත්ත ඇතුළත් කිරීමට පෙර භාවිත කරන්න)
     function escapeHtml(str) {
         if (str === null || str === undefined || str === '') return '';
         return String(str)
@@ -454,7 +444,6 @@
                     document.querySelectorAll('.val-disawa').forEach(el => el.innerText = val);
                     if(document.getElementById('sidebar-disawa')) document.getElementById('sidebar-disawa').innerText = val;
                 } else if (item.key_name === 'SUBHA_WARNAYA') {
-                    // 🔴 අලුතින් එක් කළ සුබ වර්ණය JS මගින් Update කිරීම 🔴
                     document.querySelectorAll('.val-warnaya').forEach(el => el.innerText = val);
                     if(document.getElementById('sidebar-warnaya')) document.getElementById('sidebar-warnaya').innerText = val;
                 }
@@ -528,7 +517,6 @@
             });
 
             allFetchedPosts = [...activePosts, ...expiredPosts];
-
             loadedPostsMap = {};
             allFetchedPosts.forEach(p => loadedPostsMap[p.id] = p);
 
@@ -717,6 +705,7 @@
                 </div>
             </div>`;
 
+            // Inject Ad every 5 posts
             if ((index + 1) % 5 === 0 && (index + 1) < posts.length) {
                 htmlContent += `
                 <div class="bg-brand-card border border-dashed border-slate-700/80 rounded-2xl p-4 shadow-lg text-center space-y-2">
@@ -825,38 +814,36 @@
         }
     }
 
-window.showCustomAlert = function(title, message, isSuccess = true) {
-    document.getElementById('alert-title').innerText = title; 
-    document.getElementById('alert-message').innerText = message; 
-    
-    const iconBox = document.getElementById('alert-icon-box');
-    const icon = document.getElementById('alert-icon');
-
-    if (isSuccess) {
-        iconBox.className = "w-14 h-14 mx-auto rounded-2xl bg-brand-emerald/10 border border-brand-emerald/30 flex items-center justify-center text-brand-emerald text-2xl shadow-inner";
-        icon.className = "fa-solid fa-circle-check";
-    } else {
-        iconBox.className = "w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-2xl shadow-inner";
-        icon.className = "fa-solid fa-triangle-exclamation";
-    }
-
-    document.getElementById('custom-alert-modal').classList.remove('hidden');
-};
-
-window.closeCustomAlert = function() {
-    document.getElementById('custom-alert-modal').classList.add('hidden');
-};
-
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = error => reject(error);
-    });
-}
+    window.showCustomAlert = function(title, message, isSuccess = true) {
+        document.getElementById('alert-title').innerText = escapeHtml(title); 
+        document.getElementById('alert-message').innerText = escapeHtml(message); 
         
+        const iconBox = document.getElementById('alert-icon-box');
+        const icon = document.getElementById('alert-icon');
 
-</script>
+        if (isSuccess) {
+            iconBox.className = "w-14 h-14 mx-auto rounded-2xl bg-brand-emerald/10 border border-brand-emerald/30 flex items-center justify-center text-brand-emerald text-2xl shadow-inner";
+            icon.className = "fa-solid fa-circle-check";
+        } else {
+            iconBox.className = "w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-2xl shadow-inner";
+            icon.className = "fa-solid fa-triangle-exclamation";
+        }
+
+        document.getElementById('custom-alert-modal').classList.remove('hidden');
+    };
+
+    window.closeCustomAlert = function() {
+        document.getElementById('custom-alert-modal').classList.add('hidden');
+    };
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+        });
+    }
+    </script>
 </body>
 </html>
