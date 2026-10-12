@@ -46,7 +46,7 @@
     <header class="bg-brand-dark/90 backdrop-blur-md border-b border-brand-border sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-3.5 py-2.5 flex items-center justify-between">
             <a href="index.html" class="flex items-center gap-2.5 group">
-                <img src="./icons/logo-512.png" alt="StepLK" class="w-10 h-10 sm:w-12 sm:h-12 object-contain">
+                <img src="./icons/logo-512.png" alt="StepLK" class="w-10 h-10 sm:w-12 h-12 object-contain">
                 <div class="flex flex-col">
                     <span class="text-xl sm:text-2xl font-black text-white">Step<span class="text-brand-emerald">LK</span></span>
                     <span class="text-[9px] text-brand-yellow font-bold uppercase">අධ්‍යාපන පීඨය</span>
@@ -197,6 +197,7 @@
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
         const SUPABASE_URL = 'https://wlgnfprghzczwjjpoqym.supabase.co';
+        // 🔴 මෙතනට ඔයාගේ Supabase Dashboard එකේ තියෙන ANON_KEY (Public Key) එක අනිවාර්යයෙන්ම දාන්න 🔴
         const SUPABASE_ANON_KEY = 'sb_publishable_j4dFy0AhNEmQOIEUpsS7mg_83NOxeFj';
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -326,32 +327,43 @@
             govtBox.innerHTML = `<div class="text-[10px] text-slate-500"><i class="fa-solid fa-spinner fa-spin"></i> රැකියා සෙවීම සිදුකරයි...</div>`;
             pvtBox.innerHTML = `<div class="text-[10px] text-slate-500"><i class="fa-solid fa-spinner fa-spin"></i> රැකියා සෙවීම සිදුකරයි...</div>`;
 
-            // Extract Search Keywords from Course Name (e.g., "Biological", "Physiotherapy", "Biochemistry")
-            const keyword = (degreeTitleEn || '').split(' ')[0] || '';
+            try {
+                // Extract Search Keywords from Course Name (e.g., "Biological", "Physiotherapy", "Biochemistry")
+                const keyword = (degreeTitleEn || '').split(' ')[0] || '';
 
-            // Fetch All Recent Govt & Private Jobs from `posts` table (No Deadline Filter)
-            const { data: allGovt } = await supabase
-                .from('posts')
-                .select('*')
-                .eq('status', 'PUBLISHED')
-                .ilike('category', '%Government%')
-                .order('created_at', { ascending: false })
-                .limit(20);
+                // Fetch All Recent Govt & Private Jobs from `posts` table (No Deadline Filter)
+                const { data: allGovt, error: govtError } = await supabase
+                    .from('posts')
+                    .select('*')
+                    .eq('status', 'PUBLISHED')
+                    .ilike('category', '%Government%')
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+                
+                if (govtError) throw govtError;
 
-            const { data: allPvt } = await supabase
-                .from('posts')
-                .select('*')
-                .eq('status', 'PUBLISHED')
-                .ilike('category', '%Private%')
-                .order('created_at', { ascending: false })
-                .limit(20);
+                const { data: allPvt, error: pvtError } = await supabase
+                    .from('posts')
+                    .select('*')
+                    .eq('status', 'PUBLISHED')
+                    .ilike('category', '%Private%')
+                    .order('created_at', { ascending: false })
+                    .limit(20);
 
-            // Filter & Rank Jobs with Degree Priority
-            const prioritizedGovt = rankJobsByDegree(allGovt || [], degreeType, keyword);
-            const prioritizedPvt = rankJobsByDegree(allPvt || [], degreeType, keyword);
+                if (pvtError) throw pvtError;
 
-            renderJobsList(prioritizedGovt.slice(0, 5), govtBox);
-            renderJobsList(prioritizedPvt.slice(0, 5), pvtBox);
+                // Filter & Rank Jobs with Degree Priority
+                const prioritizedGovt = rankJobsByDegree(allGovt || [], degreeType, keyword);
+                const prioritizedPvt = rankJobsByDegree(allPvt || [], degreeType, keyword);
+
+                renderJobsList(prioritizedGovt.slice(0, 5), govtBox);
+                renderJobsList(prioritizedPvt.slice(0, 5), pvtBox);
+                
+            } catch (error) {
+                console.error("Error fetching matching jobs:", error);
+                govtBox.innerHTML = `<p class="text-[10px] text-red-400">දත්ත ලබාගැනීමේ දෝෂයක්. පසුව නැවත උත්සාහ කරන්න.</p>`;
+                pvtBox.innerHTML = `<p class="text-[10px] text-red-400">දත්ත ලබාගැනීමේ දෝෂයක්. පසුව නැවත උත්සාහ කරන්න.</p>`;
+            }
         }
 
         function rankJobsByDegree(jobs, degreeType, keyword) {
