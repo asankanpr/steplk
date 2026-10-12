@@ -23,7 +23,7 @@ HEADERS = {
 }
 BASE_URL = "https://www.topjobs.lk"
 
-# 🔴 LEVEL 1: Fast Blacklist Keywords for Agencies 🔴
+# 🔴 LEVEL 1: Fast Blacklist Keywords for Agencies
 AGENCY_KEYWORDS = [
     'recruitment', 'manpower', 'consultanc', 'consultant', 'placement', 
     'headhunter', 'hr solution', 'outsourcing', 'human resource', 'executive search'
@@ -68,7 +68,6 @@ def get_today_vacancies():
                 title_employer_lower = title_employer_text.lower()
                 
                 if any(kw in title_employer_lower for kw in AGENCY_KEYWORDS):
-                    print(f"   🚫 [LEVEL 1 REJECT] Agency Name Detected: {title_employer_text.split()[:5]}...")
                     continue
 
                 closing_raw = ""
@@ -92,33 +91,29 @@ def get_today_vacancies():
         return []
 
 def extract_flyer_image_url(popup_url, depth=0):
-    if depth > 3: 
-        return None # ලූප් එකක හිරවීම වැළැක්වීමට
+    if depth > 3: return None
         
     try:
         res = requests.get(popup_url, headers=HEADERS, timeout=15)
         soup = BeautifulSoup(res.text, 'html.parser')
 
-        # 🔴 FIX: <frame> tag එක ඇතුළටම ගිහින් බලනවා!
         for frame in soup.find_all(['iframe', 'frame']):
             src = frame.get('src', '')
             if src:
                 nested_url = requests.compat.urljoin(popup_url, src)
                 img_url = extract_flyer_image_url(nested_url, depth + 1)
-                if img_url:
-                    return img_url
+                if img_url: return img_url
 
-        # පින්තූර සෙවීම
         for img in soup.find_all('img'):
             src = img.get('src', '')
             src_lower = src.lower()
             
-            # වැඩකට නැති icons විතරක් අයින් කරනවා
-            if any(skip in src_lower for skip in ['spacer', 'btn', 'icon', 'blank']):
+            # 🔴 FIX 1: info.png වැනි අනවශ්‍ය icons සියල්ල block කිරීම
+            skip_words = ['spacer', 'btn', 'icon', 'blank', 'info.png', 'topjobs', 'print', 'email']
+            if any(skip in src_lower for skip in skip_words):
                 continue
             
-            # /logo/ ෆෝල්ඩර් එකේ තියෙන පින්තූර තමයි ඇත්තම Flyer එක!
-            if '/logo/' in src_lower or 'advertisment' in src_lower or any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']):
+            if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']):
                 return requests.compat.urljoin(popup_url, src)
                 
     except Exception:
@@ -129,13 +124,12 @@ def extract_flyer_image_url(popup_url, depth=0):
 def process_and_save_vacancy(job_data):
     topjobs_img_url = extract_flyer_image_url(job_data['popup_url'])
     if not topjobs_img_url:
-        print("   ⚠️ මෙම ලින්ක් එකෙහි Image එකක් හමු නොවිණි (Text පමණක් විය හැක).")
+        print("   ⚠️ මෙම ලින්ක් එකෙහි Image එකක් හමු නොවිණි.")
         return False
 
     print(f"   📥 Flyer පින්තූරය හමු විය: {topjobs_img_url}")
 
     try:
-        # SECURITY: Duplicate Checking by original URL first
         check_dup = supabase.table("posts").select("id").eq("image_url", topjobs_img_url).execute()
         if len(check_dup.data) > 0:
             print(f"   🔄 Duplicate: මෙම පෝස්ටුව දැනටමත් ඇත. (Skipped)")
@@ -151,19 +145,26 @@ def process_and_save_vacancy(job_data):
         elif ".gif" in topjobs_img_url.lower(): mime_type = "image/gif" 
 
         # -------------------------------------------------------------
-        # 🤖 1. ඉස්සෙල්ලා AI එකෙන් කියවනවා (Deep Filter)
+        # 🔴 FIX 2: Supabase Edge Functions Call with 60-Second Timeout 🔴
         # -------------------------------------------------------------
+        
+        # 1. Gemini AI මගින් දත්ත කියවීම (scan-flyer)
         print("   🤖 Gemini AI මගින් දත්ත කියවමින් පවතී...")
-        invoke_res = supabase.functions.invoke('scan-flyer', {
-            'body': {
-                'base64Data': base64_data,
-                'mimeType': mime_type
-            }
-        })
+        scan_url = f"{SUPABASE_URL}/functions/v1/scan-flyer"
+        scan_res = requests.post(
+            scan_url,
+            headers={"Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"},
+            json={'base64Data': base64_data, 'mimeType': mime_type},
+            timeout=60 # තත්පර 60 ක කාලයක් දෙනවා
+        )
+        
+        if scan_res.status_code != 200:
+            print(f"   ⚠️ AI කියවීම අසාර්ථක විය (Status: {scan_res.status_code}).")
+            return False
 
-        res_data = invoke_res.get('data', {})
+        res_data = scan_res.json()
         if not res_data or 'candidates' not in res_data:
-            print(f"   ⚠️ AI කියවීම අසාර්ථක විය.")
+            print(f"   ⚠️ AI හිස් ප්‍රතිචාරයක් ලබා දුන්නේය.")
             return False
 
         raw_text = res_data['candidates'][0]['content']['parts'][0]['text']
@@ -172,25 +173,27 @@ def process_and_save_vacancy(job_data):
         import json
         extracted = json.loads(raw_text)
 
-        # 🔴 LEVEL 2 FILTER: AI එකෙන් Manpower අහු වුණොත්!
+        # AI Agency Check (Level 2)
         if extracted.get("is_agency") == True:
-            print(f"   🚫 [LEVEL 2 REJECT] AI විසින් මෙය Manpower/Agency එකක් බව හඳුනාගත්තා. (Rejected!)")
+            print(f"   🚫 [LEVEL 2 REJECT] AI විසින් මෙය Manpower/Agency එකක් බව හඳුනාගත්තා.")
             return False
 
-        # -------------------------------------------------------------
-        # ☁️ 2. Genuine නම් පමණක් ImgBB වෙත Upload කිරීම
-        # -------------------------------------------------------------
+        # 2. ImgBB වෙත Upload කිරීම (upload-image)
         print("   ☁️ Genuine පෝස්ටුවකි. ImgBB වෙත Upload කරමින් පවතී...")
-        upload_res = supabase.functions.invoke('upload-image', {
-            'body': {'base64Image': base64_data}
-        })
-
-        upload_data = upload_res.get('data') or {}
+        upload_url = f"{SUPABASE_URL}/functions/v1/upload-image"
+        upload_res = requests.post(
+            upload_url,
+            headers={"Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"},
+            json={'base64Image': base64_data},
+            timeout=60 # තත්පර 60 ක කාලයක් දෙනවා
+        )
+        
         permanent_img_url = topjobs_img_url
-
-        if upload_data and upload_data.get('success'):
-            permanent_img_url = upload_data.get('url')
-            print(f"   ✅ ImgBB Upload සාර්ථකයි! Link: {permanent_img_url}")
+        if upload_res.status_code == 200:
+            upload_data = upload_res.json()
+            if upload_data.get('success'):
+                permanent_img_url = upload_data.get('url')
+                print(f"   ✅ ImgBB Upload සාර්ථකයි! Link: {permanent_img_url}")
 
         contact_info = extracted.get('contact', '')
         desc = "පෞද්ගලික අංශයේ රැකියා ඇබෑර්තුවකි."
@@ -227,7 +230,7 @@ if __name__ == "__main__":
     jobs_list = get_today_vacancies()
     
     successful_inserts = 0
-    # හරියටම පෝස්ට් 10ක් Save වන තෙක් ලූප් එක දිවීම (දිනකට 10ක්)
+    # හරියටම පෝස්ට් 10ක් Save වන තෙක් ලූප් එක දිවීම
     for job in jobs_list:
         if successful_inserts >= 10: 
             break
