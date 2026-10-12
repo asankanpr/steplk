@@ -3,9 +3,11 @@ import re
 import time
 import base64
 import requests
+import io  # 🔴 අලුතින් එක් කරන ලදී
 from datetime import datetime
 from bs4 import BeautifulSoup
 from supabase import create_client, Client
+from PIL import Image # 🔴 පින්තූර කැපීම සඳහා (Pillow) අලුතින් එක් කරන ලදී
 
 # --- 1. SECURITY & CREDENTIALS ---
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -94,7 +96,6 @@ def extract_flyer_image_url(popup_url, depth=0):
         res = requests.get(popup_url, headers=HEADERS, timeout=15)
         soup = BeautifulSoup(res.text, 'html.parser')
 
-        # Iframe/Frame පරීක්ෂාව
         for frame in soup.find_all(['iframe', 'frame']):
             src = frame.get('src', '')
             if src:
@@ -102,40 +103,28 @@ def extract_flyer_image_url(popup_url, depth=0):
                 img_url = extract_flyer_image_url(nested_url, depth + 1)
                 if img_url: return img_url
 
-        # PDF පරීක්ෂාව
         for a_tag in soup.find_all('a'):
             href = a_tag.get('href', '')
             if '.pdf' in href.lower():
                 return requests.compat.urljoin(popup_url, href)
 
-        # -------------------------------------------------------------------
-        # 🔴 100% SMART LOGIC: සැබෑ Flyer Image එක පමණක් තෝරා ගැනීම
-        # -------------------------------------------------------------------
         possible_flyers = []
         for img in soup.find_all('img'):
             src = img.get('src', '')
             src_lower = src.lower()
             
-            # 1. සම්පූර්ණයෙන්ම ප්‍රතික්ෂේප කළ යුතු දේවල් (UI icons, Topjobs Graphics)
             if '/images/' in src_lower or 'spacer' in src_lower or 'btn' in src_lower or 'icon' in src_lower:
                 continue
                 
-            # 2. Company Logo එක ප්‍රතික්ෂේප කිරීම (_small)
             if '_small' in src_lower or 'thumb' in src_lower:
                 continue
                 
-            # 3. මෙය රූපයක්දැයි තහවුරු කරගැනීම
             if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']):
                 full_url = requests.compat.urljoin(popup_url, src)
-                
-                # අපට අවශ්‍ය හරියටම /logo/ ෆෝල්ඩරය තුළ ඇති _small නොවන පින්තූරයයි!
-                # (උදා: https://www.topjobs.lk/logo/DEFZZZ/9363c1036.png)
                 if '/logo/' in src_lower:
-                    return full_url  # 100% ක්ම මේක තමයි Flyer එක. කෙලින්ම return කරනවා!
-                    
+                    return full_url  
                 possible_flyers.append(full_url)
                 
-        # /logo/ නැති වුනොත් පමණක් ඉතිරි වී ඇති ලොකු පින්තූරයක් ගනී
         if possible_flyers:
             return possible_flyers[-1]
                 
@@ -147,7 +136,7 @@ def process_and_save_vacancy(job_data):
     topjobs_img_url = extract_flyer_image_url(job_data['popup_url'])
     
     if not topjobs_img_url:
-        print("   ⚠️ මෙම ලින්ක් එකෙහි Image එකක් හමු නොවිණි (Text හෝ HTML පමණක් විය හැක).")
+        print("   ⚠️ මෙම ලින්ක් එකෙහි Image හෝ PDF එකක් හමු නොවිණි.")
         return False
 
     if topjobs_img_url.lower().endswith('.pdf'):
@@ -166,25 +155,56 @@ def process_and_save_vacancy(job_data):
         if img_res.status_code != 200:
             return False
 
-        base64_data = base64.b64encode(img_res.content).decode('utf-8')
-        mime_type = "image/jpeg"
-        if ".png" in topjobs_img_url.lower(): mime_type = "image/png"
-        elif ".gif" in topjobs_img_url.lower(): mime_type = "image/gif" 
+        image_bytes = img_res.content
 
         # -------------------------------------------------------------
-        # 🔴 FIX: AI Request එකට Retry + තත්පර 90ක් ලබාදීම
+        # ✂️ 100% SMART WATERMARK REMOVAL (Topjobs සලකුණ කැපීම) ✂️
+        # -------------------------------------------------------------
+        try:
+            print("   ✂️ පින්තූරයේ ඇති Topjobs Watermark එක ඉවත් කරමින් පවතී...")
+            image = Image.open(io.BytesIO(image_bytes))
+            
+            # GIF, PNG වැනි දේවල් RGB වලට හැරවීම (Crop කිරීම පහසු වීමට)
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            width, height = image.size
+            
+            # සාමාන්‍යයෙන් Topjobs සලකුණ ඇත්තේ යටම කෙළවරේය (පහළින් පික්සෙල් 45ක් පමණ).
+            crop_amount = 45 
+            
+            # පින්තූරය ඉතා කුඩා නම් (height 200 ට අඩු නම්) crop නොකරමු
+            if height > 200:
+                # Box: (left, upper, right, lower)
+                image = image.crop((0, 0, width, height - crop_amount))
+            
+            # කැපූ පින්තූරය නැවත bytes බවට හැරවීම
+            img_byte_arr = io.BytesIO()
+            image.save(img_byte_arr, format='JPEG', quality=95)
+            image_bytes = img_byte_arr.getvalue()
+            
+            print("   ✅ Watermark එක සාර්ථකව කපා ඉවත් කරන ලදී!")
+        except Exception as e:
+            print(f"   ⚠️ පින්තූරය Crop කිරීමේ දෝෂයක්: {e}")
+
+        # Crop කරපු එක Base64 වලට හරවනවා
+        base64_data = base64.b64encode(image_bytes).decode('utf-8')
+        mime_type = "image/jpeg"
+
+        # -------------------------------------------------------------
+        # 🤖 1. Gemini AI මගින් දත්ත කියවීම 
         # -------------------------------------------------------------
         print("   🤖 Gemini AI මගින් දත්ත කියවමින් පවතී...")
         scan_url = f"{SUPABASE_URL}/functions/v1/scan-flyer"
         
         scan_res = None
-        for attempt in range(2): # දෙවරක් උත්සහ කරයි
+        for attempt in range(2): 
             try:
                 scan_res = requests.post(
                     scan_url,
                     headers={"Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"},
                     json={'base64Data': base64_data, 'mimeType': mime_type},
-                    timeout=90  # කාලය තත්පර 90 කට වැඩිකර ඇත
+                    timeout=90  
                 )
                 if scan_res.status_code == 200:
                     break
@@ -194,12 +214,11 @@ def process_and_save_vacancy(job_data):
                 print(f"   ⚠️ AI Request Error: {e}")
                 
         if not scan_res or scan_res.status_code != 200:
-            print(f"   ⚠️ AI කියවීම අසාර්ථක විය (Status: {scan_res.status_code if scan_res else 'Timeout'}).")
+            print(f"   ⚠️ AI කියවීම අසාර්ථක විය.")
             return False
 
         res_data = scan_res.json()
         if not res_data or 'candidates' not in res_data:
-            print(f"   ⚠️ AI හිස් ප්‍රතිචාරයක් ලබා දුන්නේය.")
             return False
 
         raw_text = res_data['candidates'][0]['content']['parts'][0]['text']
@@ -212,7 +231,9 @@ def process_and_save_vacancy(job_data):
             print(f"   🚫 [LEVEL 2 REJECT] AI විසින් මෙය Manpower/Agency එකක් බව හඳුනාගත්තා.")
             return False
 
-        # 2. ImgBB වෙත Upload කිරීම
+        # -------------------------------------------------------------
+        # ☁️ 2. Genuine නම් පමණක් ImgBB වෙත Upload කිරීම
+        # -------------------------------------------------------------
         print("   ☁️ Genuine පෝස්ටුවකි. ImgBB වෙත Upload කරමින් පවතී...")
         upload_url = f"{SUPABASE_URL}/functions/v1/upload-image"
         upload_res = requests.post(
@@ -260,11 +281,10 @@ def process_and_save_vacancy(job_data):
         return False
 
 if __name__ == "__main__":
-    print("🚀 Topjobs ස්වයංක්‍රීය (Anti-Spam) Scraper ක්‍රියාවලිය ආරම්භ විය...")
+    print("🚀 Topjobs ස්වයංක්‍රීය (Anti-Spam & Watermark Free) Scraper ආරම්භ විය...")
     jobs_list = get_today_vacancies()
     
     successful_inserts = 0
-    # හරියටම පෝස්ට් 10ක් Save වන තෙක් ලූප් එක දිවීම
     for job in jobs_list:
         if successful_inserts >= 10: 
             break
