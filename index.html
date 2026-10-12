@@ -89,6 +89,9 @@
                 <span class="border-r border-slate-700 h-3"></span>
                 <span class="flex items-center gap-1.5"><i class="fa-solid fa-compass text-emerald-400"></i> සුබ දිශාව: <strong class="val-disawa text-white">දකුණ</strong></span>
                 <span class="border-r border-slate-700 h-3"></span>
+                <!-- 🔴 අලුතින් එක් කළ සුබ වර්ණය 🔴 -->
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-palette text-pink-400"></i> සුබ වර්ණය: <strong class="val-warnaya text-white">සුදු</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
                 <span class="flex items-center gap-1.5 text-slate-400"><i class="fa-solid fa-shield-halved text-brand-emerald"></i> Verified Govt Sources</span>
             </div>
 
@@ -101,6 +104,9 @@
                 <span class="flex items-center gap-1.5"><i class="fa-solid fa-clock text-amber-400"></i> රාහු කාලය: <strong class="val-rahu text-white">1:32 PM - 3:04 PM</strong></span>
                 <span class="border-r border-slate-700 h-3"></span>
                 <span class="flex items-center gap-1.5"><i class="fa-solid fa-compass text-emerald-400"></i> සුබ දිශාව: <strong class="val-disawa text-white">දකුණ</strong></span>
+                <span class="border-r border-slate-700 h-3"></span>
+                <!-- 🔴 අලුතින් එක් කළ සුබ වර්ණය 🔴 -->
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-palette text-pink-400"></i> සුබ වර්ණය: <strong class="val-warnaya text-white">සුදු</strong></span>
                 <span class="border-r border-slate-700 h-3"></span>
                 <span class="flex items-center gap-1.5 text-slate-400"><i class="fa-solid fa-shield-halved text-brand-emerald"></i> Verified Govt Sources</span>
             </div>
@@ -123,7 +129,7 @@
                 </div>
             </a>
             
-            <!-- Search Box (Vertically & Horizontally Centered) -->
+            <!-- Search Box -->
             <div class="relative w-36 sm:w-60 md:w-72 flex-shrink-0 flex items-center">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 text-slate-400 text-xs z-10 pointer-events-none"></i>
                 <input type="text" id="search-input" placeholder="සොයන්න (Search)..." 
@@ -269,6 +275,11 @@
                             <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-compass text-emerald-400"></i> සුබ දිශාව</span>
                             <span id="sidebar-disawa" class="font-bold text-white val-disawa">දකුණ</span>
                         </div>
+                        <!-- 🔴 අලුතින් එක් කළ සුබ වර්ණය 🔴 -->
+                        <div class="flex justify-between items-center bg-brand-dark/60 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-slate-400 flex items-center gap-2"><i class="fa-solid fa-palette text-pink-400"></i> සුබ වර්ණය</span>
+                            <span id="sidebar-warnaya" class="font-bold text-white val-warnaya">සුදු</span>
+                        </div>
                     </div>
 
                     <!-- DESKTOP SIDEBAR AD BANNER -->
@@ -369,7 +380,6 @@
     <div id="custom-alert-modal" class="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-brand-card border border-brand-emerald/50 rounded-2xl p-6 w-full max-w-xs sm:max-w-sm text-center shadow-2xl space-y-4 relative transform transition-all scale-100">
             
-            <!-- Animated Success/Info Icon -->
             <div id="alert-icon-box" class="w-14 h-14 mx-auto rounded-2xl bg-brand-emerald/10 border border-brand-emerald/30 flex items-center justify-center text-brand-emerald text-2xl shadow-inner">
                 <i id="alert-icon" class="fa-solid fa-circle-check"></i>
             </div>
@@ -385,8 +395,6 @@
         </div>
     </div>
 
-    
-
     <!-- FOOTER -->
     <footer class="bg-brand-charcoal border-t border-brand-border py-6 mt-12 text-center text-xs text-slate-500">
         <p>© 2026 StepLK (steplk.com) — Powered by Official Government Gazette & Public Sources.</p>
@@ -400,11 +408,8 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_j4dFy0AhNEmQOIEUpsS7mg_83NOxeFj';
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // --- SECURITY UTILITY: ESCAPE HTML TO PREVENT DOM XSS INJECTION ---
     function escapeHtml(str) {
-        // null, undefined, හෝ හිස් string එකක් ආවොත් හිස් string එකක්ම return කරන්න
         if (str === null || str === undefined || str === '') return '';
-        // Object එකක් හරි අංකයක් හරි ආවොත්, ඒක string එකක් බවට පත් කරගන්නවා
         return String(str)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -412,7 +417,6 @@
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
     }
-    // ------------------------------------------------------------------
 
     let selectedType = 'ALL'; 
     let selectedMeq = 'ALL';  
@@ -448,6 +452,11 @@
                     if(document.getElementById('sidebar-rahu')) document.getElementById('sidebar-rahu').innerText = val;
                 } else if (item.key_name === 'SUBHA_DISAWA') {
                     document.querySelectorAll('.val-disawa').forEach(el => el.innerText = val);
+                    if(document.getElementById('sidebar-disawa')) document.getElementById('sidebar-disawa').innerText = val;
+                } else if (item.key_name === 'SUBHA_WARNAYA') {
+                    // 🔴 අලුතින් එක් කළ සුබ වර්ණය JS මගින් Update කිරීම 🔴
+                    document.querySelectorAll('.val-warnaya').forEach(el => el.innerText = val);
+                    if(document.getElementById('sidebar-warnaya')) document.getElementById('sidebar-warnaya').innerText = val;
                 }
             });
         } catch (err) {
@@ -743,7 +752,7 @@
         const dlBtn = document.getElementById('modal-download-btn');
         const fileUrl = post.pdf_url || post.image_url;
         if (fileUrl && fileUrl.startsWith('http')) {
-            dlBtn.href = fileUrl; // We trust URLs coming from our own database for hrefs
+            dlBtn.href = fileUrl; 
             dlBtn.classList.remove('hidden');
         } else {
             dlBtn.classList.add('hidden');
@@ -816,14 +825,9 @@
         }
     }
 
-// PVT Vacancy entering form codes...........................................
-
-
-// AUTO SCAN FILE USING GEMINI FLASH DIRECTLY FROM BROWSER
-// 1. MODERN CUSTOM POPUP CONTROLLER
 window.showCustomAlert = function(title, message, isSuccess = true) {
-    document.getElementById('alert-title').innerText = title; // Using innerText provides XSS protection
-    document.getElementById('alert-message').innerText = message; // Using innerText provides XSS protection
+    document.getElementById('alert-title').innerText = title; 
+    document.getElementById('alert-message').innerText = message; 
     
     const iconBox = document.getElementById('alert-icon-box');
     const icon = document.getElementById('alert-icon');
@@ -843,7 +847,6 @@ window.closeCustomAlert = function() {
     document.getElementById('custom-alert-modal').classList.add('hidden');
 };
 
-// Helper: Convert File to Base64
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
