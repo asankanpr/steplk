@@ -64,11 +64,9 @@ def get_today_vacancies():
 
             cols = row.find_all('td')
             if len(cols) >= 5:
-                # 🔴 LEVEL 1 FILTER: Check Company Name
                 title_employer_text = cols[1].text.strip()
                 title_employer_lower = title_employer_text.lower()
                 
-                # Manpower / Agency නම් කෙලින්ම Skip කරනවා
                 if any(kw in title_employer_lower for kw in AGENCY_KEYWORDS):
                     print(f"   🚫 [LEVEL 1 REJECT] Agency Name Detected: {title_employer_text.split()[:5]}...")
                     continue
@@ -93,23 +91,36 @@ def get_today_vacancies():
         print(f"❌ Error: {e}")
         return []
 
-def extract_flyer_image_url(popup_url):
+def extract_flyer_image_url(popup_url, depth=0):
+    if depth > 3: 
+        return None # ලූප් එකක හිරවීම වැළැක්වීමට
+        
     try:
         res = requests.get(popup_url, headers=HEADERS, timeout=15)
         soup = BeautifulSoup(res.text, 'html.parser')
 
-        iframe = soup.find('iframe')
-        if iframe and iframe.get('src'):
-            nested_url = requests.compat.urljoin(popup_url, iframe['src'])
-            return extract_flyer_image_url(nested_url)
+        # 🔴 FIX: <frame> tag එක ඇතුළටම ගිහින් බලනවා!
+        for frame in soup.find_all(['iframe', 'frame']):
+            src = frame.get('src', '')
+            if src:
+                nested_url = requests.compat.urljoin(popup_url, src)
+                img_url = extract_flyer_image_url(nested_url, depth + 1)
+                if img_url:
+                    return img_url
 
+        # පින්තූර සෙවීම
         for img in soup.find_all('img'):
             src = img.get('src', '')
             src_lower = src.lower()
-            if any(skip in src_lower for skip in ['spacer.gif', 'btn', 'icon', 'topjobs']):
+            
+            # වැඩකට නැති icons විතරක් අයින් කරනවා
+            if any(skip in src_lower for skip in ['spacer', 'btn', 'icon', 'blank']):
                 continue
-            if '/logo/' in src_lower or 'image' in src_lower or any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']):
+            
+            # /logo/ ෆෝල්ඩර් එකේ තියෙන පින්තූර තමයි ඇත්තම Flyer එක!
+            if '/logo/' in src_lower or 'advertisment' in src_lower or any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']):
                 return requests.compat.urljoin(popup_url, src)
+                
     except Exception:
         pass
     return None
@@ -118,9 +129,10 @@ def extract_flyer_image_url(popup_url):
 def process_and_save_vacancy(job_data):
     topjobs_img_url = extract_flyer_image_url(job_data['popup_url'])
     if not topjobs_img_url:
+        print("   ⚠️ මෙම ලින්ක් එකෙහි Image එකක් හමු නොවිණි (Text පමණක් විය හැක).")
         return False
 
-    print(f"\n   📥 Flyer පින්තූරය හමු විය: {topjobs_img_url}")
+    print(f"   📥 Flyer පින්තූරය හමු විය: {topjobs_img_url}")
 
     try:
         # SECURITY: Duplicate Checking by original URL first
@@ -160,7 +172,7 @@ def process_and_save_vacancy(job_data):
         import json
         extracted = json.loads(raw_text)
 
-        # 🔴 LEVEL 2 FILTER: Check if AI flagged it as an Agency!
+        # 🔴 LEVEL 2 FILTER: AI එකෙන් Manpower අහු වුණොත්!
         if extracted.get("is_agency") == True:
             print(f"   🚫 [LEVEL 2 REJECT] AI විසින් මෙය Manpower/Agency එකක් බව හඳුනාගත්තා. (Rejected!)")
             return False
