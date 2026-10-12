@@ -1,10 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// 🔴 Security Update: Strict CORS Configuration
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://127.0.0.1:5500',
+  'https://steplk.com',
+  'https://www.steplk.com'
+];
+
+function getCorsHeaders(reqOrigin: string | null) {
+  const origin = ALLOWED_ORIGINS.includes(reqOrigin || '') ? reqOrigin : ALLOWED_ORIGINS[2];
+  return {
+    'Access-Control-Allow-Origin': origin || '*', // Fallback for safety, but limits direct abuse
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+}
 
 const DEFAULT_CHAIN = [
   "gemini-3.5-flash",       
@@ -14,19 +25,37 @@ const DEFAULT_CHAIN = [
 ];
 
 serve(async (req) => {
+  const reqOrigin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(reqOrigin);
+
+  // CORS Preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders, status: 200 });
   }
 
   try {
+    // 🔴 Security Update: Auth Check (Authorization header is required)
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      console.warn("Unauthorized request attempt (Missing token).");
+      return new Response(JSON.stringify({ error: "Unauthorized access." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("API Key is missing.");
+    if (!GEMINI_API_KEY) {
+      console.error("CRITICAL: GEMINI_API_KEY is missing in env vars.");
+      throw new Error("Internal Configuration Error.");
+    }
 
     const requestData = await req.json();
     let base64Data = requestData.base64Data;
     const mimeType = requestData.mimeType || "image/jpeg";
 
-    if (!base64Data) throw new Error("No image data provided.");
+    if (!base64Data) {
+      console.warn("Bad Request: No image data provided.");
+      return new Response(JSON.stringify({ error: "Invalid request payload." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    
     if (base64Data.includes(',')) base64Data = base64Data.split(',')[1];
 
     const geminiPayload = {
@@ -34,12 +63,11 @@ serve(async (req) => {
         {
           parts: [
             {
-              // 🔴 මෙන්න අලුත්ම AI Deep Filter Prompt එක 🔴
               text: `Analyze this job advertisement carefully. 
 First, determine if the advertiser is a direct employer OR a third-party recruitment/manpower agency hiring on behalf of another client (e.g., 'Our client is looking for', 'Consultancies', 'Headhunters').
 Return ONLY a valid JSON object matching this schema exactly, with NO markdown formatting.
 {
-  "is_agency": boolean, // MUST BE true if it's a manpower/recruitment agency, false if direct employer
+  "is_agency": boolean,
   "title": "Exact job title",
   "org": "Organization name",
   "meq": "One of: NONE, OL, AL, NVQ, DEGREE",
@@ -55,8 +83,6 @@ Return ONLY a valid JSON object matching this schema exactly, with NO markdown f
       ],
       generationConfig: { temperature: 0.1 }
     };
-
-    let lastError = null;
 
     for (let i = 0; i < DEFAULT_CHAIN.length; i++) {
       const modelName = DEFAULT_CHAIN[i];
@@ -74,15 +100,18 @@ Return ONLY a valid JSON object matching this schema exactly, with NO markdown f
         if (response.ok) {
           return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
-        lastError = data.error?.message || `Model ${modelName} rejected request.`;
+        console.error(`Gemini API Error (${modelName}):`, data.error?.message);
       } catch (fetchError: any) {
-        lastError = fetchError.message;
+        console.error(`Fetch Error (${modelName}):`, fetchError.message);
       }
     }
 
-    throw new Error(`All models failed: ${lastError}`);
+    // 🔴 Security Update: Generic error response
+    console.error("All AI models in the chain failed.");
+    return new Response(JSON.stringify({ error: "AI Processing Failed. Please try again later." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.error("Edge Function Unhandled Error:", error.message);
+    return new Response(JSON.stringify({ error: "Internal Server Error." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
