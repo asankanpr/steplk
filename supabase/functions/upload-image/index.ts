@@ -1,32 +1,53 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// 🔴 Security Update: Strict CORS Configuration
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://127.0.0.1:5500',
+  'https://steplk.com',
+  'https://www.steplk.com'
+];
+
+function getCorsHeaders(reqOrigin: string | null) {
+  const origin = ALLOWED_ORIGINS.includes(reqOrigin || '') ? reqOrigin : ALLOWED_ORIGINS[2];
+  return {
+    'Access-Control-Allow-Origin': origin || '*', 
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+}
 
 serve(async (req) => {
+  const reqOrigin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(reqOrigin);
+
   // CORS Preflight Request
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders, status: 200 });
   }
 
   try {
-    // Supabase Secret එකෙන් හෝ නැත්නම් Hardcoded Fallback එකෙන් Key එක ලබාගැනීම
-    const IMGBB_API_KEY = Deno.env.get("IMGBB_API_KEY");
+    // 🔴 Security Update: Auth Check (Authorization header is required)
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      console.warn("Unauthorized upload attempt.");
+      return new Response(JSON.stringify({ success: false, error: "Unauthorized access." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
+    const IMGBB_API_KEY = Deno.env.get("IMGBB_API_KEY");
     if (!IMGBB_API_KEY) {
-      throw new Error("IMGBB_API_KEY is not set in the environment variables.");
+      console.error("CRITICAL: IMGBB_API_KEY is missing.");
+      throw new Error("Server Configuration Error.");
     }
 
     const requestData = await req.json();
     let base64Image = requestData.base64Image;
 
     if (!base64Image) {
-      throw new Error("No image data provided in the request.");
+      console.warn("Bad Request: No image data.");
+      return new Response(JSON.stringify({ success: false, error: "Invalid payload." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Base64 string එකේ prefix එකක් (data:image/...;base64,) තිබේ නම් එය ඉවත් කිරීම
     if (base64Image.includes(',')) {
       base64Image = base64Image.split(',')[1];
     }
@@ -45,24 +66,21 @@ serve(async (req) => {
     if (imgData && imgData.success) {
       return new Response(
         JSON.stringify({ success: true, url: imgData.data.url }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else {
-      console.error("ImgBB API Response Error:", imgData);
-      throw new Error(imgData?.error?.message || "ImgBB upload failed.");
+      console.error("ImgBB Upload Failed:", imgData);
+      return new Response(
+        JSON.stringify({ success: false, error: "External upload service failed." }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
   } catch (error: any) {
-    console.error("Edge Function Error:", error.message);
+    console.error("Upload Edge Function Error:", error.message);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      JSON.stringify({ success: false, error: "Internal Server Error." }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
