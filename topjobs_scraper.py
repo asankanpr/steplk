@@ -249,7 +249,7 @@ if __name__ == "__main__":
     
     successful_inserts = 0
     for job in jobs_list:
-        if successful_inserts >= 10: 
+        if successful_inserts >= 20: 
             break
             
         print(f"\n🔎 රැකියාව පරීක්ෂා කරමින්: {job['popup_url']}")
