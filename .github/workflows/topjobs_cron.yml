@@ -19,7 +19,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install requests supabase beautifulsoup4
+          pip install requests supabase beautifulsoup4 Pillow
 
       - name: Run Scraper
         env:
