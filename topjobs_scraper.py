@@ -7,7 +7,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from supabase import create_client, Client
 
-# --- 1. SECURITY: Supabase Environment Variables ---
+# --- 1. SECURITY & CREDENTIALS ---
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
@@ -16,14 +16,18 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Browser Headers (Topjobs Block වීම වැළැක්වීමට)
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
     'Referer': 'https://www.topjobs.lk/',
 }
-
 BASE_URL = "https://www.topjobs.lk"
+
+# 🔴 LEVEL 1: Fast Blacklist Keywords for Agencies 🔴
+AGENCY_KEYWORDS = [
+    'recruitment', 'manpower', 'consultanc', 'consultant', 'placement', 
+    'headhunter', 'hr solution', 'outsourcing', 'human resource', 'executive search'
+]
 
 # --- 2. SMART DATE CONVERTER ---
 def convert_topjobs_date(date_str):
@@ -42,7 +46,6 @@ def get_today_vacancies():
     try:
         res = requests.get(url, headers=HEADERS, timeout=30)
         if res.status_code != 200:
-            print(f"⚠️ වෙබ් අඩවිය ලබාගත නොහැකි විය. Status Code: {res.status_code}")
             return []
 
         soup = BeautifulSoup(res.text, 'html.parser')
@@ -52,23 +55,24 @@ def get_today_vacancies():
         for row in rows:
             row_html = str(row)
             
-            match = re.search(r"((?:/employer/)?JobAdvertismentServlet\?[^\"'>\s]+)", row_html)
-            if not match:
-                match_popup = re.search(r"open_popup\(['\"]([^'\"]+)['\"]\)", row_html)
-                if match_popup:
-                    popup_path = match_popup.group(1)
-                    full_url = requests.compat.urljoin(BASE_URL, popup_path)
-                else:
-                    continue
+            match_popup = re.search(r"(?:openSizeWindow|open_popup)\(['\"]([^'\"]+)['\"]", row_html)
+            if match_popup:
+                popup_path = match_popup.group(1).replace('%27', '')
+                full_url = requests.compat.urljoin(BASE_URL, popup_path)
             else:
-                servlet_path = match.group(1).replace("&amp;", "&")
-                if not servlet_path.startswith("http"):
-                    full_url = requests.compat.urljoin(BASE_URL, servlet_path)
-                else:
-                    full_url = servlet_path
+                continue
 
             cols = row.find_all('td')
             if len(cols) >= 5:
+                # 🔴 LEVEL 1 FILTER: Check Company Name
+                title_employer_text = cols[1].text.strip()
+                title_employer_lower = title_employer_text.lower()
+                
+                # Manpower / Agency නම් කෙලින්ම Skip කරනවා
+                if any(kw in title_employer_lower for kw in AGENCY_KEYWORDS):
+                    print(f"   🚫 [LEVEL 1 REJECT] Agency Name Detected: {title_employer_text.split()[:5]}...")
+                    continue
+
                 closing_raw = ""
                 for td in cols:
                     td_txt = td.text.strip()
@@ -82,11 +86,11 @@ def get_today_vacancies():
                     'popup_url': full_url
                 })
 
-        print(f"🎯 හමුවූ රැකියා දැන්වීම් ගණන: {len(vacancies)}")
+        print(f"🎯 තෝරාගත් (Genuine) රැකියා දැන්වීම් ගණන: {len(vacancies)}")
         return vacancies
         
     except Exception as e:
-        print(f"❌ Error in get_today_vacancies: {e}")
+        print(f"❌ Error: {e}")
         return []
 
 def extract_flyer_image_url(popup_url):
@@ -102,54 +106,41 @@ def extract_flyer_image_url(popup_url):
         for img in soup.find_all('img'):
             src = img.get('src', '')
             src_lower = src.lower()
-            # 🔴 FIX: .gif ෆෝමැට් එක සහ Topjobs අභ්‍යන්තර ෆෝල්ඩර් පරීක්ෂා කිරීම එකතු කර ඇත
-            if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']) or 'advertisment' in src_lower:
-                if not any(skip in src_lower for skip in ['logo', 'icon', 'button', 'spacer']):
-                    return requests.compat.urljoin(popup_url, src)
-    except Exception as e:
-        print(f"   ⚠️ Image URL සෙවීමේ දෝෂයක්: {e}")
+            if any(skip in src_lower for skip in ['spacer.gif', 'btn', 'icon', 'topjobs']):
+                continue
+            if '/logo/' in src_lower or 'image' in src_lower or any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']):
+                return requests.compat.urljoin(popup_url, src)
+    except Exception:
+        pass
     return None
 
 # --- 4. INTEGRATION & DB INSERTION ---
 def process_and_save_vacancy(job_data):
     topjobs_img_url = extract_flyer_image_url(job_data['popup_url'])
     if not topjobs_img_url:
-        print("   ⚠️ මෙම ලින්ක් එකෙහි Image එකක් හමු නොවිණි (Text පමණක් විය හැක).")
         return False
 
-    print(f"   📥 Flyer පින්තූරය හමු විය: {topjobs_img_url}")
+    print(f"\n   📥 Flyer පින්තූරය හමු විය: {topjobs_img_url}")
 
     try:
+        # SECURITY: Duplicate Checking by original URL first
+        check_dup = supabase.table("posts").select("id").eq("image_url", topjobs_img_url).execute()
+        if len(check_dup.data) > 0:
+            print(f"   🔄 Duplicate: මෙම පෝස්ටුව දැනටමත් ඇත. (Skipped)")
+            return False
+
         img_res = requests.get(topjobs_img_url, headers=HEADERS, timeout=20)
         if img_res.status_code != 200:
-            print(f"   ⚠️ පින්තූරය Download කරගත නොහැකි විය.")
             return False
 
         base64_data = base64.b64encode(img_res.content).decode('utf-8')
         mime_type = "image/jpeg"
         if ".png" in topjobs_img_url.lower(): mime_type = "image/png"
-        elif ".gif" in topjobs_img_url.lower(): mime_type = "image/gif" # GIF Support
+        elif ".gif" in topjobs_img_url.lower(): mime_type = "image/gif" 
 
-        # 1. ImgBB වෙත Upload කිරීම
-        print("   ☁️ ImgBB වෙත Upload කරමින් පවතී...")
-        upload_res = supabase.functions.invoke('upload-image', {
-            'body': {'base64Image': base64_data}
-        })
-
-        upload_data = upload_res.get('data') or {}
-        permanent_img_url = topjobs_img_url
-
-        if upload_data and upload_data.get('success'):
-            permanent_img_url = upload_data.get('url')
-            print(f"   ✅ ImgBB Upload සාර්ථකයි! Link: {permanent_img_url}")
-
-        # 2. Duplicate Checking
-        check_dup = supabase.table("posts").select("id").eq("image_url", permanent_img_url).execute()
-        if len(check_dup.data) > 0:
-            print(f"   🔄 Duplicate: මෙම පෝස්ටුව දැනටමත් ඇත. (Skipped)")
-            return False
-
-        # 3. Gemini Vision
+        # -------------------------------------------------------------
+        # 🤖 1. ඉස්සෙල්ලා AI එකෙන් කියවනවා (Deep Filter)
+        # -------------------------------------------------------------
         print("   🤖 Gemini AI මගින් දත්ත කියවමින් පවතී...")
         invoke_res = supabase.functions.invoke('scan-flyer', {
             'body': {
@@ -169,6 +160,26 @@ def process_and_save_vacancy(job_data):
         import json
         extracted = json.loads(raw_text)
 
+        # 🔴 LEVEL 2 FILTER: Check if AI flagged it as an Agency!
+        if extracted.get("is_agency") == True:
+            print(f"   🚫 [LEVEL 2 REJECT] AI විසින් මෙය Manpower/Agency එකක් බව හඳුනාගත්තා. (Rejected!)")
+            return False
+
+        # -------------------------------------------------------------
+        # ☁️ 2. Genuine නම් පමණක් ImgBB වෙත Upload කිරීම
+        # -------------------------------------------------------------
+        print("   ☁️ Genuine පෝස්ටුවකි. ImgBB වෙත Upload කරමින් පවතී...")
+        upload_res = supabase.functions.invoke('upload-image', {
+            'body': {'base64Image': base64_data}
+        })
+
+        upload_data = upload_res.get('data') or {}
+        permanent_img_url = topjobs_img_url
+
+        if upload_data and upload_data.get('success'):
+            permanent_img_url = upload_data.get('url')
+            print(f"   ✅ ImgBB Upload සාර්ථකයි! Link: {permanent_img_url}")
+
         contact_info = extracted.get('contact', '')
         desc = "පෞද්ගලික අංශයේ රැකියා ඇබෑර්තුවකි."
         if contact_info:
@@ -176,7 +187,7 @@ def process_and_save_vacancy(job_data):
 
         final_closing_date = job_data['closing_date'] if job_data['closing_date'] else extracted.get("closing")
 
-        # 4. Insert to Database
+        # 3. Insert to Database
         payload = {
             "title": extracted.get("title") or "Private Job Vacancy",
             "organization": extracted.get("org") or "Private Company",
@@ -200,11 +211,11 @@ def process_and_save_vacancy(job_data):
         return False
 
 if __name__ == "__main__":
-    print("🚀 Topjobs ස්වයංක්‍රීය Scraper ක්‍රියාවලිය ආරම්භ විය...")
+    print("🚀 Topjobs ස්වයංක්‍රීය (Anti-Spam) Scraper ක්‍රියාවලිය ආරම්භ විය...")
     jobs_list = get_today_vacancies()
     
     successful_inserts = 0
-    # 🔴 FIX: පින්තූර නැති රැකියා මඟහැර හරියටම පෝස්ට් 10ක් Save වන තෙක් ලූප් එක දිවීම
+    # හරියටම පෝස්ට් 10ක් Save වන තෙක් ලූප් එක දිවීම (දිනකට 10ක්)
     for job in jobs_list:
         if successful_inserts >= 10: 
             break
@@ -214,8 +225,8 @@ if __name__ == "__main__":
         
         if is_saved:
             successful_inserts += 1
-            time.sleep(4) # Save වුණොත් විතරක් තත්පර 4ක් ඉන්නවා
+            time.sleep(4) 
         else:
-            time.sleep(1) # නැත්නම් ඉක්මනට ඊළඟ එකට යනවා
+            time.sleep(1) 
             
-    print(f"\n✨ ක්‍රියාවලිය අවසන්! සාර්ථකව ඇතුළත් කළ පෝස්ට් ගණන: {successful_inserts}")
+    print(f"\n✨ ක්‍රියාවලිය අවසන්! සාර්ථකව ඇතුළත් කළ Genuine පෝස්ට් ගණන: {successful_inserts}")
