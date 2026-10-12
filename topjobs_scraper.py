@@ -102,33 +102,42 @@ def extract_flyer_image_url(popup_url, depth=0):
                 img_url = extract_flyer_image_url(nested_url, depth + 1)
                 if img_url: return img_url
 
-        # 🔴 FIX: PDF ෆයිල් එකක් තියෙනවද කියලත් බලනවා
+        # PDF පරීක්ෂාව
         for a_tag in soup.find_all('a'):
             href = a_tag.get('href', '')
             if '.pdf' in href.lower():
                 return requests.compat.urljoin(popup_url, href)
 
-        # 🔴 FIX: පින්තූර පරීක්ෂාව (SMART LOGIC)
+        # -------------------------------------------------------------------
+        # 🔴 100% SMART LOGIC: සැබෑ Flyer Image එක පමණක් තෝරා ගැනීම
+        # -------------------------------------------------------------------
         possible_flyers = []
         for img in soup.find_all('img'):
             src = img.get('src', '')
             src_lower = src.lower()
             
-            # අනවශ්‍ය UI පින්තූර මඟ හැරීම
-            skip_words = ['spacer', 'btn', 'icon', 'blank', 'info.png', 'topjobs', 'print', 'email']
-            if any(skip in src_lower for skip in skip_words):
-                continue
-            
-            # "_small" (Small Company Logo) මඟ හැරීම
-            if '_small' in src_lower:
+            # 1. සම්පූර්ණයෙන්ම ප්‍රතික්ෂේප කළ යුතු දේවල් (UI icons, Topjobs Graphics)
+            if '/images/' in src_lower or 'spacer' in src_lower or 'btn' in src_lower or 'icon' in src_lower:
                 continue
                 
+            # 2. Company Logo එක ප්‍රතික්ෂේප කිරීම (_small)
+            if '_small' in src_lower or 'thumb' in src_lower:
+                continue
+                
+            # 3. මෙය රූපයක්දැයි තහවුරු කරගැනීම
             if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']):
-                possible_flyers.append(requests.compat.urljoin(popup_url, src))
+                full_url = requests.compat.urljoin(popup_url, src)
                 
-        # පළමුව හමුවන හොඳම පින්තූරය ලබාදීම
+                # අපට අවශ්‍ය හරියටම /logo/ ෆෝල්ඩරය තුළ ඇති _small නොවන පින්තූරයයි!
+                # (උදා: https://www.topjobs.lk/logo/DEFZZZ/9363c1036.png)
+                if '/logo/' in src_lower:
+                    return full_url  # 100% ක්ම මේක තමයි Flyer එක. කෙලින්ම return කරනවා!
+                    
+                possible_flyers.append(full_url)
+                
+        # /logo/ නැති වුනොත් පමණක් ඉතිරි වී ඇති ලොකු පින්තූරයක් ගනී
         if possible_flyers:
-            return possible_flyers[0]
+            return possible_flyers[-1]
                 
     except Exception:
         pass
@@ -136,16 +145,16 @@ def extract_flyer_image_url(popup_url, depth=0):
 
 def process_and_save_vacancy(job_data):
     topjobs_img_url = extract_flyer_image_url(job_data['popup_url'])
+    
     if not topjobs_img_url:
-        print("   ⚠️ මෙම ලින්ක් එකෙහි Image හෝ PDF එකක් හමු නොවිණි.")
+        print("   ⚠️ මෙම ලින්ක් එකෙහි Image එකක් හමු නොවිණි (Text හෝ HTML පමණක් විය හැක).")
         return False
 
-    # PDF එකක් නම් අපි ඒක මඟහරිනවා (දැනට Image විතරයි support කරන්නේ)
     if topjobs_img_url.lower().endswith('.pdf'):
         print(f"   ⚠️ PDF Flyer එකක් හමුවිය. එය මඟහරින ලදී: {topjobs_img_url}")
         return False
 
-    print(f"   📥 Flyer පින්තූරය හමු විය: {topjobs_img_url}")
+    print(f"   📥 සැබෑ Flyer පින්තූරය හමු විය: {topjobs_img_url}")
 
     try:
         check_dup = supabase.table("posts").select("id").eq("image_url", topjobs_img_url).execute()
@@ -162,18 +171,30 @@ def process_and_save_vacancy(job_data):
         if ".png" in topjobs_img_url.lower(): mime_type = "image/png"
         elif ".gif" in topjobs_img_url.lower(): mime_type = "image/gif" 
 
-        # 1. Gemini AI මගින් දත්ත කියවීම (Timeout 60 seconds)
+        # -------------------------------------------------------------
+        # 🔴 FIX: AI Request එකට Retry + තත්පර 90ක් ලබාදීම
+        # -------------------------------------------------------------
         print("   🤖 Gemini AI මගින් දත්ත කියවමින් පවතී...")
         scan_url = f"{SUPABASE_URL}/functions/v1/scan-flyer"
-        scan_res = requests.post(
-            scan_url,
-            headers={"Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"},
-            json={'base64Data': base64_data, 'mimeType': mime_type},
-            timeout=60
-        )
         
-        if scan_res.status_code != 200:
-            print(f"   ⚠️ AI කියවීම අසාර්ථක විය (Status: {scan_res.status_code}).")
+        scan_res = None
+        for attempt in range(2): # දෙවරක් උත්සහ කරයි
+            try:
+                scan_res = requests.post(
+                    scan_url,
+                    headers={"Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"},
+                    json={'base64Data': base64_data, 'mimeType': mime_type},
+                    timeout=90  # කාලය තත්පර 90 කට වැඩිකර ඇත
+                )
+                if scan_res.status_code == 200:
+                    break
+            except requests.exceptions.Timeout:
+                print(f"   ⏳ AI Timeout (Attempt {attempt+1}/2). Retrying...")
+            except Exception as e:
+                print(f"   ⚠️ AI Request Error: {e}")
+                
+        if not scan_res or scan_res.status_code != 200:
+            print(f"   ⚠️ AI කියවීම අසාර්ථක විය (Status: {scan_res.status_code if scan_res else 'Timeout'}).")
             return False
 
         res_data = scan_res.json()
@@ -198,7 +219,7 @@ def process_and_save_vacancy(job_data):
             upload_url,
             headers={"Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"},
             json={'base64Image': base64_data},
-            timeout=60
+            timeout=90
         )
         
         permanent_img_url = topjobs_img_url
