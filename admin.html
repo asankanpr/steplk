@@ -596,10 +596,23 @@
 
             // 3. DYNAMIC VIEW FLYER BUTTON
             const viewFlyerBtn = document.getElementById('btn-view-flyer');
-            const flyerUrl = item.image_url || item.pdf_url;
-            if (flyerUrl && flyerUrl.startsWith('http')) {
-                viewFlyerBtn.href = flyerUrl;
-                viewFlyerBtn.classList.remove('hidden');
+            let flyerUrl = item.image_url || item.pdf_url;
+            
+            if (flyerUrl) {
+                // If it is a secure internal Drive reference
+                if (flyerUrl.startsWith('DRIVE_REF_')) {
+                    const fileId = flyerUrl.replace('DRIVE_REF_', '');
+                    // Create a preview link just for the admin dashboard
+                    viewFlyerBtn.href = `https://drive.google.com/file/d/${fileId}/view`;
+                    viewFlyerBtn.classList.remove('hidden');
+                } 
+                // If it's a standard web URL (like from TopJobs or direct image upload)
+                else if (flyerUrl.startsWith('http')) {
+                    viewFlyerBtn.href = flyerUrl;
+                    viewFlyerBtn.classList.remove('hidden');
+                } else {
+                    viewFlyerBtn.classList.add('hidden');
+                }
             } else {
                 viewFlyerBtn.classList.add('hidden');
             }
