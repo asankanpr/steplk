@@ -738,11 +738,21 @@
         document.getElementById('modal-description').innerText = post.description || post.experience_qualifications || 'අමතර කරුණු නොමැත.';
         document.getElementById('modal-category-badge').innerText = post.category || post.type || 'JOB';
 
+        // --- UPDATED DOWNLOAD BUTTON LOGIC ---
         const dlBtn = document.getElementById('modal-download-btn');
         const fileUrl = post.pdf_url || post.image_url;
-        if (fileUrl && fileUrl.startsWith('http')) {
-            dlBtn.href = fileUrl; 
-            dlBtn.classList.remove('hidden');
+        
+        if (fileUrl) {
+            if (fileUrl.startsWith('DRIVE_REF_')) {
+                const fileId = fileUrl.replace('DRIVE_REF_', '');
+                dlBtn.href = `https://drive.google.com/file/d/${fileId}/view`;
+                dlBtn.classList.remove('hidden');
+            } else if (fileUrl.startsWith('http')) {
+                dlBtn.href = fileUrl;
+                dlBtn.classList.remove('hidden');
+            } else {
+                dlBtn.classList.add('hidden');
+            }
         } else {
             dlBtn.classList.add('hidden');
         }
