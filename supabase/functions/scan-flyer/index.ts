@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'; // 🔴 Added Supabase Client
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 // 🔴 Security Update: Strict CORS Configuration
 const ALLOWED_ORIGINS = [
@@ -35,25 +35,36 @@ serve(async (req) => {
   }
 
   try {
-    // 🔴 Security Update: Strict JWT Auth Check via Supabase
+    // 🔴 Security Update: Strict Auth Check (User JWT OR Service Role Key)
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.warn("Unauthorized request attempt (Missing or Invalid token format).");
       return new Response(JSON.stringify({ error: "Unauthorized access." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Initialize Supabase client to verify the token
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
     const token = authHeader.replace('Bearer ', '');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    // Validating the JWT Token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      console.warn("Unauthorized request attempt (Invalid or Expired JWT Token).", authError?.message);
+    let isAuthorized = false;
+
+    // 1. Check if the token is the Server-side Service Role Key (For Cron Jobs / Python Scrapers)
+    if (serviceRoleKey && token === serviceRoleKey) {
+        isAuthorized = true;
+    } 
+    // 2. Check if the token is a Valid User JWT (For Admin Web Panel)
+    else {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+        const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (user && !authError) {
+            isAuthorized = true;
+        }
+    }
+
+    if (!isAuthorized) {
+      console.warn("Unauthorized request attempt (Invalid Token).");
       return new Response(JSON.stringify({ error: "Invalid token. Unauthorized access." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -122,6 +133,7 @@ Return ONLY a valid JSON object matching this schema exactly, with NO markdown f
       }
     }
 
+    // 🔴 Security Update: Generic error response
     console.error("All AI models in the chain failed.");
     return new Response(JSON.stringify({ error: "AI Processing Failed. Please try again later." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
