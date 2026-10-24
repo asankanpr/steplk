@@ -2,10 +2,10 @@ name: Topjobs Auto Scraper Cron
 
 on:
   schedule:
-    #- cron: '0 5 * * *'   # හරියටම උදෑසන 10:30 (Sri Lanka Time)
-    #- cron: '0 10 * * *'   # 03:30 PM (පස්වරු 03:30)
-    #- cron: '0 13 * * *'   # 06:30 PM (සවස 06:30)
-    #- cron: '30 0 * * *'   # 06:00 AM (උදෑසන 06:00)  
+    - cron: '0 5 * * *'   # හරියටම උදෑසන 10:30 (Sri Lanka Time)
+    - cron: '0 10 * * *'   # 03:30 PM (පස්වරු 03:30)
+    - cron: '0 13 * * *'   # 06:30 PM (සවස 06:30)
+    - cron: '30 0 * * *'   # 06:00 AM (උදෑසන 06:00)  
   workflow_dispatch:      # Manual එකේ Run කරන්න බොත්තමක් දෙනවා
 
 jobs:
