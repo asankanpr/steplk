@@ -47,8 +47,12 @@ HTTP_HEADERS = {
     'Accept-Language': 'en-US,en;q=0.9,si;q=0.8'
 }
 
-# 🔴 SMART FILTER: Blacklisted Domains & Keywords
-JUNK_DOMAINS = ['googletagmanager', 'google-analytics', 'facebook.com/tr', 'youtube.com', 'vimeo.com', 'fonts.googleapis', 'twitter.com']
+# 🔴 SMART FILTER: Blacklisted Domains & Keywords (Updated with localhost)
+JUNK_DOMAINS = [
+    'googletagmanager', 'google-analytics', 'facebook.com/tr', 'youtube.com', 
+    'vimeo.com', 'fonts.googleapis', 'twitter.com', 'localhost', '127.0.0.1', 
+    'test.com', 'example.com'
+]
 JUNK_IMAGE_KEYWORDS = ['logo', 'icon', 'banner', 'thumb', 'avatar', 'bg', 'background', 'footer', 'header', 'social', 'button', 'qr', 'ratesheet', 'advertise', 'payment']
 
 def clean_date_format(date_str):
@@ -306,8 +310,8 @@ def process_sl_job_scraper_vacancies():
             raw_target_url = file_link if (file_link and str(file_link).startswith("http")) else web_link
             target_file_url = resolve_actual_file_url(raw_target_url)
 
-            if not target_file_url:
-                print(f"🚫 [SMART REJECT] ID {vac_id} - Valid Flyer Document Not Found. Marking as Junk.")
+            if not target_file_url or 'localhost' in target_file_url.lower():
+                print(f"🚫 [SMART REJECT] ID {vac_id} - Invalid or Localhost URL. Marking as Junk.")
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
                 total_skipped += 1
                 continue
