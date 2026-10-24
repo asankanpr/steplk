@@ -8,6 +8,8 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import fitz  # PyMuPDF - PDF to Image Converter
+from PIL import Image
+import io
 from google import genai
 from google.genai import types
 from supabase import create_client, Client
@@ -32,9 +34,9 @@ SL_TZ = timezone(timedelta(hours=5, minutes=30))
 
 # AI Fallback Model Chain
 DEFAULT_CHAIN = [
-    "gemini-3.8-flash",       # Tier 1: Primary Model
+    "gemini-3.5-flash",       # Tier 1: Workhorse
     "gemini-3.6-flash",       # Tier 2: Backup
-    "gemini-3.5-flash",       # Tier 3: Workhorse
+    "gemini-3.8-flash",       # Tier 3: Primary Model
     "gemini-3.5-flash-lite",  # Tier 4: Lite
     "gemini-3.1-flash-lite"   # Tier 5: High Buffer
 ]
@@ -44,6 +46,10 @@ HTTP_HEADERS = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,pdf;q=0.8,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.9,si;q=0.8'
 }
+
+# 🔴 SMART FILTER: Blacklisted Domains & Keywords
+JUNK_DOMAINS = ['googletagmanager', 'google-analytics', 'facebook.com/tr', 'youtube.com', 'vimeo.com', 'fonts.googleapis', 'twitter.com']
+JUNK_IMAGE_KEYWORDS = ['logo', 'icon', 'banner', 'thumb', 'avatar', 'bg', 'background', 'footer', 'header', 'social', 'button']
 
 def clean_date_format(date_str):
     if not date_str or not isinstance(date_str, str):
@@ -102,12 +108,9 @@ def get_url_with_ssl_fallback(url, timeout=15):
     it logs a warning and retries without SSL verification as a fallback.
     """
     try:
-        # First attempt: Secure request (verify=True is default)
         return requests.get(url, headers=HTTP_HEADERS, timeout=timeout)
     except requests.exceptions.SSLError as e:
         print(f"⚠️ SSL Verification failed for {url}. Attempting insecure fallback...")
-        # Second attempt: Insecure request (Fallback only for broken SSL)
-        # Suppress the warning just for this specific fallback call to avoid log spam
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         return requests.get(url, headers=HTTP_HEADERS, timeout=timeout, verify=False)
@@ -115,12 +118,48 @@ def get_url_with_ssl_fallback(url, timeout=15):
         print(f"❌ Network Error for {url}: {e}")
         raise
 
+def is_valid_flyer_image(image_bytes):
+    """
+    පින්තූරයක් AI එකට යැවීමට පෙර, එය කුඩා Logo එකක්ද නැතිනම් සැබෑ Flyer එකක්දැයි පරීක්ෂා කිරීම.
+    """
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        width, height = img.size
+        
+        # 300x300 ට වඩා කුඩා නම් (Logo හෝ Icon විය හැක) එය Reject කරයි.
+        if width < 300 or height < 300:
+            print(f"   🚫 [SMART REJECT] Image too small ({width}x{height}). Likely a logo/icon.")
+            return False
+            
+        # Aspect Ratio (Flyer එකක් සාමාන්‍යයෙන් දිගටියි හෝ සමචතුරස්‍රයි)
+        aspect_ratio = width / height
+        if aspect_ratio > 3.0 or aspect_ratio < 0.3:
+            print(f"   🚫 [SMART REJECT] Extreme Aspect Ratio ({aspect_ratio:.2f}). Likely a banner.")
+            return False
+            
+        return True
+    except Exception as e:
+        print(f"   ⚠️ Image validation error: {e}")
+        return True # Error ආවොත් සැකයට වාසි දී AI එකට යවයි.
+
 def resolve_actual_file_url(url):
+    """
+    Smart Web Scraper - අනවශ්‍ය ලින්ක් මඟ හැර සැබෑ Flyer එක පමණක් සොයා ගැනීම.
+    """
     if not url or not isinstance(url, str):
         return None
     
+    # 1. Block Junk Domains completely
+    if any(domain in url.lower() for domain in JUNK_DOMAINS):
+        print(f"   🚫 [SMART REJECT] Blocked junk domain: {url}")
+        return None
+
     lower_url = url.lower()
     if any(lower_url.endswith(ext) for ext in ['.pdf', '.jpg', '.jpeg', '.png', '.webp']):
+        # කෙලින්ම file එකක් නම්, නමේ junk keywords තියෙනවද බලන්න
+        if any(keyword in lower_url for keyword in JUNK_IMAGE_KEYWORDS):
+            print(f"   🚫 [SMART REJECT] Direct URL contains junk keyword: {url}")
+            return None
         return url
 
     try:
@@ -133,31 +172,43 @@ def resolve_actual_file_url(url):
             
             soup = BeautifulSoup(res.text, 'html.parser')
             
-            # 1. මුලින්ම PDF Links තියෙනවද බලන්න
+            # 2. Page Title Validation (රැකියා සම්බන්ධ පිටුවක්දැයි බැලීම)
+            page_title = soup.title.string.lower() if soup.title and soup.title.string else ""
+            valid_title_keywords = ['vacancy', 'vacancies', 'career', 'job', 'post', 'application', 'recruit', 'ඇබෑර්තු', 'රැකියා']
+            if not any(kw in page_title for kw in valid_title_keywords):
+                print(f"   ⚠️ [WARNING] Page title '{page_title}' does not seem job-related. Still checking images cautiously.")
+
+            # 3. PDF Links සොයන්න
             for a_tag in soup.find_all('a', href=True):
                 href = a_tag['href']
-                if '.pdf' in href.lower():
+                if '.pdf' in href.lower() and not any(kw in href.lower() for kw in ['guideline', 'policy']):
                     found_url = urljoin(url, href)
                     print(f"🎯 Found PDF link inside HTML: {found_url}")
                     return found_url
             
-            # 2. Images හොයන්න (Logo සහ Icons අයින් කරලා)
+            # 4. Images හොයන්න (Smart Filtering සමඟ)
             possible_images = []
             for img in soup.find_all(['img', 'embed', 'iframe'], src=True):
-                src = img['src']
+                src = img.get('src', '')
                 src_lower = src.lower()
                 
-                # JUNK පින්තූර (Logos, Icons, Banners) මඟ හරින්න
-                if any(bad_word in src_lower for bad_word in ['logo', 'icon', 'banner', 'avatar', 'thumb', 'svg']):
+                # JUNK පින්තූර (Logos, Icons, Trackers) මඟ හරින්න
+                if any(bad_word in src_lower for bad_word in JUNK_IMAGE_KEYWORDS):
+                    continue
+                if any(domain in src_lower for domain in JUNK_DOMAINS):
                     continue
                 
                 if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp']):
                     full_url = urljoin(url, src)
+                    
+                    # Social media share icons අයින් කරන්න
+                    if 'wp-content/plugins' in full_url or 'social-media' in full_url:
+                        continue
+                        
                     possible_images.append(full_url)
             
-            # හරියටම ගැලපෙන (බොහෝවිට අන්තිමට හෝ මැද තියෙන ලොකුම පින්තූරය) ගන්න
             if possible_images:
-                # සාමාන්‍යයෙන් Article එකක් ඇතුලේ තියෙන Flyer එක තියෙන්නේ list එකේ අගට වෙන්නයි.
+                # සැබෑ Flyer එක සාමාන්‍යයෙන් පිටුවේ මැද හෝ අග තියෙන්නේ. ලොකුම/අන්තිම එක ගන්න.
                 best_image_url = possible_images[-1] 
                 print(f"🎯 Found High-Probability Job Flyer Image: {best_image_url}")
                 return best_image_url
@@ -165,7 +216,7 @@ def resolve_actual_file_url(url):
     except Exception as e:
         print(f"⚠️ Webpage link resolution warning: {e}")
         
-    return url
+    return None
 
 def convert_pdf_to_images(pdf_bytes, max_pages=3):
     images = []
@@ -251,7 +302,7 @@ def extract_with_gemini_vision(image_bytes_list):
     raise RuntimeError(f"❌ All Gemini models in DEFAULT_CHAIN failed! Last error: {last_error}")
 
 def process_sl_job_scraper_vacancies():
-    print("🔄 `sl-job-scraper` sync process ආරම්භ විය...")
+    print("🔄 `sl-job-scraper` (SMART SYNC) process ආරම්භ විය...")
 
     total_processed = 0
     total_skipped = 0
@@ -290,17 +341,31 @@ def process_sl_job_scraper_vacancies():
             has_gemini_error = False
 
             raw_target_url = file_link if (file_link and str(file_link).startswith("http")) else web_link
+            
+            # SMART URL RESOLUTION
             target_file_url = resolve_actual_file_url(raw_target_url)
+
+            if not target_file_url:
+                print(f"🚫 [SMART REJECT] ID {vac_id} - Valid Flyer Document Not Found. Marking as Junk.")
+                supabase_src.table("vacancies").update({"is_processed": True, "admin_note": "Junk/No Valid Document"}).eq("id", vac_id).execute()
+                total_skipped += 1
+                continue
 
             if target_file_url:
                 try:
                     print(f"📥 Downloading document/file from: {target_file_url}")
-                    # Updated to use the secure fallback function for downloading the file
                     file_res = get_url_with_ssl_fallback(target_file_url, timeout=25) 
                     
                     if file_res and file_res.status_code == 200:
                         file_bytes = file_res.content
                         is_pdf = ".pdf" in target_file_url.lower() or "application/pdf" in file_res.headers.get("Content-Type", "").lower()
+                        
+                        # SMART IMAGE DIMENSION VALIDATION (Save AI Quota)
+                        if not is_pdf:
+                            if not is_valid_flyer_image(file_bytes):
+                                supabase_src.table("vacancies").update({"is_processed": True, "admin_note": "Image too small (Logo/Icon)"}).eq("id", vac_id).execute()
+                                total_skipped += 1
+                                continue
                         
                         images_to_process = []
                         if is_pdf:
@@ -326,7 +391,7 @@ def process_sl_job_scraper_vacancies():
             is_valid_ad = extracted_data.get("is_valid_ad", True)
             if not is_valid_ad:
                 reason = extracted_data.get("rejection_reason", "Not a job or course vacancy")
-                print(f"🗑 [JUNK REJECTED] ID {vac_id} - {reason}. Skipping & marking processed...")
+                print(f"🗑️ [JUNK REJECTED] ID {vac_id} - {reason}. Skipping & marking processed...")
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
                 total_skipped += 1
                 continue
@@ -342,6 +407,8 @@ def process_sl_job_scraper_vacancies():
 
             final_title = extracted_data.get("title") or title
             final_org = extracted_data.get("organization") or company
+
+            # Removed strict agency filtering here to ensure posts reach Admin panel
 
             if is_duplicate_post(final_title, final_org, target_file_url, final_closing_date):
                 print(f"🔄 [DUPLICATE DETECTED] ID {vac_id} - ({final_title} | {final_org}) දැනටමත් පවතී. Skipping...")
