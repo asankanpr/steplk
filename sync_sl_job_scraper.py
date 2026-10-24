@@ -125,7 +125,7 @@ def resolve_actual_file_url(url):
 
     try:
         print(f"🔍 Inspecting webpage for embedded document: {url}")
-        res = get_url_with_ssl_fallback(url) # Updated to use the secure fallback function
+        res = get_url_with_ssl_fallback(url) 
         if res and res.status_code == 200:
             content_type = res.headers.get('Content-Type', '').lower()
             if 'application/pdf' in content_type or 'image/' in content_type:
@@ -133,19 +133,35 @@ def resolve_actual_file_url(url):
             
             soup = BeautifulSoup(res.text, 'html.parser')
             
+            # 1. මුලින්ම PDF Links තියෙනවද බලන්න
             for a_tag in soup.find_all('a', href=True):
                 href = a_tag['href']
-                if any(ext in href.lower() for ext in ['.pdf', '.jpg', '.jpeg', '.png']):
+                if '.pdf' in href.lower():
                     found_url = urljoin(url, href)
-                    print(f"🎯 Found PDF/Image link inside HTML: {found_url}")
+                    print(f"🎯 Found PDF link inside HTML: {found_url}")
                     return found_url
             
-            for embed in soup.find_all(['iframe', 'embed', 'img'], src=True):
-                src = embed['src']
-                if any(ext in src.lower() for ext in ['.pdf', '.jpg', '.jpeg', '.png']):
-                    found_url = urljoin(url, src)
-                    print(f"🎯 Found embedded PDF/Image source: {found_url}")
-                    return found_url
+            # 2. Images හොයන්න (Logo සහ Icons අයින් කරලා)
+            possible_images = []
+            for img in soup.find_all(['img', 'embed', 'iframe'], src=True):
+                src = img['src']
+                src_lower = src.lower()
+                
+                # JUNK පින්තූර (Logos, Icons, Banners) මඟ හරින්න
+                if any(bad_word in src_lower for bad_word in ['logo', 'icon', 'banner', 'avatar', 'thumb', 'svg']):
+                    continue
+                
+                if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+                    full_url = urljoin(url, src)
+                    possible_images.append(full_url)
+            
+            # හරියටම ගැලපෙන (බොහෝවිට අන්තිමට හෝ මැද තියෙන ලොකුම පින්තූරය) ගන්න
+            if possible_images:
+                # සාමාන්‍යයෙන් Article එකක් ඇතුලේ තියෙන Flyer එක තියෙන්නේ list එකේ අගට වෙන්නයි.
+                best_image_url = possible_images[-1] 
+                print(f"🎯 Found High-Probability Job Flyer Image: {best_image_url}")
+                return best_image_url
+                
     except Exception as e:
         print(f"⚠️ Webpage link resolution warning: {e}")
         
