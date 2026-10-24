@@ -7,7 +7,7 @@ from datetime import timezone, timedelta
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-import pymupdf  # Updated from fitz to pymupdf to remove the warning
+import pymupdf  # PDF to Image Converter
 from PIL import Image
 import io
 from google import genai
@@ -34,11 +34,11 @@ SL_TZ = timezone(timedelta(hours=5, minutes=30))
 
 # AI Fallback Model Chain
 DEFAULT_CHAIN = [
-    "gemini-3.8-flash",       # Tier 1: Primary Model
-    "gemini-3.6-flash",       # Tier 2: Backup
-    "gemini-3.5-flash",       # Tier 3: Workhorse
-    "gemini-3.5-flash-lite",  # Tier 4: Lite
-    "gemini-3.1-flash-lite"   # Tier 5: High Buffer
+    "gemini-3.8-flash",       
+    "gemini-3.6-flash",       
+    "gemini-3.5-flash",       
+    "gemini-3.5-flash-lite",  
+    "gemini-3.1-flash-lite"   
 ]
 
 HTTP_HEADERS = {
@@ -49,39 +49,31 @@ HTTP_HEADERS = {
 
 # 🔴 SMART FILTER: Blacklisted Domains & Keywords
 JUNK_DOMAINS = ['googletagmanager', 'google-analytics', 'facebook.com/tr', 'youtube.com', 'vimeo.com', 'fonts.googleapis', 'twitter.com']
-JUNK_IMAGE_KEYWORDS = ['logo', 'icon', 'banner', 'thumb', 'avatar', 'bg', 'background', 'footer', 'header', 'social', 'button']
+JUNK_IMAGE_KEYWORDS = ['logo', 'icon', 'banner', 'thumb', 'avatar', 'bg', 'background', 'footer', 'header', 'social', 'button', 'qr', 'ratesheet', 'advertise', 'payment']
 
 def clean_date_format(date_str):
     if not date_str or not isinstance(date_str, str):
         return None
-    
     cleaned = date_str.strip()
     if cleaned.upper() in ["N/A", "NONE", "NULL", ""]:
         return None
-
     date_match = re.search(r'(\d{4}-\d{2}-\d{2})', cleaned)
     if date_match:
         return date_match.group(1)
-    
     return None
 
 def is_post_expired(closing_date_str):
     if not closing_date_str:
         return False
-
     try:
         y, m, d = map(int, closing_date_str.split('-'))
         closing_date = datetime.date(y, m, d)
         today_sl = datetime.datetime.now(SL_TZ).date()
-
-        # දින 90 කට වඩා පරණ ඒවා පමණක් අත්හරින්න
         expiration_limit = today_sl - datetime.timedelta(days=90)
-
         if closing_date < expiration_limit:
             return True
     except ValueError:
         pass
-
     return False
 
 def is_duplicate_post(title, organization, pdf_url, closing_date=None):
@@ -91,17 +83,15 @@ def is_duplicate_post(title, organization, pdf_url, closing_date=None):
             if res_url.data and len(res_url.data) > 0:
                 return True
 
-        if title and organization:
+        if title and organization and title != "Job Vacancy" and organization != "N/A":
             query = supabase_dest.table("posts").select("id").ilike("title", title).ilike("organization", organization)
             if closing_date:
                 query = query.eq("closing_date", closing_date)
             res_meta = query.limit(1).execute()
             if res_meta.data and len(res_meta.data) > 0:
                 return True
-
     except Exception as e:
         print(f"⚠️ Duplicate check validation warning: {e}")
-
     return False
 
 def get_url_with_ssl_fallback(url, timeout=15):
@@ -132,8 +122,8 @@ def is_valid_flyer_image(image_bytes):
             
         return True
     except Exception as e:
-        print(f"   ⚠️ Image validation error: {e}")
-        return True 
+        print(f"   🚫 [SMART REJECT] Image validation error (Corrupt Image): {e}")
+        return False 
 
 def resolve_actual_file_url(url):
     if not url or not isinstance(url, str):
@@ -159,7 +149,6 @@ def resolve_actual_file_url(url):
                 return url
             
             soup = BeautifulSoup(res.text, 'html.parser')
-            
             page_title = soup.title.string.lower() if soup.title and soup.title.string else ""
             valid_title_keywords = ['vacancy', 'vacancies', 'career', 'job', 'post', 'application', 'recruit', 'ඇබෑර්තු', 'රැකියා']
             if not any(kw in page_title for kw in valid_title_keywords):
@@ -184,10 +173,8 @@ def resolve_actual_file_url(url):
                 
                 if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp']):
                     full_url = urljoin(url, src)
-                    
                     if 'wp-content/plugins' in full_url or 'social-media' in full_url:
                         continue
-                        
                     possible_images.append(full_url)
             
             if possible_images:
@@ -206,7 +193,6 @@ def convert_pdf_to_images(pdf_bytes, max_pages=3):
         doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
         total_pages = min(len(doc), max_pages)
         print(f"🖼️ Converting PDF ({total_pages} pages) to High-Res Images for OCR...")
-        
         for page_num in range(total_pages):
             page = doc.load_page(page_num)
             pix = page.get_pixmap(dpi=200)
@@ -214,7 +200,6 @@ def convert_pdf_to_images(pdf_bytes, max_pages=3):
             images.append(img_bytes)
     except Exception as e:
         print(f"⚠️ PDF to Image conversion failed: {e}")
-        
     return images
 
 def extract_with_gemini_vision(image_bytes_list):
@@ -252,27 +237,18 @@ def extract_with_gemini_vision(image_bytes_list):
     }
     Respond strictly with valid JSON.
     """
-
     contents = []
     for img_bytes in image_bytes_list:
         contents.append(genai.types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"))
     contents.append(prompt)
 
-    config = types.GenerateContentConfig(
-        temperature=0.0,
-        response_mime_type="application/json"
-    )
-
+    config = types.GenerateContentConfig(temperature=0.0, response_mime_type="application/json")
     last_error = None
 
     for model_name in DEFAULT_CHAIN:
         try:
             print(f"🤖 Calling AI Vision Model: {model_name}...")
-            response = ai_client.models.generate_content(
-                model=model_name,
-                contents=contents,
-                config=config
-            )
+            response = ai_client.models.generate_content(model=model_name, contents=contents, config=config)
             data = json.loads(response.text.strip())
             print(f"✅ Extraction Successful with Model [{model_name}]")
             return data
@@ -285,7 +261,6 @@ def extract_with_gemini_vision(image_bytes_list):
 
 def process_sl_job_scraper_vacancies():
     print("🔄 `sl-job-scraper` (SMART SYNC) process ආරම්භ විය...")
-
     total_processed = 0
     total_skipped = 0
     batch_num = 1
@@ -307,14 +282,20 @@ def process_sl_job_scraper_vacancies():
             title = vac.get("post_title", "Job Vacancy")
             raw_closing = vac.get("closing_date")
             clean_closing = clean_date_format(raw_closing)
-            
             web_link = vac.get("web_link", "") or ""
             file_link = vac.get("file_link") or ""
 
             print(f"\n📄 Processing ID {vac_id}: {title} ({company})...")
 
+            # PRE-CHECK 1: Expiration & Source DB Duplicates check
             if clean_closing and is_post_expired(clean_closing):
                 print(f"⏩ [Pre-Check] ID {vac_id} - Post Expired ({clean_closing}). Skipping...")
+                supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
+                total_skipped += 1
+                continue
+
+            if is_duplicate_post(title, company, None, None):
+                print(f"⏩ [Pre-Check] ID {vac_id} - ({title} | {company}) දැනටමත් Admin Panel හි ඇත. Skipping...")
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
                 total_skipped += 1
                 continue
@@ -323,51 +304,59 @@ def process_sl_job_scraper_vacancies():
             has_gemini_error = False
 
             raw_target_url = file_link if (file_link and str(file_link).startswith("http")) else web_link
-            
             target_file_url = resolve_actual_file_url(raw_target_url)
 
             if not target_file_url:
                 print(f"🚫 [SMART REJECT] ID {vac_id} - Valid Flyer Document Not Found. Marking as Junk.")
-                # Removed admin_note column to fix Database Schema Error
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
                 total_skipped += 1
                 continue
 
-            if target_file_url:
-                try:
-                    print(f"📥 Downloading document/file from: {target_file_url}")
-                    file_res = get_url_with_ssl_fallback(target_file_url, timeout=25) 
+            # PRE-CHECK 2: AI එකට යවන්න කලින් URL එක Admin panel එකේ තියෙනවද බලන්න
+            if is_duplicate_post(None, None, target_file_url, None):
+                print(f"⏩ [Pre-Check] ID {vac_id} - Document URL දැනටමත් Admin Panel හි ඇත. Skipping...")
+                supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
+                total_skipped += 1
+                continue
+
+            try:
+                print(f"📥 Downloading document/file from: {target_file_url}")
+                file_res = get_url_with_ssl_fallback(target_file_url, timeout=25) 
+                
+                if file_res and file_res.status_code == 200:
+                    file_bytes = file_res.content
+                    is_pdf = ".pdf" in target_file_url.lower() or "application/pdf" in file_res.headers.get("Content-Type", "").lower()
                     
-                    if file_res and file_res.status_code == 200:
-                        file_bytes = file_res.content
-                        is_pdf = ".pdf" in target_file_url.lower() or "application/pdf" in file_res.headers.get("Content-Type", "").lower()
-                        
-                        if not is_pdf:
-                            if not is_valid_flyer_image(file_bytes):
-                                # Removed admin_note column to fix Database Schema Error
-                                supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
-                                total_skipped += 1
-                                continue
-                        
-                        images_to_process = []
-                        if is_pdf:
-                            images_to_process = convert_pdf_to_images(file_bytes, max_pages=3)
-                        else:
-                            images_to_process = [file_bytes]
-
-                        if images_to_process:
-                            print(f"📸 Sending {len(images_to_process)} image(s) to Gemini Vision OCR...")
-                            extracted_data = extract_with_gemini_vision(images_to_process)
-                        else:
-                            print("⚠️ No valid images extracted from document.")
+                    if not is_pdf:
+                        if not is_valid_flyer_image(file_bytes):
+                            supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
+                            total_skipped += 1
+                            continue
+                    
+                    images_to_process = []
+                    if is_pdf:
+                        images_to_process = convert_pdf_to_images(file_bytes, max_pages=3)
                     else:
-                        print(f"⚠️ Download failed HTTP Status: {file_res.status_code if file_res else 'Unknown'}")
-                except Exception as e:
-                    print(f"⚠️ Extraction Error for ID {vac_id}: {e}")
-                    has_gemini_error = True
+                        images_to_process = [file_bytes]
 
+                    if images_to_process:
+                        print(f"📸 Sending {len(images_to_process)} image(s) to Gemini Vision OCR...")
+                        extracted_data = extract_with_gemini_vision(images_to_process)
+                    else:
+                        print("⚠️ No valid images extracted from document.")
+                        has_gemini_error = True
+                else:
+                    print(f"⚠️ Download failed HTTP Status: {file_res.status_code if file_res else 'Unknown'}")
+                    has_gemini_error = True
+            except Exception as e:
+                print(f"⚠️ Extraction Error for ID {vac_id}: {e}")
+                has_gemini_error = True
+
+            # 🔴 FAIL-SAFE: Error ආවත් is_processed = True කර ලූප් එක නතර කිරීම
             if has_gemini_error:
-                print(f"⏳ Processing error for ID {vac_id}. Skipping for next run.")
+                print(f"⏳ Processing error for ID {vac_id}. Marking as processed to prevent infinite loops.")
+                supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
+                total_skipped += 1
                 continue
 
             is_valid_ad = extracted_data.get("is_valid_ad", True)
@@ -390,6 +379,7 @@ def process_sl_job_scraper_vacancies():
             final_title = extracted_data.get("title") or title
             final_org = extracted_data.get("organization") or company
 
+            # FINAL CHECK: AI එකෙන් ගත් නිවැරදි නම සහ ආයතනය Database එකේ තිබේදැයි බැලීම
             if is_duplicate_post(final_title, final_org, target_file_url, final_closing_date):
                 print(f"🔄 [DUPLICATE DETECTED] ID {vac_id} - ({final_title} | {final_org}) දැනටමත් පවතී. Skipping...")
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
