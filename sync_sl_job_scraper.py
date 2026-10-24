@@ -47,13 +47,15 @@ HTTP_HEADERS = {
     'Accept-Language': 'en-US,en;q=0.9,si;q=0.8'
 }
 
-# 🔴 SMART FILTER: Blacklisted Domains & Keywords (Updated with localhost)
+# 🔴 SMART FILTER: Blacklisted Domains & Keywords
 JUNK_DOMAINS = [
     'googletagmanager', 'google-analytics', 'facebook.com/tr', 'youtube.com', 
-    'vimeo.com', 'fonts.googleapis', 'twitter.com', 'localhost', '127.0.0.1', 
-    'test.com', 'example.com'
+    'vimeo.com', 'fonts.googleapis', 'twitter.com', 'localhost', '127.0.0.1'
 ]
-JUNK_IMAGE_KEYWORDS = ['logo', 'icon', 'banner', 'thumb', 'avatar', 'bg', 'background', 'footer', 'header', 'social', 'button', 'qr', 'ratesheet', 'advertise', 'payment']
+JUNK_IMAGE_KEYWORDS = [
+    'logo', 'icon', 'banner', 'thumb', 'avatar', 'bg', 'background', 
+    'footer', 'header', 'social', 'button', 'qr', 'ratesheet', 'advertise', 'payment'
+]
 
 def clean_date_format(date_str):
     if not date_str or not isinstance(date_str, str):
@@ -101,7 +103,7 @@ def is_duplicate_post(title, organization, pdf_url, closing_date=None):
 def get_url_with_ssl_fallback(url, timeout=15):
     try:
         return requests.get(url, headers=HTTP_HEADERS, timeout=timeout)
-    except requests.exceptions.SSLError as e:
+    except requests.exceptions.SSLError:
         print(f"⚠️ SSL Verification failed for {url}. Attempting insecure fallback...")
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -291,6 +293,19 @@ def process_sl_job_scraper_vacancies():
 
             print(f"\n📄 Processing ID {vac_id}: {title} ({company})...")
 
+            # 🔴 SMART PRE-CHECK: Topjobs ලින්ක් සම්පූර්ණයෙන්ම අත්හැරීම
+            is_topjobs = False
+            if 'topjobs.lk' in web_link.lower() or 'topjobs.lk' in str(file_link).lower():
+                is_topjobs = True
+            if 'javascript:opensizewindow' in web_link.lower() or 'javascript:open_popup' in web_link.lower():
+                is_topjobs = True
+
+            if is_topjobs:
+                print(f"⏩ [Pre-Check] ID {vac_id} - Topjobs Link Detected. Skipping permanently...")
+                supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
+                total_skipped += 1
+                continue
+
             # PRE-CHECK 1: Expiration & Source DB Duplicates check
             if clean_closing and is_post_expired(clean_closing):
                 print(f"⏩ [Pre-Check] ID {vac_id} - Post Expired ({clean_closing}). Skipping...")
@@ -308,15 +323,16 @@ def process_sl_job_scraper_vacancies():
             has_gemini_error = False
 
             raw_target_url = file_link if (file_link and str(file_link).startswith("http")) else web_link
+            
             target_file_url = resolve_actual_file_url(raw_target_url)
 
-            if not target_file_url or 'localhost' in target_file_url.lower():
-                print(f"🚫 [SMART REJECT] ID {vac_id} - Invalid or Localhost URL. Marking as Junk.")
+            if not target_file_url:
+                print(f"🚫 [SMART REJECT] ID {vac_id} - Valid Flyer Document Not Found. Marking as Junk.")
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
                 total_skipped += 1
                 continue
 
-            # PRE-CHECK 2: AI එකට යවන්න කලින් URL එක Admin panel එකේ තියෙනවද බලන්න
+            # PRE-CHECK 2: URL එක Admin panel එකේ තියෙනවද බලන්න
             if is_duplicate_post(None, None, target_file_url, None):
                 print(f"⏩ [Pre-Check] ID {vac_id} - Document URL දැනටමත් Admin Panel හි ඇත. Skipping...")
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
@@ -383,7 +399,6 @@ def process_sl_job_scraper_vacancies():
             final_title = extracted_data.get("title") or title
             final_org = extracted_data.get("organization") or company
 
-            # FINAL CHECK: AI එකෙන් ගත් නිවැරදි නම සහ ආයතනය Database එකේ තිබේදැයි බැලීම
             if is_duplicate_post(final_title, final_org, target_file_url, final_closing_date):
                 print(f"🔄 [DUPLICATE DETECTED] ID {vac_id} - ({final_title} | {final_org}) දැනටමත් පවතී. Skipping...")
                 supabase_src.table("vacancies").update({"is_processed": True}).eq("id", vac_id).execute()
